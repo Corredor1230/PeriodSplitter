@@ -7,14 +7,11 @@ Correlator::Correlator(std::vector<float>& file, SF_INFO& info, float sizeInMs, 
 
 	if (sfInfo.channels > 1)
 		separateChannels(audioFile);
-
-	/*Magic number set to wavelength of 20Hz
-	Might have to make a bit less arbitrary later*/
-	setWindowSize(sizeInMs);
-	setHopLength(hopInMs);
 	correlation.resize(audioFile.size() + windowSize);
 
 	findPitch();
+
+	windowSize = (int)(((float)sampleRate / pitch) + 0.1 * (float)sampleRate / (pitch));
 
 	int rmsLength = (int)(sampleRate / pitch) / 2;
 	rmsTransient.resize(rmsLength);
@@ -507,7 +504,10 @@ int Correlator::findPreviousZero(int startSample)
 
 		if (zeroFound)
 		{
-			zeroSample = i - 1;
+			if (std::abs(audioFile[i - 2]) < std::abs(audioFile[i - 1]))
+				zeroSample = i - 2;
+			else
+				zeroSample = i - 1;
 			break;
 		}
 	}
@@ -531,7 +531,10 @@ int Correlator::findNearestZero(int startSample)
 
 		if (zeroFound)
 		{
-			prevZero = i - 1;
+			if (std::abs(audioFile[i - 1]) < std::abs(audioFile[i - 2]))
+				prevZero = i - 1;
+			else
+				prevZero = i - 2;
 			distanceA = std::abs(startSample - prevZero);
 			break;
 		}
@@ -546,6 +549,10 @@ int Correlator::findNearestZero(int startSample)
 
 		if (zeroFound)
 		{
+			if (std::abs(audioFile[i + 1]) < std::abs(audioFile[i + 2]))
+				prevZero = i + 1;
+			else
+				prevZero = i + 2;
 			nextZero = i + 1;
 			distanceB = std::abs(startSample - nextZero);
 			break;
