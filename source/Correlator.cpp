@@ -10,13 +10,13 @@ Correlator::Correlator(std::vector<float>& file, SF_INFO& info, float sizeInMs, 
 	correlation.resize(audioFile.size() + windowSize);
 
 	findPitch();
-
-	windowSize = (int)(((float)sampleRate / pitch) + 0.1 * (float)sampleRate / (pitch));
-
 	int rmsLength = (int)(sampleRate / pitch) / 2;
 	rmsTransient.resize(rmsLength);
 
 	startSample = findStartTransient(0, rmsTransient, 1.f, 1.f, 3.0, 0.1);
+
+	windowSize = (int)(((float)sampleRate / pitch) + 0.1 * (float)sampleRate / (pitch));
+
 }
 
 void Correlator::initialize(int sr, int sizeInSamples)
@@ -673,6 +673,15 @@ float Correlator::findMode(const std::vector<float>& data, float threshold = 1.0
 	float mode = modeSum / modeCount;
 
 	return modeCount > 0 ? mode : NAN;
+}
+
+std::deque<int> Correlator::findPeriodSamples(std::vector<float>& signal, int startSample,
+	float msOffset, float inPitch)
+{
+	int expectedNumPeriods = (int)(sampleRate / inPitch);
+	std::deque<int> periodList(expectedNumPeriods);
+
+
 }
 
 void Correlator::findPitch()

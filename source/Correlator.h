@@ -5,6 +5,7 @@
 #include<sndfile.h>
 #include<iostream>
 #include<vector>
+#include<deque>
 #include<array>
 #include<string>
 #include<fstream>
@@ -60,6 +61,7 @@ private:
 	float findPeakValue(std::vector<float>& signal, bool useAbsolute = true);
 	int findPeakSample(std::vector<float>& signal, int startSample, int endSample, bool useAbsolute = true);
 	int findPeakSample(std::vector<float>& signal, bool useAbsolute = true);
+	std::deque<int> findPeriodSamples(std::vector<float>& signal, int startSample, float msOffset, float inPitch);
 	float findMode(const std::vector<float>& vctr, float threshold, float minFreq, float maxFreq);
 	void findPitch();
 	void errorCorrection(std::vector<float>& signal, std::vector<int>& peaks, float errorThreshold = 0.95);
