@@ -676,28 +676,39 @@ float Correlator::findMode(const std::vector<float>& data, float threshold = 1.0
 }
 
 std::deque<int> Correlator::findPeriodSamples(std::vector<float>& signal, int startSample,
-	float msOffset, float inPitch)
+	float msOffset, float inPitch, float correlationThreshold)
 {
 	int expectedPeriodLength = (int)(sampleRate / inPitch);
 	int expectedNumPeriods = (int)(signal.size() / expectedPeriodLength);
 	int initialSample = startSample + (int)(sampleRate * (msOffset / 1000.0));
 	int peakSample = findPeakSample(signal, initialSample, initialSample + windowSize, true);
 	int periodStart = findPreviousZero(peakSample);
+	float threshold = correlationThreshold;
+	std::deque<int> periodList;
+	periodList.push_back(periodStart);
 
 	std::vector<float> window(windowSize);
 
-	for (int i = 0; i < windowSize; i++)
-	{
-		window[i] = signal[periodStart + i];
-	}
-
 	int hopSize = (int)(sampleRate / pitch);
-	for (int filePos = startSample; filePos < signal.size(); filePos += hopSize)
+	bool firstInPeriod = true;
+	for (int filePos = periodStart; filePos < signal.size(); filePos++)
 	{
+		if (firstInPeriod)
+		{
+			//Refreshes the window
+			for (int i = 0; i < windowSize; i++)
+			{
+				window[i] = signal[filePos + i];
+			}
+
+			firstInPeriod = false;
+			filePos += (expectedPeriodLength * 3) / 4;
+		}
+
+		float currentCorrelation = signalCorrelation(window, signal, filePos);
 
 	}
 
-	std::deque<int> periodList(expectedNumPeriods);
 
 	return periodList;
 }
@@ -741,4 +752,15 @@ void Correlator::errorCorrection(std::vector<float>& signal, std::vector<int>& p
 	}
 
 
+}
+
+float Correlator::signalCorrelation(std::vector<float>& window, std::vector<float>& signal, int startSample)
+{
+	float correlationValue = 0.f;
+	for (int i = 0; i < window.size(); i++)
+	{
+		correlationValue += window[i] * signal[i + startSample];
+	}
+
+	return correlationValue;
 }
