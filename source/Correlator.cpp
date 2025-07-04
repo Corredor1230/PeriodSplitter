@@ -691,6 +691,12 @@ std::deque<int> Correlator::findPeriodSamples(std::vector<float>& signal, int st
 		window[i] = signal[periodStart + i];
 	}
 
+	int hopSize = (int)(sampleRate / pitch);
+	for (int filePos = startSample; filePos < signal.size(); filePos += hopSize)
+	{
+
+	}
+
 	std::deque<int> periodList(expectedNumPeriods);
 
 	return periodList;
