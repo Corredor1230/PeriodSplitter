@@ -56,7 +56,7 @@ int main()
 
     std::string instrument("guit");
 
-    correlator.calculateCorrelation(startSample);
+    //correlator.calculateCorrelation(startSample);
     std::string corrFilename(instrument + "Correlation");
     //correlator.printCorrelation(corrFilename);
     std::string corrPeak(instrument + "Peak");
