@@ -30,11 +30,9 @@ public:
 	void printCorrelation(std::string& filename);
 	void printCorrelationPeak(std::string& filename);
 	void printZeroList(std::string& filename);
-	void calculateCorrelation(int startSample);
 	std::vector<int> getCorrelationPeaks();
 	std::vector<float> getCorrelationVector();
 	std::vector<int> getCorrelationZeroes();
-	bool hasBeenCalculated();
 
 	std::vector<std::vector<int>>	chopPositions;
 	std::vector<std::vector<float>>	multiChannel;
@@ -54,10 +52,9 @@ private:
 		float rmsHopLengthInRatio, float transFactor = 2.0, float transThresh = 0.2);
 	int findPeak(int startSample, std::vector<float> vector);
 
-	void moveToNextWindow(std::vector<float>& window, int currentSamp);
-	void separateChannels(std::vector<float>& file);
-	int findPreviousZero(int startSample);
-	int findNearestZero(int startSample);
+	int findPreviousZero(std::vector<float>& signal, int startSample);
+	int findNextZero(std::vector<float>& signal, int startSample);
+	int findNearestZero(std::vector<float>& signal, int startSample);
 	float findPeakValue(std::vector<float>& signal, bool useAbsolute = true);
 	int findPeakSample(std::vector<float>& signal, int startSample, int endSample, bool useAbsolute = true);
 	int findPeakSample(std::vector<float>& signal, bool useAbsolute = true);
@@ -65,7 +62,6 @@ private:
 		float msOffset, float inPitch, float correlationThreshold = 0.8);
 	float findMode(const std::vector<float>& vctr, float threshold, float minFreq, float maxFreq);
 	void findPitch();
-	void errorCorrection(std::vector<float>& signal, std::vector<int>& peaks, float errorThreshold = 0.95);
 	float signalCorrelation(std::vector<float>& window, std::vector<float>& signal, int startSample);
 
 
