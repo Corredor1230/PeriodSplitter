@@ -27,11 +27,8 @@ public:
 	void enableHopping(bool hopping);
 	void setHopLength(float hopInMs);
 	void setHopLength(int hopInSamples);
-	void printCorrelation(std::string& filename);
-	void printCorrelationPeak(std::string& filename);
 	void printZeroList(std::string& filename);
 	std::vector<int> getCorrelationPeaks();
-	std::vector<float> getCorrelationVector();
 	std::vector<int> getCorrelationZeroes();
 
 	std::vector<std::vector<int>>	chopPositions;
@@ -40,7 +37,6 @@ public:
 private:
 
 	std::vector<float>&	audioFile;
-	std::vector<float>	correlation;
 	std::vector<int>	peakList;
 	std::vector<int>	zeroList;
 	SF_INFO&			sfInfo;

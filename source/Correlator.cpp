@@ -4,7 +4,6 @@ Correlator::Correlator(std::vector<float>& file, SF_INFO& info, float sizeInMs, 
 	audioFile(file), sfInfo(info), pitchDetector(sfInfo.samplerate)
 {
 	sampleRate = sfInfo.samplerate;
-	correlation.resize(audioFile.size() + windowSize);
 
 	findPitch();
 	int rmsLength = (int)(sampleRate / pitch) / 2;
@@ -63,48 +62,6 @@ void Correlator::setHopLength(int hopInSamples)
 	hopLength = hopInSamples;
 }
 
-void Correlator::printCorrelation(std::string& filename)
-{
-	if (filename.empty())
-	{
-		std::ofstream outfile("AudioCorrelation.txt");
-		for (int i = 0; i < correlation.size(); i++)
-		{
-			if(correlation[i] != 0.0)
-				outfile << "Sample: " << i << " | Correlation: " << correlation[i] << std::endl;
-		}
-	}
-	else
-	{
-		std::ofstream outfile(filename + ".txt");
-		for (int i = 0; i < correlation.size(); i++)
-		{
-			if(correlation[i] != 0.0)
-				outfile << "Sample: " << i << " | Correlation: " << correlation[i] << std::endl;
-		}
-	}
-}
-
-void Correlator::printCorrelationPeak(std::string& filename)
-{
-	if (filename.empty())
-	{
-		std::ofstream outfile("AudioPeakCorrelation.txt");
-		for (int i = 0; i < correlation.size(); i++)
-		{
-			outfile << "Sample: " << i << " | Correlation: " << correlation[i] << std::endl;
-		}
-	}
-	else
-	{
-		std::ofstream outfile(filename + ".txt");
-		for (int i = 0; i < peakList.size(); i++)
-		{
-			outfile << "Sample: " << peakList[i] << " | Correlation: " << correlation[peakList[i]] << std::endl;
-		}
-	}
-}
-
 void Correlator::printZeroList(std::string& filename)
 {
 	if (filename.empty())
@@ -128,11 +85,6 @@ void Correlator::printZeroList(std::string& filename)
 std::vector<int> Correlator::getCorrelationPeaks()
 {
 	return peakList;
-}
-
-std::vector<float> Correlator::getCorrelationVector()
-{
-	return correlation;
 }
 
 std::vector<int> Correlator::getCorrelationZeroes()
