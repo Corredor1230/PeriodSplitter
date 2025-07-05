@@ -12,7 +12,7 @@ Correlator::Correlator(std::vector<float>& file, SF_INFO& info, float sizeInMs, 
 	startSample = findStartTransient(0, rmsTransient, 1.f, 1.f, 3.0, 0.1);
 
 	windowSize = (int)(((float)sampleRate / pitch) + 0.05 * (float)sampleRate / (pitch));
-	std::deque<int> periodList = findPeriodSamples(file, startSample, 50.0, pitch);
+	zeroList = findPeriodSamples(file, startSample, 50.0, pitch);
 }
 
 void Correlator::initialize(int sr, int sizeInSamples)
@@ -376,7 +376,7 @@ float Correlator::findMode(const std::vector<float>& data, float threshold = 1.0
 	return modeCount > 0 ? mode : NAN;
 }
 
-std::deque<int> Correlator::findPeriodSamples(std::vector<float>& signal, int startSample,
+std::vector<int> Correlator::findPeriodSamples(std::vector<float>& signal, int startSample,
 	float msOffset, float inPitch, float correlationThreshold)
 {
 	int expectedPeriodLength = (int)(sampleRate / inPitch);
@@ -507,8 +507,14 @@ std::deque<int> Correlator::findPeriodSamples(std::vector<float>& signal, int st
 			continue;
 	}
 
+	std::vector<int> periodZeroes(periodList.size());
 
-	return periodList;
+	for (int i = 0; i < periodList.size(); i++)
+	{
+		periodZeroes[i] = periodList[i];
+	}
+
+	return periodZeroes;
 }
 
 void Correlator::findPitch()

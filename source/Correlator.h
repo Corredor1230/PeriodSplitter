@@ -42,34 +42,30 @@ private:
 	SF_INFO&			sfInfo;
 	PyinCpp				pitchDetector;
 
-	int findStartTransient(int startSample, std::vector<float>& vector, int rmsSize, 
-		int rmsHopLength,float transFactor = 2.0, float transThresh = 0.2);
-	int findStartTransient(int startSample, std::vector<float>& vector, float rmsSizeInMs,
-		float rmsHopLengthInRatio, float transFactor = 2.0, float transThresh = 0.2);
-	int findPeak(int startSample, std::vector<float> vector);
+	int		findStartTransient(int startSample, std::vector<float>& vector, int rmsSize, 
+				int rmsHopLength,float transFactor = 2.0, float transThresh = 0.2);
+	int		findStartTransient(int startSample, std::vector<float>& vector, float rmsSizeInMs,
+				float rmsHopLengthInRatio, float transFactor = 2.0, float transThresh = 0.2);
+	int		findPeak(int startSample, std::vector<float> vector);
 
-	int findPreviousZero(std::vector<float>& signal, int startSample);
-	int findNextZero(std::vector<float>& signal, int startSample);
-	int findNearestZero(std::vector<float>& signal, int startSample);
-	float findPeakValue(std::vector<float>& signal, bool useAbsolute = true);
-	int findPeakSample(std::vector<float>& signal, int startSample, int endSample, bool useAbsolute = true);
-	int findPeakSample(std::vector<float>& signal, bool useAbsolute = true);
-	std::deque<int> findPeriodSamples(std::vector<float>& signal, int startSample, 
-		float msOffset, float inPitch, float correlationThreshold = 0.8);
-	float findMode(const std::vector<float>& vctr, float threshold, float minFreq, float maxFreq);
-	void findPitch();
-	float signalCorrelation(std::vector<float>& window, std::vector<float>& signal, int startSample);
-
+	int		findPreviousZero(std::vector<float>& signal, int startSample);
+	int		findNextZero(std::vector<float>& signal, int startSample);
+	int		findNearestZero(std::vector<float>& signal, int startSample);
+	float	findPeakValue(std::vector<float>& signal, bool useAbsolute = true);
+	int		findPeakSample(std::vector<float>& signal, int startSample, int endSample, bool useAbsolute = true);
+	int		findPeakSample(std::vector<float>& signal, bool useAbsolute = true);
+	std::vector<int> findPeriodSamples(std::vector<float>& signal, int startSample, 
+				float msOffset, float inPitch, float correlationThreshold = 0.8);
+	float	findMode(const std::vector<float>& vctr, float threshold, float minFreq, float maxFreq);
+	void	findPitch();
+	float	signalCorrelation(std::vector<float>& window, std::vector<float>& signal, int startSample);
 
 	int windowSize = 512;
 	int hopLength = 4;
 	int sampleRate = 48000.0;
-
 	float pitch = 0.f;
 	int startSample = 0;
-
 	float correlationThreshold = 0.95;
-
 	bool correlationStatus = false;
 	bool hoppingEnabled = true;
 

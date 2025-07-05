@@ -24,6 +24,6 @@ private:
 
 	std::vector<int> clipList;
 
-	int startSamp;
+	int startSamp = 0;
 
 };
