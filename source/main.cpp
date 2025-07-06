@@ -6,8 +6,10 @@
 #include<vector>
 #include<Windows.h>
 #include<commdlg.h>
+#include<filesystem>
 #include"Correlator.h"
 #include"Splitter.h"
+#include"csv.h"
 
 std::string openFileDialog() {
     OPENFILENAMEA ofn;
@@ -29,6 +31,16 @@ std::string openFileDialog() {
         return std::string(ofn.lpstrFile);
     }
     return "";
+}
+
+std::string getRawFilename(std::string& filename)
+{
+    std::string rawFilename;
+    std::filesystem::path path = filename;
+    rawFilename = path.filename().replace_extension("").string();
+
+    return rawFilename;
+
 }
 
 int main()
@@ -53,22 +65,12 @@ int main()
     int startSample = 0;
 
     Correlator correlator(delaced[0], sfInfo);
+    std::string csvName = getRawFilename(filename);
 
-    std::string instrument("guit");
-
-    //correlator.calculateCorrelation(startSample);
-    std::string corrFilename(instrument + "Correlation");
-    //correlator.printCorrelation(corrFilename);
-    std::string corrPeak(instrument + "Peak");
-    //correlator.printCorrelationPeak(corrPeak);
-    std::string zeroFilename(instrument + "Zeroes");
-    //correlator.printZeroList(zeroFilename);
+    std::vector<int> periodStart = correlator.getCorrelationZeroes();
 
     Splitter theSplitter(sfInfo);
-
-    //theSplitter.split(samples, correlator.getCorrelationZeroes(), instrument);
-
-    //Splitter theSplitter(correlator, startSample);
+    theSplitter.writeCsvFile(periodStart, csvName + ".csv");
 
 	return 0;
 }
