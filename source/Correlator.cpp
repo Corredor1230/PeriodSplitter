@@ -208,12 +208,12 @@ int Correlator::findPreviousZero(std::vector<float>& signal, int startSample)
 	{
 		bool zeroFound = false;
 
-		zeroFound = (signal[i] > 0.0 && signal[i - 2] < 0.0)
-			  || (signal[i] < 0.0 && signal[i - 2] > 0.0);
+		zeroFound = (signal[i] >= 0.0 && signal[i - 2] <= 0.0)
+			  || (signal[i] <= 0.0 && signal[i - 2] >= 0.0);
 
 		if (zeroFound)
 		{
-			if (std::abs(signal[i - 2]) < std::abs(signal[i - 1]))
+			if (std::abs(signal[i - 2]) <= std::abs(signal[i - 1]))
 				zeroSample = i - 2;
 			else
 				zeroSample = i - 1;
@@ -231,12 +231,12 @@ int Correlator::findNextZero(std::vector<float>& signal, int startSample)
 	{
 		bool zeroFound = false;
 
-		zeroFound = (signal[i] > 0.0 && signal[i - 2] < 0.0)
-			|| (signal[i] < 0.0 && signal[i - 2] > 0.0);
+		zeroFound = (signal[i] >= 0.0 && signal[i - 2] < 0.0)
+			|| (signal[i] <= 0.0 && signal[i - 2] > 0.0);
 
 		if (zeroFound)
 		{
-			if (std::abs(signal[i - 2]) < std::abs(signal[i - 1]))
+			if (std::abs(signal[i - 2]) <= std::abs(signal[i - 1]))
 				zeroSample = i - 2;
 			else
 				zeroSample = i - 1;
@@ -393,6 +393,7 @@ std::vector<int> Correlator::findPeriodSamples(std::vector<float>& signal, int s
 
 	int hopSize = (int)(sampleRate / pitch);
 	bool firstInPeriod = true;
+	int lastStart = 0;
 
 	
 	/* This loop will go over all the samples in the full audio file.
@@ -401,6 +402,7 @@ std::vector<int> Correlator::findPeriodSamples(std::vector<float>& signal, int s
 	{
 		if (firstInPeriod)
 		{
+			lastStart = filePos;
 			//Refreshes the window
 			for (int i = 0; i < windowSize; i++)
 			{
@@ -421,6 +423,15 @@ std::vector<int> Correlator::findPeriodSamples(std::vector<float>& signal, int s
 		{
 			correlationValues.push_back(currentCorrelation);
 		}
+		else if (filePos > (int)(lastStart + ((float)expectedPeriodLength * 1.1)))
+		{
+			int nearestZero = findNearestZero(signal, lastStart + expectedPeriodLength + 2);
+			if (nearestZero == periodList.back())
+				continue;
+			periodList.push_back(nearestZero);
+			filePos = nearestZero;
+			firstInPeriod = true;
+		}
 		else
 			continue;
 
@@ -434,8 +445,8 @@ std::vector<int> Correlator::findPeriodSamples(std::vector<float>& signal, int s
 		bool isCorrelationPeak = (correlationValues[lastCorr - 1] > correlationValues[lastCorr])
 			&& (correlationValues[lastCorr - 1] > correlationValues[lastCorr - 2]);
 		//This checks that we're within 10% of the expected period size
-		bool isWithinPeriodRange = (filePos > (int)(((float)periodList.back() + expectedPeriodLength) * 0.9) 
-			&& filePos < (int)(((float)periodList.back() + expectedPeriodLength) * 1.1));
+		bool isWithinPeriodRange = filePos > (int)(((float)periodList.back() + (expectedPeriodLength * 0.9))) 
+			&& filePos < (int)(((float)periodList.back() + (expectedPeriodLength * 1.1)));
 
 		if (isCorrelationPeak && isWithinPeriodRange)
 		{
@@ -493,8 +504,8 @@ std::vector<int> Correlator::findPeriodSamples(std::vector<float>& signal, int s
 		bool isCorrelationPeak = (correlationValues[lastCorr - 1] > correlationValues[lastCorr])
 			&& (correlationValues[lastCorr - 1] > correlationValues[lastCorr - 2]);
 		//This checks that we're within 10% of the expected period size
-		bool isWithinPeriodRange = (filePos < (int)(((float)periodList.front() - expectedPeriodLength) * 1.1)
-			&& filePos > (int)(((float)periodList.front() - expectedPeriodLength) * 0.9));
+		bool isWithinPeriodRange = filePos < (int)(((float)periodList.front() - (expectedPeriodLength * 1.1)))
+			&& filePos > (int)(((float)periodList.front() - (expectedPeriodLength * 0.9)));
 
 		if (isCorrelationPeak && isWithinPeriodRange)
 		{

@@ -42,10 +42,11 @@ private:
 	SF_INFO&			sfInfo;
 	PyinCpp				pitchDetector;
 
-	int		findStartTransient(int startSample, std::vector<float>& vector, int rmsSize, 
-				int rmsHopLength,float transFactor = 2.0, float transThresh = 0.2);
-	int		findStartTransient(int startSample, std::vector<float>& vector, float rmsSizeInMs,
-				float rmsHopLengthInRatio, float transFactor = 2.0, float transThresh = 0.2);
+	int		findStartTransient(int startSample, std::vector<float>& vector, 
+			int rmsSize, int rmsHopLength, float transFactor = 2.0, float transThresh = 0.2);
+	int		findStartTransient(int startSample, std::vector<float>& vector, 
+			float rmsSizeInMs, float rmsHopLengthInRatio, float transFactor = 2.0, float transThresh = 0.2);
+
 	int		findPeak(int startSample, std::vector<float> vector);
 
 	int		findPreviousZero(std::vector<float>& signal, int startSample);
