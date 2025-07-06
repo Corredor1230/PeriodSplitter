@@ -31,7 +31,8 @@ add_executable(${EXECUTABLE_NAME} ${SOURCE_DIR}/main.cpp
 				${SOURCE_DIR}/Splitter.cpp 
 				${SOURCE_DIR}/Splitter.h 
 				${SOURCE_DIR}/Correlator.cpp 
-				${SOURCE_DIR}/Correlator.h)
+				${SOURCE_DIR}/Correlator.h
+				${SOURCE_DIR}/csv.h)
 
 #target_link_libraries(${EXECUTABLE_NAME} PRIVATE "C:/Libraries/libsndfile/lib/sndfile.lib")
 
