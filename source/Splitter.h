@@ -1,6 +1,7 @@
 #pragma once
 
 #include<iostream>
+#include<fstream>
 #include<sndfile.h>
 #include<vector>
 #include<array>
@@ -16,6 +17,8 @@ public:
 
 	void split(std::vector<float>& audioFile, std::vector<int>& splitSamples, std::string filename = "Audio",
 		bool useNumOutputFiles = false, int numOutputFiles = 0);
+
+	void writeCsvFile(std::vector<int>& outputInfo, std::string& filename);
 
 private:
 

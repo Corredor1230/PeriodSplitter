@@ -37,6 +37,22 @@ void Splitter::split(std::vector<float>& audioFile, std::vector<int>& splitSampl
 	}
 }
 
+void Splitter::writeCsvFile(std::vector<int>& outputInfo, std::string& filename)
+{
+    std::ofstream outputFile(filename, std::ios::out | std::ios::trunc);
+
+    if (!outputFile.is_open())
+    {
+        std::cerr << "Error: could not open file" << filename << std::endl;
+    }
+
+    for (int i = 0; i < outputInfo.size(); i++)
+    {
+        std::string value = std::to_string(outputInfo[i]);
+        outputFile << value << std::endl;
+    }
+}
+
 void Splitter::writeAudioChunk(std::vector<float>& chunk, const std::string& filename)
 {
     SF_INFO sfInfo = { 0 };
