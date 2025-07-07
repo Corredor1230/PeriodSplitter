@@ -16,7 +16,7 @@ public:
 
     // Process a block of samples
     std::vector<float> processBuffer(const std::vector<float>& input);
-    std::vector<float> processAudioFile(std::vector<float>& input, const int bufferSize);
+    void processAudioFile(std::vector<float>& input, const int bufferSize);
 
     // Access the filter kernel (for visualization or testing)
     const std::vector<float>& getTaps() const;

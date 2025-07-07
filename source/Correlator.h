@@ -28,6 +28,7 @@ public:
 	void setHopLength(float hopInMs);
 	void setHopLength(int hopInSamples);
 	void printZeroList(std::string& filename);
+	float findPitch(const std::vector<float>& signal);
 	std::vector<int> getCorrelationPeaks();
 	std::vector<int> getCorrelationZeroes();
 
@@ -58,7 +59,6 @@ private:
 	std::vector<int> findPeriodSamples(std::vector<float>& signal, int startSample, 
 				float msOffset, float inPitch, float correlationThreshold = 0.8);
 	float	findMode(const std::vector<float>& vctr, float threshold, float minFreq, float maxFreq);
-	void	findPitch();
 	float	signalCorrelation(std::vector<float>& window, std::vector<float>& signal, int startSample);
 
 	int windowSize = 512;

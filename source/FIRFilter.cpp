@@ -25,7 +25,7 @@ std::vector<float> FIRHighPass::processBuffer(const std::vector<float>& input)
     return output;
 }
 
-std::vector<float> FIRHighPass::processAudioFile(std::vector<float>& input, const int bufferSize)
+void FIRHighPass::processAudioFile(std::vector<float>& input, const int bufferSize)
 {
     int sizeDifference = input.size() % bufferSize;
     for (int i = 0; i < sizeDifference; i++)
@@ -39,12 +39,17 @@ std::vector<float> FIRHighPass::processAudioFile(std::vector<float>& input, cons
     {
         for (int samp = 0; samp < bufferSize; samp++)
         {
-            int currentSample = bufferNumber * bufferSize + samp;
+            int currentSample = i * bufferSize + samp;
             audioBuffer[samp] = input[currentSample];
         }
 
         audioBuffer = processBuffer(audioBuffer);
 
+        for (int samp = 0; samp < bufferSize; samp++)
+        {
+            int currentSample = i * bufferSize + samp;
+            input[currentSample] = audioBuffer[samp];
+        }
     }
 }
 

@@ -5,7 +5,7 @@ Correlator::Correlator(std::vector<float>& file, SF_INFO& info, float sizeInMs, 
 {
 	sampleRate = sfInfo.samplerate;
 
-	findPitch();
+	pitch = findPitch(audioFile);
 	int rmsLength = (int)(sampleRate / pitch) / 2;
 	rmsTransient.resize(rmsLength);
 
@@ -406,7 +406,10 @@ std::vector<int> Correlator::findPeriodSamples(std::vector<float>& signal, int s
 			//Refreshes the window
 			for (int i = 0; i < windowSize; i++)
 			{
-				window[i] = signal[filePos + i];
+				if (filePos + i >= signal.size())
+					window[i] = 0.0;
+				else
+					window[i] = signal[filePos + i];
 			}
 
 			firstInPeriod = false;
@@ -528,13 +531,15 @@ std::vector<int> Correlator::findPeriodSamples(std::vector<float>& signal, int s
 	return periodZeroes;
 }
 
-void Correlator::findPitch()
+float Correlator::findPitch(const std::vector<float>& signal)
 {
-	std::vector<float> pitches = pitchDetector.feed(audioFile);
+	std::vector<float> pitches = pitchDetector.feed(signal);
 
 	pitch = findMode(pitches);
 
 	std::cout << "Current pitch: " << pitch << "Hz\n";
+
+	return pitch;
 }
 
 float Correlator::signalCorrelation(std::vector<float>& window, std::vector<float>& signal, int startSample)
