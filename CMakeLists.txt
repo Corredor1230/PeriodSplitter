@@ -24,6 +24,8 @@ set(LIBPYIN_INCLUDE_DIR "C:/Libraries/LibPyin/source")
 set(LIBPYIN_LIBRARY_DIR "C:/Libraries/LibPyin/Debug")
 set(FFTW_INCLUDE_DIR "C:/Libraries/fftw")
 set(FFTW_LIBRARY_DIR "C:/Libraries/fftw")
+set(GLFW3_INCLUDE_DIR "C:/Libraries/vcpkg/packages/glfw3_x64-windows/include/GLFW")
+set(GLFW3_LIBRARY_DIR "C:/Libraries/vcpkg/packages/glfw3_x64-windows/lib")
 
 
 # Add the source file(s)
@@ -44,10 +46,12 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
 target_include_directories(${EXECUTABLE_NAME} PRIVATE ${LIBSNDFILE_INCLUDE_DIR})
 target_include_directories(${EXECUTABLE_NAME} PRIVATE ${FFTW_INCLUDE_DIR})
 target_include_directories(${EXECUTABLE_NAME} PRIVATE ${LIBPYIN_INCLUDE_DIR})
+target_include_directories(${EXECUTABLE_NAME} PRIVATE ${GLFW3_INCLUDE_DIR})
 
 # Link to the libsndfile library
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE "${LIBSNDFILE_LIBRARY_DIR}/sndfile.lib")
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE "${FFTW_LIBRARY_DIR}/libfftw3-3.lib")
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE "${LIBPYIN_LIBRARY_DIR}/LibPyin.lib")
+target_link_libraries(${EXECUTABLE_NAME} PRIVATE "${GLFW3_LIBRARY_DIR}/glfw3dll.lib")
 
 # If you also have a dynamic version (.dll) of libsndfile, make sure to copy the DLL to your executable directory.
