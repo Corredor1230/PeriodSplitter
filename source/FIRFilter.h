@@ -1,9 +1,10 @@
 #pragma once
 
-#include <iostream>
-#include <vector>
-#include <cmath>
-#include <algorithm>
+#include<iostream>
+#include<deque>
+#include<vector>
+#include<cmath>
+#include<algorithm>
 
 constexpr double PI = 3.14159265358979323846;
 
@@ -23,7 +24,7 @@ public:
 
 private:
     std::vector<float> taps;
-    std::vector<float> history;
+    std::deque<float> history;
 
     void designFilter(float sampleRate, float cutoffFreq, float transitionWidth);
 };

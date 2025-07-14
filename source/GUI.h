@@ -13,6 +13,12 @@ public:
     void run(); // Starts GUI loop
 
 private:
+
+    double m_keyPressTimeLeft = 0.0;
+    double m_keyPressTimeRight = 0.0;
+    double m_nextChangeTimeLeft = 0.0;
+    double m_nextChangeTimeRight = 0.0;
+
     void initWindow();
     void initImGui();
     void handleInput();

@@ -19,6 +19,7 @@ public:
 		bool useNumOutputFiles = false, int numOutputFiles = 0);
 
 	void writeCsvFile(std::vector<int>& outputInfo, std::string& filename);
+	std::vector<std::pair<int, int>> loadCSV(const std::string& path, int totalSamples);
 
 private:
 

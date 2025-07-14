@@ -53,6 +53,29 @@ void Splitter::writeCsvFile(std::vector<int>& outputInfo, std::string& filename)
     }
 }
 
+std::vector<std::pair<int, int>> Splitter::loadCSV(const std::string& path, int totalSamples) 
+{
+    std::ifstream file(path);
+    std::vector<int> indices;
+    std::string line;
+
+    while (std::getline(file, line)) {
+        int index;
+        if (sscanf(line.c_str(), "%d", &index) == 1)
+            indices.push_back(index);
+    }
+
+    std::vector<std::pair<int, int>> result;
+    for (size_t i = 0; i < indices.size(); ++i) {
+        int start = indices[i];
+        int end = (i + 1 < indices.size()) ? (indices[i + 1] - 1) : (totalSamples - 1);
+        result.emplace_back(start, end);
+    }
+
+    return result;
+}
+
+
 void Splitter::writeAudioChunk(std::vector<float>& chunk, const std::string& filename)
 {
     SF_INFO sfInfo = { 0 };

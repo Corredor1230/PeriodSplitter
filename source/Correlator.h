@@ -12,6 +12,8 @@
 #include<map>
 #include<cmath>
 #include<algorithm>
+#include<future>
+#include<chrono>
 
 class Correlator
 {
@@ -19,11 +21,11 @@ public:
 	Correlator(std::vector<float>& file, SF_INFO& info, float sizeInMs = 50.f, float hopInMs = 0.25);
 	~Correlator() {};
 
-	void initialize(int sampleRate, int sizeInSamples);
-	void initialize(int sampleRate, float sizeInMs);
+	void initialize(float pitch, float threshold = 0.1);
 	void setWindowSize(int sizeInSamples = 512);
 	void setWindowSize(float sizeInMs);
 	void setThreshold(float thresh);
+	void setPitch(float pitch);
 	void enableHopping(bool hopping);
 	void setHopLength(float hopInMs);
 	void setHopLength(int hopInSamples);
@@ -37,9 +39,16 @@ public:
 
 private:
 
+	struct CorrelationState
+	{
+		float numerator = 0.f;
+		float squareB = 0.f;
+	};
+
 	std::vector<float>&	audioFile;
 	std::vector<int>	peakList;
 	std::vector<int>	zeroList;
+	std::vector<int>	allZeroes;
 	SF_INFO&			sfInfo;
 	PyinCpp				pitchDetector;
 
@@ -57,9 +66,13 @@ private:
 	int		findPeakSample(std::vector<float>& signal, int startSample, int endSample, bool useAbsolute = true);
 	int		findPeakSample(std::vector<float>& signal, bool useAbsolute = true);
 	std::vector<int> findPeriodSamples(std::vector<float>& signal, int startSample, 
-				float msOffset, float inPitch, float correlationThreshold = 0.8);
+				float msOffset, float inPitch, float correlationThreshold = 0.4);
+	std::vector<int> findZeroCrossings(const std::vector<float>& signal, int initSample);
+	int findNearestZeroCached(const std::vector<int>& zeroCrossings, int sample);
 	float	findMode(const std::vector<float>& vctr, float threshold, float minFreq, float maxFreq);
 	float	signalCorrelation(std::vector<float>& window, std::vector<float>& signal, int startSample);
+	float	signalCorrelationRolling(const std::vector<float>& window, float squareA,
+		const std::vector<float>& signal, int startSample, CorrelationState& state, bool first);
 
 	int windowSize = 512;
 	int hopLength = 4;

@@ -39,10 +39,57 @@ void WaveformViewer::initImGui() {
 }
 
 void WaveformViewer::handleInput() {
-    if (glfwGetKey(m_window.get(), GLFW_KEY_RIGHT) == GLFW_PRESS && m_currentWindow < m_windows.size() - 1)
-        m_currentWindow++;
-    if (glfwGetKey(m_window.get(), GLFW_KEY_LEFT) == GLFW_PRESS && m_currentWindow > 0)
-        m_currentWindow--;
+    // --- Configuration for key repeat behavior ---
+    const double INITIAL_DELAY = 0.4;       // seconds to wait before repeating starts
+    const double ACCELERATION_TIME = 1.0;     // seconds to hold before speed increases
+    const double REPEAT_RATE_SLOW = 0.1;      // seconds between changes (the slow speed)
+    const double REPEAT_RATE_FAST = 0.03;     // seconds between changes (the fast speed)
+
+    double currentTime = glfwGetTime();
+
+    // --- Handle Right Arrow Key ---
+    // A. This block handles the very first press
+    if (ImGui::IsKeyPressed(ImGuiKey_RightArrow, false)) {
+        if (m_currentWindow < m_windows.size() - 1) {
+            m_currentWindow++;
+        }
+        // Record the press time and schedule the next change after the initial delay
+        m_keyPressTimeRight = currentTime;
+        m_nextChangeTimeRight = currentTime + INITIAL_DELAY;
+    }
+    // B. This block handles a sustained press (holding the key down)
+    else if (ImGui::IsKeyDown(ImGuiKey_RightArrow)) {
+        if (currentTime >= m_nextChangeTimeRight) {
+            if (m_currentWindow < m_windows.size() - 1) {
+                m_currentWindow++;
+            }
+            // Check how long the key has been held to determine the repeat rate
+            double holdDuration = currentTime - m_keyPressTimeRight;
+            double currentRate = (holdDuration > ACCELERATION_TIME) ? REPEAT_RATE_FAST : REPEAT_RATE_SLOW;
+
+            // Schedule the next change
+            m_nextChangeTimeRight = currentTime + currentRate;
+        }
+    }
+
+    // --- Handle Left Arrow Key (same logic) ---
+    if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow, false)) {
+        if (m_currentWindow > 0) {
+            m_currentWindow--;
+        }
+        m_keyPressTimeLeft = currentTime;
+        m_nextChangeTimeLeft = currentTime + INITIAL_DELAY;
+    }
+    else if (ImGui::IsKeyDown(ImGuiKey_LeftArrow)) {
+        if (currentTime >= m_nextChangeTimeLeft) {
+            if (m_currentWindow > 0) {
+                m_currentWindow--;
+            }
+            double holdDuration = currentTime - m_keyPressTimeLeft;
+            double currentRate = (holdDuration > ACCELERATION_TIME) ? REPEAT_RATE_FAST : REPEAT_RATE_SLOW;
+            m_nextChangeTimeLeft = currentTime + currentRate;
+        }
+    }
 }
 
 void WaveformViewer::renderWaveform() {

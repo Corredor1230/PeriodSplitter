@@ -4,27 +4,17 @@ Correlator::Correlator(std::vector<float>& file, SF_INFO& info, float sizeInMs, 
 	audioFile(file), sfInfo(info), pitchDetector(sfInfo.samplerate)
 {
 	sampleRate = sfInfo.samplerate;
+}
 
-	pitch = findPitch(audioFile);
+void Correlator::initialize(float newPitch, float threshold)
+{
+	setPitch(newPitch);
 	int rmsLength = (int)(sampleRate / pitch) / 2;
 	rmsTransient.resize(rmsLength);
-
-	startSample = findStartTransient(0, rmsTransient, 1.f, 1.f, 3.0, 0.1);
-
-	windowSize = (int)(((float)sampleRate / pitch) + 0.05 * (float)sampleRate / (pitch));
-	zeroList = findPeriodSamples(file, startSample, 50.0, pitch);
-}
-
-void Correlator::initialize(int sr, int sizeInSamples)
-{
-	sampleRate = sr;
-	setWindowSize(sizeInSamples);
-}
-
-void Correlator::initialize(int sr, float sizeInMs)
-{
-	sampleRate = sr;
-	setWindowSize(sizeInMs);
+	startSample = findStartTransient(0, rmsTransient, 1.f, 1.f, 3.0, threshold);
+	windowSize = (int)(((float)sampleRate / pitch) + 1);
+	allZeroes = findZeroCrossings(audioFile, startSample);
+	zeroList = findPeriodSamples(audioFile, startSample, 50.0, pitch);
 }
 
 void Correlator::setWindowSize(int sizeInSamples)
@@ -45,6 +35,11 @@ void Correlator::setWindowSize(float sizeInMs)
 void Correlator::setThreshold(float thresh)
 {
 	correlationThreshold = thresh;
+}
+
+void Correlator::setPitch(float newPitch)
+{
+	pitch = newPitch;
 }
 
 void Correlator::enableHopping(bool hopping)
@@ -376,159 +371,339 @@ float Correlator::findMode(const std::vector<float>& data, float threshold = 1.0
 	return modeCount > 0 ? mode : NAN;
 }
 
+//std::vector<int> Correlator::findPeriodSamples(std::vector<float>& signal, int startSample,
+//	float msOffset, float inPitch, float correlationThreshold)
+//{
+//	int expectedPeriodLength = (int)(sampleRate / inPitch);
+//	int expectedNumPeriods = (int)(signal.size() / expectedPeriodLength);
+//	int initialSample = startSample + (int)(sampleRate * (msOffset / 1000.0));
+//	int peakSample = findPeakSample(signal, initialSample, initialSample + windowSize, true);
+//	int periodStart = findPreviousZero(signal, peakSample);
+//	float threshold = correlationThreshold;
+//	std::deque<int> periodList;
+//	periodList.push_back(periodStart);
+//
+//	std::vector<float> window(windowSize);
+//	std::vector<float> correlationValues;
+//
+//	int hopSize = (int)(sampleRate / pitch);
+//	bool firstInPeriod = true;
+//	int lastStart = 0;
+//
+//	
+//	/* This loop will go over all the samples in the full audio file.
+//	* The inner loop for the window is within signalCorrelation() */
+//	for (int filePos = periodStart; filePos < signal.size(); filePos++)
+//	{
+//		if (firstInPeriod)
+//		{
+//			lastStart = filePos;
+//			//Refreshes the window
+//			for (int i = 0; i < windowSize; i++)
+//			{
+//				if (filePos + i >= signal.size())
+//					window[i] = 0.0;
+//				else
+//					window[i] = signal[filePos + i];
+//			}
+//
+//			firstInPeriod = false;
+//
+//			//At very high frequencies this will just be 0
+//			//But at low frequencies it saves a lot of time.
+//			filePos += (expectedPeriodLength * 3) / 4;
+//		}
+//
+//		float currentCorrelation = signalCorrelation(window, signal, filePos);
+//
+//		//Verifies that we have a significant correlation
+//		if (currentCorrelation > correlationThreshold)
+//		{
+//			correlationValues.push_back(currentCorrelation);
+//		}
+//		else if (filePos > (int)(lastStart + ((float)expectedPeriodLength * 1.1)))
+//		{
+//			int nearestZero = findNearestZero(signal, lastStart + expectedPeriodLength + 2);
+//			if (nearestZero == periodList.back())
+//				continue;
+//			periodList.push_back(nearestZero);
+//			filePos = nearestZero;
+//			firstInPeriod = true;
+//		}
+//		else
+//			continue;
+//
+//		//We cannot check for any correlation peaks with less than 3 values
+//		//So we just save them and skip to the next loop.
+//		if (correlationValues.size() < 3)
+//			continue;
+//
+//		//This checks that the correlation value is a peak
+//		int lastCorr = correlationValues.size() - 1;
+//		bool isCorrelationPeak = (correlationValues[lastCorr - 1] > correlationValues[lastCorr])
+//			&& (correlationValues[lastCorr - 1] > correlationValues[lastCorr - 2]);
+//		//This checks that we're within 10% of the expected period size
+//		bool isWithinPeriodRange = filePos > (int)(((float)periodList.back() + (expectedPeriodLength * 0.9))) 
+//			&& filePos < (int)(((float)periodList.back() + (expectedPeriodLength * 1.1)));
+//
+//		if (isCorrelationPeak && isWithinPeriodRange)
+//		{
+//			int nearestZero = findNearestZero(signal, filePos);
+//			if (nearestZero == periodList.back())
+//				continue;
+//			periodList.push_back(nearestZero);
+//			filePos = nearestZero;
+//			firstInPeriod = true;
+//		}
+//		else
+//			continue;
+//
+//		if (periodList.size() > (int)((float)expectedNumPeriods * 1.1))
+//			break;
+//	}
+//
+//	firstInPeriod = true;
+//	correlationValues.clear();
+//
+//	for (int filePos = periodStart; filePos > (startSample - windowSize); filePos--)
+//	{
+//		if (firstInPeriod)
+//		{
+//			//Refreshes the window
+//			for (int i = 0; i < windowSize; i++)
+//			{
+//				window[i] = signal[filePos + i];
+//			}
+//
+//			firstInPeriod = false;
+//
+//			//At very high frequencies this will just be 0
+//			//But at low frequencies it saves a lot of time.
+//			filePos -= (expectedPeriodLength * 3) / 4;
+//		}
+//
+//		float currentCorrelation = signalCorrelation(window, signal, filePos);
+//
+//		//Verifies that we have a significant correlation
+//		if (currentCorrelation > correlationThreshold)
+//		{
+//			correlationValues.push_back(currentCorrelation);
+//		}
+//		else
+//			continue;
+//
+//		//We cannot check for any correlation peaks with less than 3 values
+//		//So we just save them and skip to the next loop.
+//		if (correlationValues.size() < 3)
+//			continue;
+//
+//		//This checks that the correlation value is a peak
+//		int lastCorr = correlationValues.size() - 1;
+//		bool isCorrelationPeak = (correlationValues[lastCorr - 1] > correlationValues[lastCorr])
+//			&& (correlationValues[lastCorr - 1] > correlationValues[lastCorr - 2]);
+//		//This checks that we're within 10% of the expected period size
+//		bool isWithinPeriodRange = filePos > (int)(((float)periodList.front() - (expectedPeriodLength * 1.1)))
+//			&& filePos < (int)(((float)periodList.front() - (expectedPeriodLength * 0.9)));
+//
+//		if (isCorrelationPeak && isWithinPeriodRange)
+//		{
+//			int nearestZero = findNearestZero(signal, filePos);
+//			periodList.push_front(nearestZero);
+//			filePos = nearestZero;
+//			firstInPeriod = true;
+//		}
+//		else
+//			continue;
+//	}
+//
+//	std::vector<int> periodZeroes(periodList.size());
+//
+//	for (int i = 0; i < periodList.size(); i++)
+//	{
+//		periodZeroes[i] = periodList[i];
+//	}
+//
+//	return periodZeroes;
+//}
+
 std::vector<int> Correlator::findPeriodSamples(std::vector<float>& signal, int startSample,
 	float msOffset, float inPitch, float correlationThreshold)
 {
-	int expectedPeriodLength = (int)(sampleRate / inPitch);
-	int expectedNumPeriods = (int)(signal.size() / expectedPeriodLength);
-	int initialSample = startSample + (int)(sampleRate * (msOffset / 1000.0));
+	int expectedPeriodLength = static_cast<int>(sampleRate / inPitch);
+	int expectedNumPeriods = static_cast<int>(signal.size() / expectedPeriodLength);
+	int initialSample = startSample + static_cast<int>(sampleRate * (msOffset / 1000.0));
 	int peakSample = findPeakSample(signal, initialSample, initialSample + windowSize, true);
 	int periodStart = findPreviousZero(signal, peakSample);
-	float threshold = correlationThreshold;
-	std::deque<int> periodList;
-	periodList.push_back(periodStart);
+	std::vector<int> zeroCrossings = findZeroCrossings(signal, startSample);
 
 	std::vector<float> window(windowSize);
-	std::vector<float> correlationValues;
+	for (int i = 0; i < windowSize; i++)
+		window[i] = (periodStart + i < signal.size()) ? signal[periodStart + i] : 0.f;
 
-	int hopSize = (int)(sampleRate / pitch);
-	bool firstInPeriod = true;
-	int lastStart = 0;
+	// Precompute window norm
+	float squareA = 0.f;
+	for (float w : window) squareA += w * w;
+	if (squareA == 0.f) return {}; // Avoid divide by zero
+	float normA = std::sqrt(squareA);
 
-	
-	/* This loop will go over all the samples in the full audio file.
-	* The inner loop for the window is within signalCorrelation() */
-	for (int filePos = periodStart; filePos < signal.size(); filePos++)
-	{
-		if (firstInPeriod)
-		{
-			lastStart = filePos;
-			//Refreshes the window
-			for (int i = 0; i < windowSize; i++)
-			{
-				if (filePos + i >= signal.size())
-					window[i] = 0.0;
+	std::deque<int> forwardList;
+	std::deque<int> backwardList;
+	forwardList.push_back(periodStart);
+	backwardList.push_back(periodStart);
+
+	auto forwardSearch = [&]() {
+		std::vector<float> corrVals;
+		CorrelationState state;
+		int filePos = periodStart;
+		bool first = true;
+		int lastStart = filePos;
+
+		while (filePos < signal.size()) {
+			if (first) {
+				lastStart = filePos;
+				first = false;
+				filePos += expectedPeriodLength - 6;
+			}
+
+			float corr = signalCorrelationRolling(window, squareA, signal, filePos, state, false);
+			if (corr > correlationThreshold) {
+				corrVals.push_back(corr);
+			}
+			else if (filePos > lastStart + expectedPeriodLength + 3) {
+				int nz = findNearestZeroCached(zeroCrossings, lastStart + expectedPeriodLength);
+				if (nz == forwardList.back()) { filePos++; continue; }
+				if (nz - forwardList.back() >= expectedPeriodLength - 2 ||
+					nz - forwardList.back() <= expectedPeriodLength + 2)
+				{
+					forwardList.push_back(nz);
+					filePos = nz;
+				}
 				else
-					window[i] = signal[filePos + i];
+				{
+					forwardList.push_back(lastStart + expectedPeriodLength);
+					filePos = lastStart + expectedPeriodLength;
+				}
+				first = true;
+			}
+			else {
+				filePos++;
+				continue;
 			}
 
-			firstInPeriod = false;
+			if (corrVals.size() < 3) continue;
+			int lc = corrVals.size() - 1;
+			bool isPeak = (corrVals[lc - 1] > corrVals[lc]) && (corrVals[lc - 1] > corrVals[lc - 2]);
+			bool inRange = filePos > forwardList.back() + expectedPeriodLength - 2 &&
+				filePos < forwardList.back() + expectedPeriodLength + 2;
 
-			//At very high frequencies this will just be 0
-			//But at low frequencies it saves a lot of time.
-			filePos += (expectedPeriodLength * 3) / 4;
+			if (isPeak && inRange) {
+				int nz = findNearestZeroCached(zeroCrossings, filePos);
+				if (nz == forwardList.back()) { filePos++; continue; }
+				int currentWindowSize = nz - forwardList.back();
+				if (currentWindowSize >= (expectedPeriodLength - 2) &&
+					currentWindowSize <= (expectedPeriodLength + 2))
+				{
+					forwardList.push_back(nz);
+					filePos = nz;
+				}
+				else
+				{
+					forwardList.push_back(forwardList.back() + expectedPeriodLength);
+					filePos = forwardList.back() + expectedPeriodLength;
+				}
+				first = true;
+			}
+			if (forwardList.size() > expectedNumPeriods * 1.1) break;
+			filePos++;
 		}
+	};
 
-		float currentCorrelation = signalCorrelation(window, signal, filePos);
+	auto backwardSearch = [&]() {
+		std::vector<float> corrVals;
+		CorrelationState state;
+		int filePos = periodStart;
+		bool first = true;
+		int lastStart = filePos;
 
-		//Verifies that we have a significant correlation
-		if (currentCorrelation > correlationThreshold)
-		{
-			correlationValues.push_back(currentCorrelation);
-		}
-		else if (filePos > (int)(lastStart + ((float)expectedPeriodLength * 1.1)))
-		{
-			int nearestZero = findNearestZero(signal, lastStart + expectedPeriodLength + 2);
-			if (nearestZero == periodList.back())
-				continue;
-			periodList.push_back(nearestZero);
-			filePos = nearestZero;
-			firstInPeriod = true;
-		}
-		else
-			continue;
-
-		//We cannot check for any correlation peaks with less than 3 values
-		//So we just save them and skip to the next loop.
-		if (correlationValues.size() < 3)
-			continue;
-
-		//This checks that the correlation value is a peak
-		int lastCorr = correlationValues.size() - 1;
-		bool isCorrelationPeak = (correlationValues[lastCorr - 1] > correlationValues[lastCorr])
-			&& (correlationValues[lastCorr - 1] > correlationValues[lastCorr - 2]);
-		//This checks that we're within 10% of the expected period size
-		bool isWithinPeriodRange = filePos > (int)(((float)periodList.back() + (expectedPeriodLength * 0.9))) 
-			&& filePos < (int)(((float)periodList.back() + (expectedPeriodLength * 1.1)));
-
-		if (isCorrelationPeak && isWithinPeriodRange)
-		{
-			int nearestZero = findNearestZero(signal, filePos);
-			if (nearestZero == periodList.back())
-				continue;
-			periodList.push_back(nearestZero);
-			filePos = nearestZero;
-			firstInPeriod = true;
-		}
-		else
-			continue;
-
-		if (periodList.size() > (int)((float)expectedNumPeriods * 1.1))
-			break;
-	}
-
-	firstInPeriod = true;
-	correlationValues.clear();
-
-	for (int filePos = periodStart; filePos > startSample; filePos--)
-	{
-		if (firstInPeriod)
-		{
-			//Refreshes the window
-			for (int i = 0; i < windowSize; i++)
-			{
-				window[i] = signal[filePos + i];
+		while (filePos > (startSample - windowSize)) {
+			if (first) {
+				first = false;
+				lastStart = filePos;
+				filePos -= expectedPeriodLength + 6;
 			}
 
-			firstInPeriod = false;
+			float corr = signalCorrelationRolling(window, squareA, signal, filePos, state, false);
+			if (corr > correlationThreshold) {
+				corrVals.push_back(corr);
+			}
+			else {
+				filePos--;
+				continue;
+			}
 
-			//At very high frequencies this will just be 0
-			//But at low frequencies it saves a lot of time.
-			filePos -= (expectedPeriodLength * 3) / 4;
+			if (corrVals.size() < 3) continue;
+			int lc = corrVals.size() - 1;
+			bool isPeak = (corrVals[lc - 1] > corrVals[lc]) && (corrVals[lc - 1] > corrVals[lc - 2]);
+			bool inRange = filePos < backwardList.front() - expectedPeriodLength + 2 &&
+				filePos > backwardList.front() - expectedPeriodLength - 2;
+
+			if (isPeak && inRange) {
+				int nz = findNearestZeroCached(zeroCrossings, filePos);
+				if (nz <= filePos - expectedPeriodLength + 3 &&
+					nz >= filePos - expectedPeriodLength - 3)
+				{
+					backwardList.push_front(nz);
+					filePos = nz + 1;
+				}
+				else
+				{
+					backwardList.push_front(lastStart - expectedPeriodLength);
+					filePos = lastStart - expectedPeriodLength;
+				}
+				first = true;
+			}
+			filePos--;
 		}
+	};
 
-		float currentCorrelation = signalCorrelation(window, signal, filePos);
+	// Run forward and backward search in parallel
+	auto forwardFuture = std::async(std::launch::async, forwardSearch);
+	auto backwardFuture = std::async(std::launch::async, backwardSearch);
+	forwardFuture.get();
+	backwardFuture.get();
 
-		//Verifies that we have a significant correlation
-		if (currentCorrelation > correlationThreshold)
-		{
-			correlationValues.push_back(currentCorrelation);
-		}
-		else
-			continue;
-
-		//We cannot check for any correlation peaks with less than 3 values
-		//So we just save them and skip to the next loop.
-		if (correlationValues.size() < 3)
-			continue;
-
-		//This checks that the correlation value is a peak
-		int lastCorr = correlationValues.size() - 1;
-		bool isCorrelationPeak = (correlationValues[lastCorr - 1] > correlationValues[lastCorr])
-			&& (correlationValues[lastCorr - 1] > correlationValues[lastCorr - 2]);
-		//This checks that we're within 10% of the expected period size
-		bool isWithinPeriodRange = filePos < (int)(((float)periodList.front() - (expectedPeriodLength * 1.1)))
-			&& filePos > (int)(((float)periodList.front() - (expectedPeriodLength * 0.9)));
-
-		if (isCorrelationPeak && isWithinPeriodRange)
-		{
-			int nearestZero = findNearestZero(signal, filePos);
-			periodList.push_front(nearestZero);
-			filePos = nearestZero;
-			firstInPeriod = true;
-		}
-		else
-			continue;
-	}
-
-	std::vector<int> periodZeroes(periodList.size());
-
-	for (int i = 0; i < periodList.size(); i++)
-	{
-		periodZeroes[i] = periodList[i];
-	}
+	// Merge both lists
+	std::vector<int> periodZeroes;
+	periodZeroes.insert(periodZeroes.end(), backwardList.begin(), backwardList.end());
+	periodZeroes.insert(periodZeroes.end(), ++forwardList.begin(), forwardList.end());
 
 	return periodZeroes;
+}
+
+
+std::vector<int> Correlator::findZeroCrossings(const std::vector<float>& signal, int initSample)
+{
+	std::vector<int> zeroCrossings;
+	for (int i = initSample; i < signal.size(); ++i)
+	{
+		if ((signal[i - 1] < 0 && signal[i] >= 0) ||
+			(signal[i - 1] > 0 && signal[i] <= 0))
+		{
+			zeroCrossings.push_back(i);
+		}
+	}
+
+	return zeroCrossings;
+}
+
+int Correlator::findNearestZeroCached(const std::vector<int>& zeroCrossings, int sample)
+{
+	auto it = std::lower_bound(zeroCrossings.begin(), zeroCrossings.end(), sample);
+	if (it == zeroCrossings.end()) return zeroCrossings.back();
+	if (it == zeroCrossings.begin()) return *it;
+	int after = *it;
+	int before = *(it - 1);
+	return (std::abs(after - sample) < std::abs(before - sample)) ? after : before;
 }
 
 float Correlator::findPitch(const std::vector<float>& signal)
@@ -569,4 +744,22 @@ float Correlator::signalCorrelation(std::vector<float>& window, std::vector<floa
 		correlationValue = 0.f;
 
 	return correlationValue;
+}
+
+float Correlator::signalCorrelationRolling(const std::vector<float>& window, float squareA,
+	const std::vector<float>& signal, int startSample, CorrelationState& state, bool first)
+{
+	state.numerator = 0.f;
+	state.squareB = 0.f;
+
+	for (int i = 0; i < window.size(); ++i)
+	{
+		float a = window[i];
+		float b = (i + startSample < signal.size()) ? signal[i + startSample] : 0.f;
+		state.numerator += a * b;
+		state.squareB += b * b;
+	}
+
+	float denominator = std::sqrt(squareA * state.squareB);
+	return (denominator != 0.f) ? state.numerator / denominator : 0.f;
 }

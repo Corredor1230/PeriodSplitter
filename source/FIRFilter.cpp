@@ -70,21 +70,23 @@ void FIRHighPass::designFilter(float sampleRate, float cutoffFreq, float transit
     taps.resize(numTaps);
     int M = numTaps - 1;
 
+    double sum = 0.0;
     for (int n = 0; n <= M; ++n) {
         double centeredN = n - M / 2.0;
 
         // Ideal lowpass (sinc) then spectral inversion to get highpass
         double sinc = centeredN == 0.0 ?
-            1.0 - 2.0 * normCutoff :
-            -std::sin(2.0 * PI * normCutoff * centeredN) / (PI * centeredN);
+            2.0 * normCutoff :
+            std::sin(2.0 * PI * normCutoff * centeredN) / (PI * centeredN);
 
         // Hann window
         double window = 0.5 * (1.0 - std::cos(2.0 * PI * n / M));
         taps[n] = sinc * window;
+        sum += taps[n];
     }
 
-    // Normalize gain at Nyquist to 1.0
-    float gain = 0.0;
-    for (float t : taps) gain += t;
-    for (float& t : taps) t /= gain;
+    for (int n = 0; n <= M; ++n) {
+        taps[n] = -taps[n];
+    }
+    taps[M / 2] += 1.0;
 }
