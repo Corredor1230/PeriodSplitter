@@ -66,7 +66,7 @@ private:
 	int		findPeakSample(std::vector<float>& signal, int startSample, int endSample, bool useAbsolute = true);
 	int		findPeakSample(std::vector<float>& signal, bool useAbsolute = true);
 	std::vector<int> findPeriodSamples(std::vector<float>& signal, int startSample, 
-				float msOffset, float inPitch, float correlationThreshold = 0.4);
+				float msOffset, float inPitch, float correlationThreshold = 0.2);
 	std::vector<int> findZeroCrossings(const std::vector<float>& signal, int initSample);
 	int findNearestZeroCached(const std::vector<int>& zeroCrossings, int sample);
 	float	findMode(const std::vector<float>& vctr, float threshold, float minFreq, float maxFreq);

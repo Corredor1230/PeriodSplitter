@@ -533,12 +533,14 @@ std::vector<int> Correlator::findPeriodSamples(std::vector<float>& signal, int s
 	int expectedNumPeriods = static_cast<int>(signal.size() / expectedPeriodLength);
 	int initialSample = startSample + static_cast<int>(sampleRate * (msOffset / 1000.0));
 	int peakSample = findPeakSample(signal, initialSample, initialSample + windowSize, true);
-	int periodStart = findPreviousZero(signal, peakSample);
+	int periodStart = findNearestZero(signal, peakSample);
 	std::vector<int> zeroCrossings = findZeroCrossings(signal, startSample);
+	int margin = std::max<int>(4, std::ceil<int>((float)expectedPeriodLength * 0.02));
 
 	std::vector<float> window(windowSize);
 	for (int i = 0; i < windowSize; i++)
 		window[i] = (periodStart + i < signal.size()) ? signal[periodStart + i] : 0.f;
+	std::vector<float> backWindow = window;
 
 	// Precompute window norm
 	float squareA = 0.f;
@@ -561,8 +563,13 @@ std::vector<int> Correlator::findPeriodSamples(std::vector<float>& signal, int s
 		while (filePos < signal.size()) {
 			if (first) {
 				lastStart = filePos;
+				for (int i = 0; i < windowSize; i++)
+					window[i] = (lastStart + i < signal.size()) ? signal[lastStart + i] : 0.f;
+				for (float w : window) squareA += w * w;
+				//if (squareA == 0.f) squareA = 0.0001; // Avoid divide by zero
+				float normA = std::sqrt(squareA);
 				first = false;
-				filePos += expectedPeriodLength - 6;
+				filePos += (expectedPeriodLength - margin - 2);
 			}
 
 			float corr = signalCorrelationRolling(window, squareA, signal, filePos, state, false);
@@ -572,8 +579,8 @@ std::vector<int> Correlator::findPeriodSamples(std::vector<float>& signal, int s
 			else if (filePos > lastStart + expectedPeriodLength + 3) {
 				int nz = findNearestZeroCached(zeroCrossings, lastStart + expectedPeriodLength);
 				if (nz == forwardList.back()) { filePos++; continue; }
-				if (nz - forwardList.back() >= expectedPeriodLength - 2 ||
-					nz - forwardList.back() <= expectedPeriodLength + 2)
+				if (nz - forwardList.back() >= expectedPeriodLength - margin &&
+					nz - forwardList.back() <= expectedPeriodLength + margin)
 				{
 					forwardList.push_back(nz);
 					filePos = nz;
@@ -593,23 +600,24 @@ std::vector<int> Correlator::findPeriodSamples(std::vector<float>& signal, int s
 			if (corrVals.size() < 3) continue;
 			int lc = corrVals.size() - 1;
 			bool isPeak = (corrVals[lc - 1] > corrVals[lc]) && (corrVals[lc - 1] > corrVals[lc - 2]);
-			bool inRange = filePos > forwardList.back() + expectedPeriodLength - 2 &&
-				filePos < forwardList.back() + expectedPeriodLength + 2;
+			bool inRange = filePos > forwardList.back() + expectedPeriodLength - margin &&
+				filePos < forwardList.back() + expectedPeriodLength + margin;
 
 			if (isPeak && inRange) {
 				int nz = findNearestZeroCached(zeroCrossings, filePos);
 				if (nz == forwardList.back()) { filePos++; continue; }
 				int currentWindowSize = nz - forwardList.back();
-				if (currentWindowSize >= (expectedPeriodLength - 2) &&
-					currentWindowSize <= (expectedPeriodLength + 2))
+				if (currentWindowSize >= (expectedPeriodLength - margin) &&
+					currentWindowSize <= (expectedPeriodLength + margin))
 				{
 					forwardList.push_back(nz);
 					filePos = nz;
 				}
 				else
 				{
-					forwardList.push_back(forwardList.back() + expectedPeriodLength);
-					filePos = forwardList.back() + expectedPeriodLength;
+					int temporaryNewStart = forwardList.back() + expectedPeriodLength;
+					forwardList.push_back(temporaryNewStart);
+					filePos = temporaryNewStart;
 				}
 				first = true;
 			}
@@ -625,32 +633,51 @@ std::vector<int> Correlator::findPeriodSamples(std::vector<float>& signal, int s
 		bool first = true;
 		int lastStart = filePos;
 
-		while (filePos > (startSample - windowSize)) {
+		while (filePos > (startSample - windowSize / 2)) {
 			if (first) {
 				first = false;
 				lastStart = filePos;
-				filePos -= expectedPeriodLength + 6;
+				for (int i = 0; i < windowSize; i++)
+					backWindow[i] = (lastStart + i) > 1 ? signal[lastStart + i] : 0.f;
+				for (float w : backWindow) squareA += w * w;
+				//if (squareA == 0.f) squareA = 0.0001; // Avoid divide by zero
+				float normA = std::sqrt(squareA);
+				filePos -= (expectedPeriodLength - margin);
+				corrVals.push_back(0.0);
 			}
 
-			float corr = signalCorrelationRolling(window, squareA, signal, filePos, state, false);
-			if (corr > correlationThreshold) {
-				corrVals.push_back(corr);
-			}
-			else {
+			//float corr = signalCorrelationRolling(backWindow, squareA, signal, filePos, state, false);
+			float corr = signalCorrelation(backWindow, signal, filePos);
+			corrVals.push_back(corr);
+
+			if (corrVals.size() < 3)
+			{
 				filePos--;
 				continue;
 			}
-
-			if (corrVals.size() < 3) continue;
 			int lc = corrVals.size() - 1;
-			bool isPeak = (corrVals[lc - 1] > corrVals[lc]) && (corrVals[lc - 1] > corrVals[lc - 2]);
-			bool inRange = filePos < backwardList.front() - expectedPeriodLength + 2 &&
-				filePos > backwardList.front() - expectedPeriodLength - 2;
 
-			if (isPeak && inRange) {
+			bool aboveThreshold = (
+				(corrVals[lc] > correlationThreshold) ||
+				(corrVals[lc - 1] > correlationThreshold) ||
+				(corrVals[lc - 2] > correlationThreshold)
+				);
+
+			bool isPeak = (
+				(corrVals[lc - 1] > corrVals[lc]) && 
+				(corrVals[lc - 1] > corrVals[lc - 2])
+				);
+
+			bool inRange = (
+				(filePos < backwardList.front() - expectedPeriodLength + margin) &&
+				(filePos > backwardList.front() - expectedPeriodLength - margin)
+				);
+
+			if (isPeak && inRange && aboveThreshold) {
 				int nz = findNearestZeroCached(zeroCrossings, filePos);
-				if (nz <= filePos - expectedPeriodLength + 3 &&
-					nz >= filePos - expectedPeriodLength - 3)
+				int currentWindowSize = backwardList.front() - nz;
+				if (currentWindowSize <= expectedPeriodLength + margin &&
+					currentWindowSize >= expectedPeriodLength - margin)
 				{
 					backwardList.push_front(nz);
 					filePos = nz + 1;
