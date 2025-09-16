@@ -1,5 +1,8 @@
 build/
-media/
+*.wav
+*.ini
+*.csv
+media/*.txt
 glad/
 fast-cpp-csv-parser/
 Thoughts.txt
