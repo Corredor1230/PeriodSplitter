@@ -12,6 +12,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(SOURCE_DIR "${CMAKE_SOURCE_DIR}/source")
 set(EXECUTABLE_NAME PeriodicSplitter)
 
+# add_library(glad STATIC ${SOURCE_DIR}/src/glad.c)
+# target_link_directories(glad PUBLIC ${SOURCE_DIR}/include)
+
+find_package(OpenGL REQUIRED)
+
 # Manually specify the paths for libsndfile include and lib directories
 # Adjust these paths to where you installed libsndfile
 set(LIBSNDFILE_INCLUDE_DIR "C:/Libraries/libsndfile/include")
@@ -37,7 +42,9 @@ add_executable(${EXECUTABLE_NAME} ${SOURCE_DIR}/main.cpp
 				${SOURCE_DIR}/GUI.h
 				${SOURCE_DIR}/GUI.cpp
 				${SOURCE_DIR}/HarmonicTracker.h
-				${SOURCE_DIR}/HarmonicTracker.cpp)
+				${SOURCE_DIR}/HarmonicTracker.cpp
+				${SOURCE_DIR}/SpectrumView.cpp
+				${SOURCE_DIR}/SpectrumView.h)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
 
@@ -48,6 +55,7 @@ target_include_directories(${EXECUTABLE_NAME} PRIVATE
     ${LIBPYIN_INCLUDE_DIR}
     ${GLFW3_INCLUDE_DIR}
     ${IMGUI_INCLUDE_DIR}
+	${OPENGL_LIBRARIES}
 )
 
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE 
