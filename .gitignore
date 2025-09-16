@@ -1,6 +1,7 @@
 build/
 *.wav
 *.ini
+*.xlsx
 *.csv
 media/*.txt
 glad/
