@@ -14,6 +14,7 @@
 #include"FIRFilter.h"
 #include"GUI.h"
 #include"Splitter.h"
+#include"HarmonicTracker.h"
 #include"csv.h"
 
 std::string openFileDialog() {
@@ -127,7 +128,7 @@ int main()
 
     SF_INFO sfInfo;
     SNDFILE* file = sf_open(filename.c_str(), SFM_READ, &sfInfo);
-    int maxNumSamples = sfInfo.samplerate * 10;
+    int maxNumSamples = sfInfo.samplerate * 30;
     const int numFrames = sfInfo.frames;
     int numSamps = sfInfo.frames > maxNumSamples ? maxNumSamples : sfInfo.frames;
     std::vector<std::vector<float>> delaced(sfInfo.channels, std::vector<float>(numSamps));
@@ -146,12 +147,12 @@ int main()
     int startSample = 0;
     float pitch = findPitch(delaced[0], sfInfo.samplerate);
     bool needsFiler = false;
-    if (pitch > 250.0)
+    /*if (pitch > 250.0)
     {
         float cutoff = pitch > 300.0 ? pitch * 0.50 : 150.0;
         FIRHighPass filter(sfInfo.samplerate, cutoff, cutoff * 0.8);
         filter.processAudioFile(delaced[0], 1024);
-    }
+    }*/
     normalizeByMaxAbs(delaced[0]);
 
     Correlator correlator(delaced[0], sfInfo);
@@ -163,10 +164,42 @@ int main()
     Splitter theSplitter(sfInfo);
     theSplitter.writeCsvFile(periodStart, csvName + ".csv");
 
-    auto windows = theSplitter.loadCSV(csvName + ".csv", delaced[0].size());
+    /*auto windows = theSplitter.loadCSV(csvName + ".csv", delaced[0].size());
 
     WaveformViewer viewer(delaced[0], windows);
-    viewer.run();
+    viewer.run();*/
+
+    HarmonicTracker tracker(
+        delaced[0], 
+        periodStart, 
+        (float)sfInfo.samplerate, 
+        pitch, 
+        32, 16384 * 2, false, 200.f);
+
+    tracker.analyze();
+
+    std::vector<std::vector<float>> amplitudes;
+    std::vector<std::vector<float>> phases;
+    std::vector<std::vector<float>> freqs;
+
+
+    amplitudes = tracker.getAmplitudes();
+    phases = tracker.getPhases();
+    freqs = tracker.getFrequencies();
+
+    std::vector<float> singleFreqs;
+
+    for (int i = 0; i < freqs.size(); i++) {
+        singleFreqs.push_back(freqs[i][0]);
+    }
+
+    for (int i = 0; i < amplitudes.size(); i++)
+    {
+        tracker.filterVector(amplitudes[i], 4);
+    }
+
+    theSplitter.writeCsvFile(amplitudes, "AMP" + csvName + ".csv", singleFreqs);
+    theSplitter.writeCsvFile(phases, "PHA" + csvName + ".csv", singleFreqs);
 
 	return 0;
 }

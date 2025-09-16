@@ -7,6 +7,7 @@
 #include<array>
 #include<sndfile.h>
 #include<string>
+#include<iomanip>
 
 class Splitter
 {
@@ -19,6 +20,8 @@ public:
 		bool useNumOutputFiles = false, int numOutputFiles = 0);
 
 	void writeCsvFile(std::vector<int>& outputInfo, std::string& filename);
+	void writeCsvFile(std::vector<std::vector<float>>& outInfo, std::string& filename, 
+		std::vector<float>& headers);
 	std::vector<std::pair<int, int>> loadCSV(const std::string& path, int totalSamples);
 
 private:

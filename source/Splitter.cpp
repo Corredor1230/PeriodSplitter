@@ -53,6 +53,36 @@ void Splitter::writeCsvFile(std::vector<int>& outputInfo, std::string& filename)
     }
 }
 
+void Splitter::writeCsvFile(std::vector<std::vector<float>>& outInfo, std::string& filename,
+    std::vector<float>& headers)
+{
+    std::ofstream outputFile(filename, std::ios::out | std::ios::trunc);
+
+    if (!outputFile.is_open())
+    {
+        std::cerr << "Error: could not open file" << filename << std::endl;
+    }
+
+    for (int i = 0; i < outInfo.size(); i++)
+    {
+        outputFile << headers[i];
+        if (i < headers.size() - 1) outputFile << ",";
+    }
+    outputFile << '\n';
+
+    size_t numRows = outInfo[0].size();
+
+    for (size_t row = 0; row < numRows; row++) {
+        for (size_t col = 0; col < outInfo.size(); col++) {
+            outputFile << outInfo[col][row];
+            if (col < outInfo.size() - 1) outputFile << ",";
+        }
+        outputFile << '\n';
+    }
+
+    outputFile.close();
+}
+
 std::vector<std::pair<int, int>> Splitter::loadCSV(const std::string& path, int totalSamples) 
 {
     std::ifstream file(path);
