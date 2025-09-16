@@ -603,12 +603,12 @@ std::vector<int> Correlator::findPeriodSamples(std::vector<float>& signal, int s
 			bool inRange = filePos > forwardList.back() + expectedPeriodLength - margin &&
 				filePos < forwardList.back() + expectedPeriodLength + margin;
 
-			if (isPeak && inRange) {
+			if (isPeak /*&& inRange*/) {
 				int nz = findNearestZeroCached(zeroCrossings, filePos);
 				if (nz == forwardList.back()) { filePos++; continue; }
 				int currentWindowSize = nz - forwardList.back();
-				if (currentWindowSize >= (expectedPeriodLength - margin) &&
-					currentWindowSize <= (expectedPeriodLength + margin))
+				if (currentWindowSize >= (expectedPeriodLength - margin)/* &&
+					currentWindowSize <= (expectedPeriodLength + margin)*/)
 				{
 					forwardList.push_back(nz);
 					filePos = nz;
@@ -673,7 +673,7 @@ std::vector<int> Correlator::findPeriodSamples(std::vector<float>& signal, int s
 				(filePos > backwardList.front() - expectedPeriodLength - margin)
 				);
 
-			if (isPeak && inRange && aboveThreshold) {
+			if (isPeak  /*&& inRange*/ && aboveThreshold) {
 				int nz = findNearestZeroCached(zeroCrossings, filePos);
 				int currentWindowSize = backwardList.front() - nz;
 				if (currentWindowSize <= expectedPeriodLength + margin &&
