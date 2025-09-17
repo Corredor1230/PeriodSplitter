@@ -10,12 +10,15 @@
 #include<commdlg.h>
 #include<filesystem>
 #include<libpyincpp.h>
+#include<ranges>
 #include"Correlator.h"
 #include"FIRFilter.h"
 #include"GUI.h"
 #include"Splitter.h"
 #include"HarmonicTracker.h"
 #include"csv.h"
+
+namespace fs = std::filesystem;
 
 std::string openFileDialog() {
     OPENFILENAMEA ofn;
@@ -37,6 +40,42 @@ std::string openFileDialog() {
         return std::string(ofn.lpstrFile);
     }
     return "";
+}
+
+std::vector<std::string> getFileListFromExtension(const std::string& inDirectory, const std::string& extension)
+{
+    std::vector<std::string> filenames;
+
+    std::string directory;
+
+    if (inDirectory == "media")
+    {
+        directory = "C:/Users/usuario/Documents/Programming/CMake_Learning/PeriodicSplitter/media";
+    }
+    else if (inDirectory == "source")
+    {
+        directory = "C:/Users/usuario/Documents/Universidad/Tokyo_geijutsu_daigaku/2025_01/Master_Thesis/Media/Elec_Guitar/splitAudios";
+    }
+    else
+    {
+        directory = "C:/Users/usuario/Documents/Programming/CMake_Learning/PeriodicSplitter/media";
+    }
+
+    try {
+        for (const auto& entry : fs::directory_iterator(directory)) {
+            if (entry.is_regular_file() && entry.path().extension() == extension) {
+                filenames.push_back(entry.path().filename().string());
+            }
+        }
+    }
+    catch (const fs::filesystem_error& e) {
+        std::cerr << "Filesystem error: " << e.what() << '\n';
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << '\n';
+    }
+
+    return filenames;
 }
 
 std::string getRawFilename(std::string& filename)
@@ -88,15 +127,26 @@ float findMode(const std::vector<float>& data, float threshold = 1.0f,
     return modeCount > 0 ? mode : NAN;
 }
 
-float findPitch(const std::vector<float>& signal, float sampleRate)
+float findPitch(const std::vector<float>& signal, float sampleRate, std::string& filename)
 {
     PyinCpp pitchDetector(sampleRate);
 
     std::vector<float> pitches = pitchDetector.feed(signal);
 
-    float pitch = findMode(pitches);
+    float foundPitch = findMode(pitches);
 
-    std::cout << "Current pitch: " << pitch << "Hz\n";
+    //std::cout << "Current pitch: " << pitch << "Hz\n";
+
+    float metaPitch = getPitchFromFilename(filename);
+    float pitch{ 0.0 };
+    float tolerance = 3.0;
+
+    if (foundPitch > metaPitch - tolerance && foundPitch < metaPitch + tolerance)
+        pitch = foundPitch;
+    else
+        pitch = metaPitch;
+
+    std::cout << "Current pitch: " << pitch << 'Hz\n';
 
     return pitch;
 }
@@ -122,19 +172,15 @@ void normalizeByMaxAbs(std::vector<float>& vec)
     }
 }
 
-int main()
+std::vector<float> getAudioFromFile(std::string& filename, SF_INFO& sfInfo, float maxLength = 30.f)
 {
-    std::string filename = openFileDialog();
-
-    SF_INFO sfInfo;
     SNDFILE* file = sf_open(filename.c_str(), SFM_READ, &sfInfo);
-    int maxNumSamples = sfInfo.samplerate * 30;
+    int maxNumSamples = sfInfo.samplerate * maxLength;
     const int numFrames = sfInfo.frames;
     int numSamps = sfInfo.frames > maxNumSamples ? maxNumSamples : sfInfo.frames;
     std::vector<std::vector<float>> delaced(sfInfo.channels, std::vector<float>(numSamps));
     std::vector<float> samples(sfInfo.frames * sfInfo.channels);
     sf_readf_float(file, samples.data(), sfInfo.frames);
-
 
     for (int chan = 0; chan < sfInfo.channels; chan++)
     {
@@ -144,47 +190,81 @@ int main()
         }
     }
 
-    int startSample = 0;
-    float pitch = findPitch(delaced[0], sfInfo.samplerate);
-    bool needsFiler = false;
-    /*if (pitch > 250.0)
-    {
-        float cutoff = pitch > 300.0 ? pitch * 0.50 : 150.0;
-        FIRHighPass filter(sfInfo.samplerate, cutoff, cutoff * 0.8);
-        filter.processAudioFile(delaced[0], 1024);
-    }*/
-    normalizeByMaxAbs(delaced[0]);
+    return delaced[0];
+}
 
-    Correlator correlator(delaced[0], sfInfo);
+float getPitchFromFilename(std::string& filename)
+{
+    std::string name = filename;
+    std::vector<std::string> parts;
+    size_t start = 0, pos;
+
+    while ((pos = name.find('_', start)) != std::string::npos) {
+        parts.push_back(name.substr(start, pos - start));
+        start = pos + 1;
+    }
+    parts.push_back(name.substr(start));
+
+    float outPitch = std::stof(parts[1]);
+
+    return outPitch;
+}
+
+std::vector<int> getPeriodCuts(std::vector<float>& audio, SF_INFO& sfInfo, float pitch)
+{
+    std::vector<int> periodCuts;
+
+    Correlator correlator(audio, sfInfo);
     correlator.initialize(pitch);
+
+    periodCuts = correlator.getCorrelationZeroes();
+
+    return periodCuts;
+}
+
+int main()
+{
+    int maxHarmonics = 32;
+    int N = 16384 * 2;
+    float tolerance = 200.f;
+
+    std::vector<std::string> fileList = getFileListFromExtension("source", ".wav");
+
+    std::string filename = openFileDialog();
+
+    SF_INFO sfInfo;
+    std::vector<float> delaced = getAudioFromFile(filename, sfInfo);
+    int startSample = 0;
+    float pitch = findPitch(delaced, sfInfo.samplerate, filename);
+
+    normalizeByMaxAbs(delaced);
+    std::vector<int> periodStart = getPeriodCuts(delaced, sfInfo, pitch);
+
+    //CSV creation
     std::string csvName = getRawFilename(filename);
-
-    std::vector<int> periodStart = correlator.getCorrelationZeroes();
-
     Splitter theSplitter(sfInfo);
     theSplitter.writeCsvFile(periodStart, csvName + ".csv");
 
-    /*auto windows = theSplitter.loadCSV(csvName + ".csv", delaced[0].size());
-
-    WaveformViewer viewer(delaced[0], windows);
-    viewer.run();*/
+    auto windows = theSplitter.loadCSV(csvName + ".csv", delaced.size());
+    WaveformViewer viewer(delaced, windows);
+    viewer.run();
 
     HarmonicTracker tracker(
-        delaced[0], 
+        delaced, 
         periodStart, 
         (float)sfInfo.samplerate, 
         pitch, 
-        32, 16384 * 2, false, 200.f);
+        maxHarmonics, N, false, tolerance);
 
     tracker.analyze();
 
     std::vector<std::vector<float>> amplitudes;
-    std::vector<std::vector<float>> phases;
+    //std::vector<std::vector<float>> phases;
     std::vector<std::vector<float>> freqs;
 
 
     amplitudes = tracker.getAmplitudes();
-    phases = tracker.getPhases();
+    //phases = tracker.getPhases();
     freqs = tracker.getFrequencies();
 
     std::vector<float> singleFreqs;
@@ -198,8 +278,8 @@ int main()
         tracker.filterVector(amplitudes[i], 4);
     }
 
-    theSplitter.writeCsvFile(amplitudes, "AMP" + csvName + ".csv", singleFreqs);
-    theSplitter.writeCsvFile(phases, "PHA" + csvName + ".csv", singleFreqs);
+    theSplitter.writeCsvFile(amplitudes, "AMP" + csvName + ".csv", singleFreqs, periodStart);
+    //theSplitter.writeCsvFile(phases, "PHA" + csvName + ".csv", singleFreqs);
 
 	return 0;
 }
