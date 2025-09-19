@@ -127,11 +127,11 @@ private:
 
     static inline float findPeakWithinTolerance(float targetFreq, float tolerance, int n, float sr, fftwf_complex* out) {
         float midiTolerance = tolerance / 100.0;
-        float lowMidi = midiToFreq(targetFreq) - midiTolerance;
-        float lowFreq = freqToMidi(lowMidi);
+        float lowMidi = freqToMidi(targetFreq) - midiTolerance;
+        float lowFreq = midiToFreq(lowMidi);
         int lowBin = freqToBin(lowFreq, n, sr);
-        float hiMidi = midiToFreq(targetFreq) + midiTolerance;
-        float hiFreq = freqToMidi(hiMidi);
+        float hiMidi = freqToMidi(targetFreq) + midiTolerance;
+        float hiFreq = midiToFreq(hiMidi);
         int hiBin = freqToBin(hiFreq, n, sr);
         int targetBin = freqToBin(targetFreq, n, sr);
 

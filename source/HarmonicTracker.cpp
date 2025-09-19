@@ -71,7 +71,7 @@ void HarmonicTracker::analyze() {
         float f0 = float(fs) / float(periodLength);
 
         for (int h = 1; h <= topFrequencies.size(); ++h) {
-            if (topFrequencies[h - 1].freq <= 0.0) continue;
+            if (topFrequencies[h - 1].freq <= 20.0) continue;
             float targetFreq = topFrequencies[h - 1].freq;
             float binFreq = 0.f;
             if (i == 0) binFreq = targetFreq;
