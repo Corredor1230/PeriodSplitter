@@ -44,7 +44,9 @@ add_executable(${EXECUTABLE_NAME} ${SOURCE_DIR}/main.cpp
 				${SOURCE_DIR}/HarmonicTracker.h
 				${SOURCE_DIR}/HarmonicTracker.cpp
 				${SOURCE_DIR}/SpectrumView.cpp
-				${SOURCE_DIR}/SpectrumView.h)
+				${SOURCE_DIR}/SpectrumView.h
+				${SOURCE_DIR}/NoiseTracker.cpp
+				${SOURCE_DIR}/NoiseTracker.h)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
 
