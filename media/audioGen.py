@@ -2,17 +2,18 @@ import numpy as np
 import pandas as pd
 from scipy.io.wavfile import write
 
-def synthesize_simple(amps_df, samples, Fs):
+def synthesize_simple(amps_df, Fs):
     """
-    amps_df: DataFrame with frequencies as headers, amplitudes as rows
-    samples: array of sample indices corresponding to each row in amps_df
+    amps_df: DataFrame with frequencies as headers, amplitudes as rows,
+             and sample indices as the index
     Fs: sample rate
     """
     freqs = amps_df.columns.astype(float).to_numpy()   # partial frequencies
     amps = amps_df.to_numpy()                          # shape (frames, partials)
+    samples = amps_df.index.to_numpy()                 # sample indices
     B, P = amps.shape
 
-    N = samples[-1]  # assume last sample is end
+    N = samples[-1]  # assume last sample index is end
     t = np.arange(N) / Fs
     x = np.zeros(N, dtype=np.float64)
 
@@ -20,9 +21,8 @@ def synthesize_simple(amps_df, samples, Fs):
     for k, f in enumerate(freqs):
         sine = np.cos(2 * np.pi * f * t)
 
-        # build amplitude envelope by interpolating between checkpoints
         env = np.zeros(N)
-        for b in range(len(samples)-2 or len(amps) -2):
+        for b in range(len(samples)-1):
             i0, i1 = samples[b], samples[b+1]
             if i1 <= i0:
                 continue
@@ -34,17 +34,18 @@ def synthesize_simple(amps_df, samples, Fs):
 
     return x
 
+
 # ==== Example usage ====
 Fs = 96000
-fileName = "EGuit6_82_F"
+fileName = "AGuit6_82_F"
 
-amps_df = pd.read_csv("AMP" + fileName + ".csv")
-samples = pd.read_csv(fileName + ".csv", header=None).values.squeeze()
+# Load amps_df with samples as row headers
+amps_df = pd.read_csv("AMP" + fileName + ".csv", index_col=0)
 
-x = synthesize_simple(amps_df, samples, Fs)
+x = synthesize_simple(amps_df, Fs)
 
-# Normalize and save
-# x /= np.max(np.abs(x)) + 1e-12
-write("REC" + fileName + ".wav", Fs, (x*32767).astype(np.int16))
+# Save
+from scipy.io.wavfile import write
+write("REC" + fileName + ".wav", Fs, (x/np.max(np.abs(x)) * 32767).astype(np.int16))
 
 print("Saved")
