@@ -127,6 +127,23 @@ float findMode(const std::vector<float>& data, float threshold = 1.0f,
     return modeCount > 0 ? mode : NAN;
 }
 
+float getPitchFromFilename(std::string& filename)
+{
+    std::string name = filename;
+    std::vector<std::string> parts;
+    size_t start = 0, pos;
+
+    while ((pos = name.find('_', start)) != std::string::npos) {
+        parts.push_back(name.substr(start, pos - start));
+        start = pos + 1;
+    }
+    parts.push_back(name.substr(start));
+
+    float outPitch = std::stof(parts[2]);
+
+    return outPitch;
+}
+
 float findPitch(const std::vector<float>& signal, float sampleRate, std::string& filename)
 {
     PyinCpp pitchDetector(sampleRate);
@@ -193,23 +210,6 @@ std::vector<float> getAudioFromFile(std::string& filename, SF_INFO& sfInfo, floa
     return delaced[0];
 }
 
-float getPitchFromFilename(std::string& filename)
-{
-    std::string name = filename;
-    std::vector<std::string> parts;
-    size_t start = 0, pos;
-
-    while ((pos = name.find('_', start)) != std::string::npos) {
-        parts.push_back(name.substr(start, pos - start));
-        start = pos + 1;
-    }
-    parts.push_back(name.substr(start));
-
-    float outPitch = std::stof(parts[1]);
-
-    return outPitch;
-}
-
 std::vector<int> getPeriodCuts(std::vector<float>& audio, SF_INFO& sfInfo, float pitch)
 {
     std::vector<int> periodCuts;
@@ -245,9 +245,9 @@ int main()
     Splitter theSplitter(sfInfo);
     theSplitter.writeCsvFile(periodStart, csvName + ".csv");
 
-    auto windows = theSplitter.loadCSV(csvName + ".csv", delaced.size());
+    /*auto windows = theSplitter.loadCSV(csvName + ".csv", delaced.size());
     WaveformViewer viewer(delaced, windows);
-    viewer.run();
+    viewer.run();*/
 
     HarmonicTracker tracker(
         delaced, 

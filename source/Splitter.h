@@ -23,7 +23,7 @@ public:
 	void writeCsvFile(std::vector<std::vector<float>>& outInfo, std::string& filename, 
 		std::vector<float>& headers);
 	void writeCsvFile(std::vector<std::vector<float>>& outInfo, std::string& filename,
-		std::vector<float>& columnHeaders, std::vector<int> rowHeaders);
+		std::vector<float>& columnHeaders, std::vector<int>& rowHeaders);
 	std::vector<std::pair<int, int>> loadCSV(const std::string& path, int totalSamples);
 
 private:

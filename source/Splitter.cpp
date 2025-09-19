@@ -83,39 +83,31 @@ void Splitter::writeCsvFile(std::vector<std::vector<float>>& outInfo, std::strin
     outputFile.close();
 }
 
-void writeCsvFile(std::vector<std::vector<float>>& outInfo, std::string& filename,
+void Splitter::writeCsvFile(std::vector<std::vector<float>>& outInfo, std::string& filename,
     std::vector<float>& columnHeaders, std::vector<int>& rowHeaders)
 {
     std::ofstream out(filename);
 
-    if (out.is_open())
-    {
-        std::cerr << "Error" << filename << std::endl;
-    }
-
-    out << " ,";
+    out << ",";
 
     for (int i = 0; i < columnHeaders.size(); i++)
     {
         out << columnHeaders[i];
-        if (i + 1 < columnHeaders.size()) out << " ,";
+        if (i + 1 < columnHeaders.size()) out << ",";
     }
 
     out << '\n';
 
-    for (size_t i = 0; i < outInfo.size(); ++i) {
-        if (i < rowHeaders.size()) {
-            out << rowHeaders[i] << ",";
-        }
-        else {
-            out << " ,";  // safeguard: empty if no row header
-        }
+    size_t numRows = outInfo[0].size();
 
-        for (size_t j = 0; j < outInfo[i].size(); ++j) {
-            out << std::fixed << std::setprecision(3) << outInfo[i][j];
-            if (j + 1 < outInfo[i].size()) out << ",";
+    for (size_t row = 0; row < numRows; row++) {
+        if (row < rowHeaders.size())
+            out << rowHeaders[row] << ',';
+        for (size_t col = 0; col < outInfo.size(); col++) {
+            out << outInfo[col][row];
+            if (col < outInfo.size() - 1) out << ",";
         }
-        out << "\n";
+        out << '\n';
     }
 
     out.close();
