@@ -46,7 +46,11 @@ add_executable(${EXECUTABLE_NAME} ${SOURCE_DIR}/main.cpp
 				${SOURCE_DIR}/SpectrumView.cpp
 				${SOURCE_DIR}/SpectrumView.h
 				${SOURCE_DIR}/NoiseTracker.cpp
-				${SOURCE_DIR}/NoiseTracker.h)
+				${SOURCE_DIR}/NoiseTracker.h
+				${SOURCE_DIR}/SitranoAnalysis.cpp
+				${SOURCE_DIR}/SitranoAnalysis.h
+				${SOURCE_DIR}/SitranoHeader.h
+				)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
 
