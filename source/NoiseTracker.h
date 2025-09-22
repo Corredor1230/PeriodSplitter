@@ -9,7 +9,7 @@
 
 class NoiseTracker {
 public:
-	NoiseTracker(float start, float sr);
+	NoiseTracker(std::vector<float> audio, float start, float sr, int fftSize, int hopSize);
 	~NoiseTracker() {};
 
 	struct Band {
@@ -18,14 +18,18 @@ public:
 		double f_center;
 	};
 	void applyFrameTable(std::vector<int> table);
-	void analyze(fftw_complex* fftOut) {};
+	void analyze() {};
 
 private:
+	int N{ 0 };
+	int hop{ 0 };
+
 	bool useFrameTable = false;
 
 	float startFreq{0.f};
 	float sr{ 96000.f };
 
+	std::vector<float> sf;
 	std::vector<Band> bands;
 	std::vector<int> frameTable;
 	std::vector<std::vector<float>> results;

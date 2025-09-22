@@ -1,8 +1,11 @@
 #include "NoiseTracker.h"
 
-NoiseTracker::NoiseTracker(float start, float sampleRate):
+NoiseTracker::NoiseTracker(std::vector<float> audio, float start, float sampleRate, int fftSize = 8192, int hopSize = 64):
+	sf(audio),
 	startFreq(start),
-	sr(sampleRate)
+	sr(sampleRate),
+	N(fftSize),
+	hop(hopSize)
 {
 	float f0 = startFreq;
 	while (f0 < sr / 2.0) {
@@ -19,7 +22,6 @@ void NoiseTracker::applyFrameTable(std::vector<int> table)
 	useFrameTable = true;
 }
 
-void NoiseTracker::analyze(fftw_complex* out) {
-	int numFrames = useFrameTable ? frameTable.size() : 
-	results.assign()
+void NoiseTracker::analyze() {
+	int numFrames = useFrameTable ? frameTable.size() : (sf.size() - N) / hop;
 }
