@@ -18,7 +18,7 @@ public:
 		double f_center;
 	};
 	void applyFrameTable(std::vector<int> table);
-	void analyze() {};
+	void analyze();
 
 private:
 	int N{ 0 };
