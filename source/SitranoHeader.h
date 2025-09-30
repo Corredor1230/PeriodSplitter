@@ -6,6 +6,7 @@
 #include<math.h>
 #include<cmath>
 #include<fftw3.h>
+#include<filesystem>
 
 class Sitrano
 {
@@ -15,11 +16,11 @@ public:
 	//This contains the necessary info for all analysis classes
 	struct AnalysisUnit {
 		std::vector<float> soundFile;
-		std::vector<int> sampleList;
+        std::string filename;
 		float sampleRate;
-		float pitch;
 		int numHarmonics;
 		int nfft;
+        int startSample;
 	};
 
 	//An amplitude bucket resulting from an FFT
@@ -29,8 +30,18 @@ public:
 		double amp = 0.0;
 	};
 
+    struct Settings {
+        bool pitchAnalysis = true;
+        bool periodAnalysis = true;
+        bool harmonicAnalysis = true;
+        bool noiseAnalysis = true;
+        bool transientSeparation = true;
+    };
+
 	//Larger structure containing all results of the analysis
 	struct Results {
+        std::vector<int> sampleList;
+        float pitch;
 		std::vector<std::vector<float>> amps;
 		std::vector<std::vector<float>> phases;
 		std::vector<std::vector<float>> freqs;
@@ -84,7 +95,6 @@ public:
         float freq = n != 0 ? static_cast<float>(bin) * fs / static_cast<float>(n) : 0.0;
         return freq;
     }
-
     static inline float findPeakWithinTolerance(float targetFreq, float tolerance, int n, float sr, fftwf_complex* out) {
         float midiTolerance = tolerance / 100.0;
         float lowMidi = freqToMidi(targetFreq) - midiTolerance;
@@ -125,4 +135,58 @@ public:
 
         return outFreq;
     };
+    static inline void filterVector(std::vector<float>& input, int filterSize) {
+        std::vector<float> filter;
+        filter.resize(filterSize);
+
+        for (int i = 0; i < filter.size(); i++)
+        {
+            filter[i] = 0.f;
+        }
+
+        for (int i = 0; i < input.size(); i++)
+        {
+            int index = i % filterSize;
+            filter[index] = input[i];
+            float sum = 0.f;
+            for (int j = 0; j < filter.size(); j++)
+            {
+                sum += filter[j];
+            }
+            if (filter.size() != 0) sum /= (float)filter.size();
+            input[i] = sum;
+        }
+    }
+    static inline void normalizeByMaxAbs(std::vector<float>& vec)
+    {
+        if (vec.empty()) return;
+
+        // Find the maximum absolute value
+        float maxAbs = 0.0f;
+        for (float x : vec) {
+            maxAbs = std::max<float>(maxAbs, std::abs(x));
+        }
+
+        if (maxAbs == 0.0f) {
+            // Avoid division by zero — all elements are zero
+            return;
+        }
+
+        // Normalize
+        for (float& x : vec) {
+            x /= maxAbs;
+        }
+    }
+    static inline std::string getRawFilename(std::string& filename)
+    {
+        std::string rawFilename;
+        std::filesystem::path path = filename;
+        rawFilename = path.filename().replace_extension("").string();
+
+        return rawFilename;
+    }
+
+
+    double M_PI = 3.14159265358979323846;
+
 };
