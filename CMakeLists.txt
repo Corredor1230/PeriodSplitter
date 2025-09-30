@@ -34,8 +34,8 @@ set(IMGUI_INCLUDE_DIR "C:/Libraries/vcpkg/packages/imgui_x64-windows/include")
 add_executable(${EXECUTABLE_NAME} ${SOURCE_DIR}/main.cpp 
 				${SOURCE_DIR}/Splitter.cpp 
 				${SOURCE_DIR}/Splitter.h 
-				${SOURCE_DIR}/Correlator.cpp 
-				${SOURCE_DIR}/Correlator.h
+				${SOURCE_DIR}/PeriodCutter.cpp 
+				${SOURCE_DIR}/PeriodCutter.h
 				${SOURCE_DIR}/csv.h
 				${SOURCE_DIR}/FIRFilter.cpp
 				${SOURCE_DIR}/FIRFilter.h
@@ -50,6 +50,8 @@ add_executable(${EXECUTABLE_NAME} ${SOURCE_DIR}/main.cpp
 				${SOURCE_DIR}/SitranoAnalysis.cpp
 				${SOURCE_DIR}/SitranoAnalysis.h
 				${SOURCE_DIR}/SitranoHeader.h
+				${SOURCE_DIR}/PitchFinder.h
+				${SOURCE_DIR}/PitchFinder.cpp
 				)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
