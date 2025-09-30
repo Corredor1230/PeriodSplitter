@@ -63,7 +63,7 @@ def plot_data_from_csv(filename="data.csv"):
 # --- Main execution block ---
 if __name__ == "__main__":
     # Define the name of the CSV file
-    csv_file = "AMPAGuit6_82_F.csv"
+    csv_file = "AMPEGuit6_110_F.csv"
     
     # 1. Create a sample CSV file to ensure the script is runnable
     # create_sample_csv(csv_file)
