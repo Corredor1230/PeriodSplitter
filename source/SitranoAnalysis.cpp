@@ -1,15 +1,11 @@
 #include"SitranoAnalysis.h"
 
-Analyzer::Analyzer(Sitrano::AnalysisUnit s, bool applyHann, float toleranceVal) :
-    buffer(s.soundFile),
-    periods(s.sampleList),
-    pitch(s.pitch),
-    fs(s.sampleRate),
-    N(s.nfft),
-    numHarmonics(s.numHarmonics),
+Analyzer::Analyzer(const Sitrano::AnalysisUnit& s, 
+    Sitrano::Results& r, bool applyHann, float toleranceVal) :
     applyHannWindow(applyHann),
     tolerance(toleranceVal),
-    ana(s)
+    ana(s),
+    results(r)
 {
     window.resize(ana.nfft);
     checker.resize(ana.nfft * 2);
@@ -26,41 +22,69 @@ void Analyzer::initFFTW() {
     plan = fftwf_plan_dft_r2c_1d(ana.nfft, input, output, FFTW_MEASURE);
 }
 
-void Analyzer::applyHann(float* data, int size) {
+void Analyzer::applyHann(double* data, int size) {
     for (int i = 0; i < size; ++i) {
         float w = 0.5f * (1.0f - std::cos(2.0f * M_PI * i / (size - 1)));
         data[i] *= w;
     }
 }
 
-void Analyzer::analyze() {
-    size_t numFrames = ana.sampleList.size() - 1;
+void Analyzer::analyze(const Sitrano::Settings& settings) {
 
-    results.amps.assign(numHarmonics, std::vector<float>(numFrames, 0.f));
-    results.phases.assign(numHarmonics, std::vector<float>(numFrames, 0.f));
-    results.freqs.assign(numHarmonics, std::vector<float>(numFrames, 0.f));
+    int provisionalHop = ana.sampleRate / 60;
 
-    int startForTop = (int)((double)buffer.size() * 0.2);
+    if (settings.pitchAnalysis)
+    {
+        PitchFinder finder{ ana };
+        results.pitch = finder.findPitch();
+    }
 
-    for (int j = 0; j < N * 2; ++j)
+    if (settings.periodAnalysis)
+    {
+        PeriodCutter cutter{ ana, results };
+        if (results.pitch > 0.0)
+            cutter.initialize(results.pitch);
+        else
+            cutter.initialize(ana.sampleRate / provisionalHop);
+
+        results.sampleList = cutter.getCorrelationZeroes();
+    }
+
+    size_t numFrames = results.sampleList.size() > 1 ? results.sampleList.size() - 1 : provisionalHop;
+
+    results.amps.assign(ana.numHarmonics, std::vector<float>(numFrames, 0.f));
+    results.phases.assign(ana.numHarmonics, std::vector<float>(numFrames, 0.f));
+    results.freqs.assign(ana.numHarmonics, std::vector<float>(numFrames, 0.f));
+
+    int startForTop = (int)((double)ana.soundFile.size() * 0.12);
+
+    for (int j = 0; j < ana.nfft * 2; ++j)
     {
         checker[j] = ((j + startForTop) < ana.soundFile.size()) ? ana.soundFile[j + startForTop] : 0.f;
     }
 
     std::vector<Sitrano::Peak> topFrequencies = findTopSorted(checker, ana.nfft, ana.sampleRate, startForTop, true, tolerance);
+
+    if (settings.harmonicAnalysis)
+    {
+        HarmonicTracker tracker(
+            ana,
+            results,
+            topFrequencies);
+
+        tracker.analyze();
+    }
+
 }
 
-std::vector<Sitrano::Peak> Analyzer::findTopSorted(const std::vector<float>& input, int N, double fs,
+std::vector<Sitrano::Peak> Analyzer::findTopSorted(const std::vector<double>& input, int N, double fs,
     int startPos, bool useCentsTolerance, double tolValue, bool sumAmplitudesInCluster)
 {
     const int outHarm = ana.numHarmonics;
     const int Nout = N / 2 + 1;
-    std::vector<double> in(N);
+    std::vector<double> in = input;
     int startSample = startPos;
-    for (int n = 0; n < N; ++n) {
-        double w = 0.5 * (1.0 - std::cos(2.0 * M_PI * n / (N - 1)));
-        in[n] = (n) < input.size() ? input[n] * w : 0.0;
-    }
+    applyHann(in.data(), N);
 
     std::vector<fftw_complex> out(Nout);
     fftw_plan plan = fftw_plan_dft_r2c_1d(N, in.data(), out.data(), FFTW_ESTIMATE);
@@ -112,9 +136,9 @@ std::vector<Sitrano::Peak> Analyzer::findTopSorted(const std::vector<float>& inp
                     continue;
                 }
             }
-            if (newHarmonic && (peaks[i].freq > pitch * 0.8)
+            if (newHarmonic && (peaks[i].freq > results.pitch * 0.9)
                 && (peaks[i].freq < 20000.f)
-                && (peaks[i].amp > 2.0e-6)) merged.push_back(peaks[i]);
+                && (peaks[i].amp > 1.0e-6)) merged.push_back(peaks[i]);
         }
     }
 
@@ -133,43 +157,3 @@ std::vector<Sitrano::Peak> Analyzer::findTopSorted(const std::vector<float>& inp
     return merged;
 }
 
-void Analyzer::setNumHarmonics(int maxNum, bool adjustToPitch, float pitch)
-{
-    if (!adjustToPitch) numHarmonics = maxNum;
-    else
-    {
-        int newMax = 0;
-        for (int i = 0; i < maxNum; i++)
-        {
-            float highestHz = pitch * (i + 1);
-            if (highestHz > fs / 2.0) break;
-            newMax = i + 1;
-        }
-        numHarmonics = newMax;
-    }
-}
-
-
-void Analyzer::filterVector(std::vector<float>& input, int filterSize)
-{
-    std::vector<float> filter;
-    filter.resize(filterSize);
-
-    for (int i = 0; i < filter.size(); i++)
-    {
-        filter[i] = 0.f;
-    }
-
-    for (int i = 0; i < input.size(); i++)
-    {
-        int index = i % filterSize;
-        filter[index] = input[i];
-        float sum = 0.f;
-        for (int j = 0; j < filter.size(); j++)
-        {
-            sum += filter[j];
-        }
-        if (filter.size() != 0) sum /= (float)filter.size();
-        input[i] = sum;
-    }
-}
