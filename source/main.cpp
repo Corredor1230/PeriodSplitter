@@ -11,11 +11,12 @@
 #include<filesystem>
 #include<libpyincpp.h>
 #include<ranges>
-#include"Correlator.h"
+#include"PeriodCutter.h"
 #include"FIRFilter.h"
 #include"GUI.h"
 #include"Splitter.h"
 #include"HarmonicTracker.h"
+#include"SitranoAnalysis.h"
 #include"csv.h"
 
 namespace fs = std::filesystem;
@@ -76,15 +77,6 @@ std::vector<std::string> getFileListFromExtension(const std::string& inDirectory
     }
 
     return filenames;
-}
-
-std::string getRawFilename(std::string& filename)
-{
-    std::string rawFilename;
-    std::filesystem::path path = filename;
-    rawFilename = path.filename().replace_extension("").string();
-
-    return rawFilename;
 }
 
 float findMode(const std::vector<float>& data, float threshold = 1.0f,
@@ -168,27 +160,6 @@ float findPitch(const std::vector<float>& signal, float sampleRate, std::string&
     return pitch;
 }
 
-void normalizeByMaxAbs(std::vector<float>& vec) 
-{
-    if (vec.empty()) return;
-
-    // Find the maximum absolute value
-    float maxAbs = 0.0f;
-    for (float x : vec) {
-        maxAbs = std::max<float>(maxAbs, std::abs(x));
-    }
-
-    if (maxAbs == 0.0f) {
-        // Avoid division by zero — all elements are zero
-        return;
-    }
-
-    // Normalize
-    for (float& x : vec) {
-        x /= maxAbs;
-    }
-}
-
 std::vector<float> getAudioFromFile(std::string& filename, SF_INFO& sfInfo, float maxLength = 30.f)
 {
     SNDFILE* file = sf_open(filename.c_str(), SFM_READ, &sfInfo);
@@ -210,18 +181,6 @@ std::vector<float> getAudioFromFile(std::string& filename, SF_INFO& sfInfo, floa
     return delaced[0];
 }
 
-std::vector<int> getPeriodCuts(std::vector<float>& audio, SF_INFO& sfInfo, float pitch)
-{
-    std::vector<int> periodCuts;
-
-    Correlator correlator(audio, sfInfo);
-    correlator.initialize(pitch);
-
-    periodCuts = correlator.getCorrelationZeroes();
-
-    return periodCuts;
-}
-
 int main()
 {
     int maxHarmonics = 32;
@@ -234,51 +193,55 @@ int main()
 
     SF_INFO sfInfo;
     std::vector<float> delaced = getAudioFromFile(filename, sfInfo);
+    Sitrano::normalizeByMaxAbs(delaced);
     int startSample = 0;
-    float pitch = findPitch(delaced, sfInfo.samplerate, filename);
-
-    normalizeByMaxAbs(delaced);
-    std::vector<int> periodStart = getPeriodCuts(delaced, sfInfo, pitch);
 
     //CSV creation
-    std::string csvName = getRawFilename(filename);
-    Splitter theSplitter(sfInfo);
-    theSplitter.writeCsvFile(periodStart, csvName + ".csv");
+    //std::string csvName = Sitrano::getRawFilename(filename);
+    //Splitter theSplitter(sfInfo);
+    //theSplitter.writeCsvFile(periodStart, csvName + ".csv");
 
     /*auto windows = theSplitter.loadCSV(csvName + ".csv", delaced.size());
     WaveformViewer viewer(delaced, windows);
     viewer.run();*/
 
-    HarmonicTracker tracker(
+    Sitrano::Results r;
+    Sitrano::AnalysisUnit unit{ 
         delaced, 
-        periodStart, 
+        filename,
         (float)sfInfo.samplerate, 
-        pitch, 
-        maxHarmonics, N, false, tolerance);
+        maxHarmonics, 
+        N,
+        startSample};
 
-    tracker.analyze();
+    Sitrano::Settings settings{
+        true,
+        true,
+        true,
+        true,
+        true
+    };
 
-    std::vector<std::vector<float>> amplitudes;
-    //std::vector<std::vector<float>> phases;
-    std::vector<std::vector<float>> freqs;
+    Analyzer a(
+        unit, 
+        r, 
+        true, 
+        300.0);
 
-
-    amplitudes = tracker.getAmplitudes();
-    //phases = tracker.getPhases();
-    freqs = tracker.getFrequencies();
+    a.analyze(settings);
 
     std::vector<float> singleFreqs;
 
-    for (int i = 0; i < freqs.size(); i++) {
-        singleFreqs.push_back(freqs[i][0]);
+    for (int i = 0; i < r.freqs.size(); i++) {
+        singleFreqs.push_back(r.freqs[i][0]);
     }
 
-    for (int i = 0; i < amplitudes.size(); i++)
+    for (int i = 0; i < r.amps.size(); i++)
     {
-        tracker.filterVector(amplitudes[i], 4);
+        Sitrano::filterVector(r.amps[i], 4);
     }
 
-    theSplitter.writeCsvFile(amplitudes, "AMP" + csvName + ".csv", singleFreqs, periodStart);
+    //theSplitter.writeCsvFile(r.amps, "AMP" + csvName + ".csv", singleFreqs, periodStart);
     //theSplitter.writeCsvFile(phases, "PHA" + csvName + ".csv", singleFreqs);
 
 	return 0;
