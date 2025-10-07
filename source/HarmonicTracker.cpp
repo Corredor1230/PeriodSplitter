@@ -2,15 +2,13 @@
 
 HarmonicTracker::HarmonicTracker(
     const Sitrano::AnalysisUnit& a,
+    const Sitrano::HarmonicSettings& h,
     Sitrano::Results& r,
-    std::vector<Sitrano::Peak> top,
-    bool applyHann, 
-    float toleranceVal) :
+    std::vector<Sitrano::Peak> top) :
     unit(a),
+    settings(h),
     results(r),
-    tFreqs(top),
-    applyHannWindow(applyHann),
-    tolerance(toleranceVal)
+    tFreqs(top)
 {
     window.resize(unit.nfft);
     checker.resize(unit.nfft * 2);
@@ -35,23 +33,58 @@ void HarmonicTracker::applyHann(float* data, int size) {
 }
 
 void HarmonicTracker::analyze() {
-    size_t numFrames = results.sampleList.size() - 1;
+    size_t numFrames{0};
+    int frameStep{ 1 };
+
+    switch (settings.style)
+    {
+    case Sitrano::WindowStyle::periodLoop:
+    {
+        frameStep = 2;
+        numFrames = (results.sampleList.size() - 1) / frameStep;
+    }
+    case Sitrano::WindowStyle::singlePeriod:
+    {
+        frameStep = 2;
+        numFrames = (results.sampleList.size() - 1) / frameStep;
+    }
+    case Sitrano::WindowStyle::audioChunk:
+    {
+        frameStep = 1;
+        int chunkSize = unit.soundFile.size() - results.sampleList[0];
+        numFrames = chunkSize / unit.hopSize;
+    }
+    }
+
     float ampThresh = Sitrano::dbToAmp(-50.0);
 
-    for (size_t i = 0; i < numFrames - 2; ++i) {
-        int start = results.sampleList[i];
-        int end = results.sampleList[i] + unit.nfft;
-        int periodLength = end - start;
+    for (size_t i = 0; i < numFrames - 2; i+=frameStep) {
 
-        if (periodLength <= 0 || start + periodLength > unit.soundFile.size()) continue;
+        int start{ 0 };
+        int end{ 0 };
+        int periodLength{ 0 };
 
-        // Repeat the period to fill the FFT input buffer
-        for (int j = 0; j < unit.nfft; ++j) {
-            int srcIdx = start + (j % periodLength);
-            input[j] = (srcIdx < unit.soundFile.size()) ? unit.soundFile[srcIdx] : 0.f;
+        switch (settings.style)
+        {
+            case Sitrano::WindowStyle::periodLoop:
+            {
+                start = results.sampleList[i];
+                end = results.sampleList[i + 3];
+                periodLength = end - start;
+
+                if (periodLength <= 0 || end > unit.soundFile.size()) continue;
+
+                // Repeat the period to fill the FFT input buffer
+                for (int j = 0; j < unit.nfft; ++j) {
+                    int srcIdx = start + (j % periodLength);
+                    input[j] = (srcIdx < unit.soundFile.size()) ? unit.soundFile[srcIdx] : 0.f;
+                }
+            }
+            case Sitrano::WindowStyle::singlePeriod:
+                start = results.sampleList[i];
+                end = results.sampleList[i + 1];
         }
-
-        if (applyHannWindow)
+        if (settings.applyHanning)
             applyHann(input, unit.nfft);
 
         fftwf_execute(plan);
@@ -64,7 +97,7 @@ void HarmonicTracker::analyze() {
             float targetFreq = tFreqs[h - 1].freq;
             float binFreq = 0.f;
             if (i == 0) binFreq = targetFreq;
-            else binFreq = Sitrano::findPeakWithinTolerance(results.freqs[h - 1][i - 1], tolerance, unit.nfft, unit.sampleRate, output);
+            else binFreq = Sitrano::findPeakWithinTolerance(results.freqs[h - 1][i - 1], settings.toleranceValue, unit.nfft, unit.sampleRate, output);
             
             int bin = static_cast<int>(std::round(targetFreq * unit.nfft / float(unit.sampleRate)));
 

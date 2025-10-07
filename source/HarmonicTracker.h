@@ -8,16 +8,15 @@
 #include<iostream>
 #include"SitranoHeader.h"
 
-constexpr double M_PI = 3.14159265358979323846;
+//constexpr double M_PI = 3.14159265358979323846;
 
 class HarmonicTracker {
 public:
 
     HarmonicTracker(const Sitrano::AnalysisUnit& a,
+        const Sitrano::HarmonicSettings& s,
         Sitrano::Results& r,
-        std::vector<Sitrano::Peak> top,
-        bool applyHann = true,
-        float toleranceVal = 300.0);
+        std::vector<Sitrano::Peak> top);
 
     ~HarmonicTracker() {
         fftwf_destroy_plan(plan);
@@ -36,8 +35,6 @@ public:
 private:
 
     std::vector<float> window;
-    float tolerance;        // Tolerance value used to find nearby bins
-    bool applyHannWindow;
 
     fftwf_plan plan;
     float* input;
@@ -46,6 +43,7 @@ private:
 
     std::vector<Sitrano::Peak> tFreqs;
     const Sitrano::AnalysisUnit& unit;
+    const Sitrano::HarmonicSettings& settings;
     Sitrano::Results& results;
 
     void initFFTW();
