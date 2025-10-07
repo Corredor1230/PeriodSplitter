@@ -6,11 +6,14 @@
 #include<cmath>
 #include<sndfile.h>
 #include<fstream>
+#include"SitranoHeader.h"
 
 class NoiseTracker {
 public:
-	NoiseTracker(std::vector<float> audio, float start, float sr, int fftSize, int hopSize);
-	~NoiseTracker() {};
+	NoiseTracker(const Sitrano::AnalysisUnit& ana, 
+		Sitrano::Results& r,
+		float startFreq);
+	~NoiseTracker();
 
 	struct Band {
 		double f_low;
@@ -21,13 +24,19 @@ public:
 	void analyze();
 
 private:
-	int N{ 0 };
-	int hop{ 0 };
+
+	const Sitrano::AnalysisUnit& unit;
+	Sitrano::Results& r;
 
 	bool useFrameTable = false;
 
 	float startFreq{0.f};
 	float sr{ 96000.f };
+	int N;
+
+	fftwf_plan plan;
+	float* fft_in;
+	fftwf_complex* fft_out;
 
 	std::vector<float> sf;
 	std::vector<Band> bands;
