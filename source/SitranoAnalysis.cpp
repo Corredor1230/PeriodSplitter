@@ -50,7 +50,7 @@ void Analyzer::analyze(const Sitrano::Settings& settings) {
         results.sampleList = cutter.getCorrelationZeroes();
     }
 
-    size_t numFrames = results.sampleList.size() > 1 ? results.sampleList.size() - 1 : provisionalHop;
+    size_t numFrames = results.sampleList.size() > 1 ? results.sampleList.size() - 1 : ana.soundFile.size() / provisionalHop;
 
     results.amps.assign(ana.numHarmonics, std::vector<float>(numFrames, 0.f));
     results.phases.assign(ana.numHarmonics, std::vector<float>(numFrames, 0.f));
@@ -67,13 +67,31 @@ void Analyzer::analyze(const Sitrano::Settings& settings) {
 
     if (settings.harmonicAnalysis)
     {
+        Sitrano::HarmonicSettings tSettings{
+            true,
+            Sitrano::WindowStyle::periodLoop,
+            300.0
+        };
+
         HarmonicTracker tracker(
             ana,
+            tSettings,
             results,
             topFrequencies);
 
         tracker.analyze();
     }
+
+    /*if (settings.noiseAnalysis)
+    {
+        NoiseTracker noise(
+            ana,
+            results,
+            results.pitch * 0.6
+        );
+
+        noise.analyze();
+    }*/
 
 }
 
