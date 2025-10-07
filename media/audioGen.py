@@ -37,7 +37,7 @@ def synthesize_simple(amps_df, Fs):
 
 # ==== Example usage ====
 Fs = 96000
-fileName = "AGuit6_82_F"
+fileName = "AGuit4_146_F"
 
 # Load amps_df with samples as row headers
 amps_df = pd.read_csv("AMP" + fileName + ".csv", index_col=0)
