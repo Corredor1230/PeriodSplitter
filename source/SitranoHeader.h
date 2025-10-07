@@ -3,6 +3,7 @@
 #include<iostream>
 #include<vector>
 #include<string>
+#define _USE_MATH_DEFINES
 #include<math.h>
 #include<cmath>
 #include<fftw3.h>
@@ -13,6 +14,27 @@ class Sitrano
 public:
 	//Structures
 
+    // Enum for different FFT window styles used for analysis
+    enum WindowStyle {
+        periodLoop = 0,
+        singlePeriod,
+        audioChunk
+    };
+
+    /* This structure contains the main settings for the HarmonicTracker class
+    * applyHanning: Defines whether a hanning window is applied to each FFT window.
+    * windowStyle: Features three different types of FFT processing
+    |-----periodLoop: Fills the FFT window with a single period looped over.
+    |-----singlePeriod: zero-pads the window after the single harmonci event.
+    L-----audioChunk: takes the window directly from the original audio signal.
+    * toleranceValue: The value in cents around each top harmonic where buckets will be considered the same overtone.
+    */
+    struct HarmonicSettings {
+        bool applyHanning = true;
+        WindowStyle style;
+        float toleranceValue = 300.0;
+    };
+
 	//This contains the necessary info for all analysis classes
 	struct AnalysisUnit {
 		std::vector<float> soundFile;
@@ -20,6 +42,7 @@ public:
 		float sampleRate;
 		int numHarmonics;
 		int nfft;
+        int hopSize;
         int startSample;
 	};
 
@@ -30,6 +53,8 @@ public:
 		double amp = 0.0;
 	};
 
+    // Main settings for the Analyzer. 
+    // This structure decides which processing steps will be completed.
     struct Settings {
         bool pitchAnalysis = true;
         bool periodAnalysis = true;
@@ -41,14 +66,17 @@ public:
 	//Larger structure containing all results of the analysis
 	struct Results {
         std::vector<int> sampleList;
+		std::vector<Peak> topFreqs;
         float pitch;
 		std::vector<std::vector<float>> amps;
 		std::vector<std::vector<float>> phases;
 		std::vector<std::vector<float>> freqs;
-		std::vector<Peak> topFreqs;
+        std::vector<std::vector<float>> noise;
 	};
 
+    //const static double M_PI = 3.14159265358979323846;
 	//Helper functions
+
     static inline double hann_gain_rms() { return 0.5; };
     static inline double interp_delta(int k, const std::vector<double>& mags)
     {
@@ -185,8 +213,12 @@ public:
 
         return rawFilename;
     }
+    static inline void applyWindow(std::vector<float>& frame) {
+        int size = frame.size();
+        for (int i = 0; i < size; ++i) {
+            frame[i] *= 0.5f * (1.0f - cosf(2.0f * M_PI * i / (size - 1)));
+        }
+    }
 
-
-    double M_PI = 3.14159265358979323846;
 
 };
