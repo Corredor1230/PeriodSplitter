@@ -6,6 +6,8 @@
 #define _USE_MATH_DEFINES
 #include<math.h>
 #include<cmath>
+#include<fstream>
+#include<cstdint>
 #include<fftw3.h>
 #include<filesystem>
 
@@ -33,6 +35,18 @@ public:
         bool applyHanning = true;
         WindowStyle style;
         float toleranceValue = 300.0;
+    };
+
+    struct ChangePoint {
+        uint32_t index; // 4 bytes
+        float value;    // 4 bytes
+        float ratio;
+    };
+
+    struct FileHeader {
+        uint32_t numChannels;
+        uint32_t numSamples;
+        float ratioConstant;
     };
 
 	//This contains the necessary info for all analysis classes
@@ -65,13 +79,14 @@ public:
 
 	//Larger structure containing all results of the analysis
 	struct Results {
-        std::vector<int> sampleList;
+        std::vector<uint32_t> sampleList;
 		std::vector<Peak> topFreqs;
         float pitch;
 		std::vector<std::vector<float>> amps;
 		std::vector<std::vector<float>> phases;
 		std::vector<std::vector<float>> freqs;
         std::vector<std::vector<float>> noise;
+        std::vector<uint32_t> finalSamples;
 	};
 
     //const static double M_PI = 3.14159265358979323846;
@@ -107,7 +122,7 @@ public:
         return freq;
     }
     static inline float freqToMidi(float freq) {
-        float midi = 12.0 * std::log2(freq / 440.0);
+        float midi = 12.0 * std::log2(freq / 440.0) + 69.0;
         return midi;
     }
     static inline double cents_to_hz(double f_center, double cents)
@@ -137,39 +152,46 @@ public:
         int binNumber = std::abs(hiBin - lowBin);
 
         float outFreq = 0.f;
+        float peakAmp = 0.f;
         if (binNumber != 0)
         {
-            for (int i = 0; i < binNumber - 1; i++)
+            for (int i = 0; i < binNumber; i++)
             {
                 int currentBin = lowBin + i;
-                float nextReal = out[currentBin + 1][0];
-                float prevReal = out[currentBin][0];
-                float nextImag = out[currentBin + 1][1];
-                float prevImag = out[currentBin][0];
+                float real = out[currentBin][0];
+                float imag= out[currentBin][0];
 
-                float nextMag = std::sqrt(nextImag * nextImag + nextReal * nextReal);
-                float nextAmp = mag_to_amp(nextMag, n);
+                float mag = std::sqrt(imag * imag + real * real);
+                float amp = mag_to_amp(mag, n);
 
-                float prevMag = std::sqrt(prevImag * prevImag + prevReal * prevReal);
-                float prevAmp = mag_to_amp(prevMag, n);
-
-                prevAmp < nextMag ?
-                    outFreq = binToFreq(currentBin, n, sr) :
-                    outFreq = binToFreq(currentBin + 1, n, sr);
-
+                if (amp > peakAmp)
+                {
+                    outFreq = binToFreq(currentBin, n, sr);
+                    peakAmp = amp;
+                }
+                
             }
         }
         else outFreq = targetFreq;
 
         return outFreq;
     };
-    static inline void filterVector(std::vector<float>& input, int filterSize) {
+    static inline void filterVector(std::vector<float>& input, int filterSize, bool zeroPad) {
         std::vector<float> filter;
         filter.resize(filterSize);
-
-        for (int i = 0; i < filter.size(); i++)
+        if (zeroPad)
         {
-            filter[i] = 0.f;
+            for (int i = 0; i < filter.size(); i++)
+            {
+                filter[i] = 0.f;
+            }
+        }
+        else
+        {
+            for (int i = 0; i < filter.size(); i++)
+            {
+                filter[i] = input[0];
+            }
         }
 
         for (int i = 0; i < input.size(); i++)
@@ -219,6 +241,69 @@ public:
             frame[i] *= 0.5f * (1.0f - cosf(2.0f * M_PI * i / (size - 1)));
         }
     }
+
+    static void saveHarmonicData(
+        const std::vector<uint32_t>& indices,
+        const std::vector<std::vector<float>>& fastData,   // RMS per harmonic
+        const std::vector<std::vector<float>>& slowData,   // raw frequencies per harmonic
+        float fundamentalFreq,                             // reference frequency
+        const std::string& pathIndex,
+        const std::string& pathFast,
+        const std::string& pathSlow
+    ) {
+        // Write indices
+        {
+            std::ofstream f(pathIndex, std::ios::binary);
+            uint32_t n = static_cast<uint32_t>(indices.size());
+            f.write(reinterpret_cast<const char*>(&n), sizeof(uint32_t));
+            f.write(reinterpret_cast<const char*>(indices.data()), n * sizeof(uint32_t));
+        }
+
+        // Write fast RMS data
+        {
+            std::ofstream f(pathFast, std::ios::binary);
+            uint32_t numHarmonics = static_cast<uint32_t>(fastData.size());
+            f.write(reinterpret_cast<const char*>(&numHarmonics), sizeof(uint32_t));
+            for (const auto& harmonic : fastData) {
+                uint32_t len = static_cast<uint32_t>(harmonic.size());
+                f.write(reinterpret_cast<const char*>(&len), sizeof(uint32_t));
+                f.write(reinterpret_cast<const char*>(harmonic.data()), len * sizeof(float));
+            }
+        }
+
+        // Write slow frequency data (auto-generate change points)
+        {
+            std::ofstream f(pathSlow, std::ios::binary);
+            uint32_t numHarmonics = static_cast<uint32_t>(slowData.size());
+            f.write(reinterpret_cast<const char*>(&numHarmonics), sizeof(uint32_t));
+
+            for (const auto& freqVec : slowData) {
+                std::vector<ChangePoint> cps;
+
+                if (!freqVec.empty()) {
+                    float prev = freqVec.front();
+                    cps.push_back({ indices.front(), prev, prev / fundamentalFreq });
+
+                    for (size_t i = 1; i < freqVec.size() && i < indices.size(); ++i) {
+                        if (std::fabs(freqVec[i] - prev) > 1e-6f) { // detect change
+                            cps.push_back({ indices[i], freqVec[i], freqVec[i] / fundamentalFreq });
+                            prev = freqVec[i];
+                        }
+                    }
+                }
+
+                uint32_t len = static_cast<uint32_t>(cps.size());
+                f.write(reinterpret_cast<const char*>(&len), sizeof(uint32_t));
+                for (const auto& cp : cps) {
+                    f.write(reinterpret_cast<const char*>(&cp.index), sizeof(uint32_t));
+                    f.write(reinterpret_cast<const char*>(&cp.value), sizeof(float));
+                    f.write(reinterpret_cast<const char*>(&cp.ratio), sizeof(float));
+                }
+            }
+        }
+    }
+
+
 
 
 };

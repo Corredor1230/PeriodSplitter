@@ -52,9 +52,22 @@ void Analyzer::analyze(const Sitrano::Settings& settings) {
 
     size_t numFrames = results.sampleList.size() > 1 ? results.sampleList.size() - 1 : ana.soundFile.size() / provisionalHop;
 
-    results.amps.assign(ana.numHarmonics, std::vector<float>(numFrames, 0.f));
-    results.phases.assign(ana.numHarmonics, std::vector<float>(numFrames, 0.f));
-    results.freqs.assign(ana.numHarmonics, std::vector<float>(numFrames, 0.f));
+    results.amps.reserve(ana.numHarmonics);
+    results.phases.reserve(ana.numHarmonics);
+    results.freqs.reserve(ana.numHarmonics);
+
+    for (int i = 0; i < ana.numHarmonics; i++)
+    {
+        results.amps.emplace_back();
+        results.amps.back().reserve(numFrames);
+
+        results.phases.emplace_back();
+        results.phases.back().reserve(numFrames);
+
+        results.freqs.emplace_back();
+        results.freqs.back().reserve(numFrames);
+
+    }
 
     int startForTop = (int)((double)ana.soundFile.size() * 0.12);
 
@@ -69,8 +82,8 @@ void Analyzer::analyze(const Sitrano::Settings& settings) {
     {
         Sitrano::HarmonicSettings tSettings{
             true,
-            Sitrano::WindowStyle::periodLoop,
-            300.0
+            Sitrano::WindowStyle::audioChunk,
+            100.0
         };
 
         HarmonicTracker tracker(

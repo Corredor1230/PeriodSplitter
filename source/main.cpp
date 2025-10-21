@@ -148,16 +148,28 @@ int main()
     std::vector<float> singleFreqs;
 
     for (int i = 0; i < r.freqs.size(); i++) {
+        if (r.freqs[i].size() <= 0) continue;
         singleFreqs.push_back(r.freqs[i][0]);
     }
 
     for (int i = 0; i < r.amps.size(); i++)
     {
-        Sitrano::filterVector(r.amps[i], 4);
+        if (r.amps[i].size() <= 0) continue;
+        Sitrano::filterVector(r.amps[i], 4, true);
     }
 
-    theSplitter.writeCsvFile(r.amps, "AMP" + csvName + ".csv", singleFreqs, r.sampleList);
+    for (int i = 0; i < r.freqs.size(); i++) {
+        if (r.freqs[i].size() <= 0) continue;
+        Sitrano::filterVector(r.freqs[i], 40, false);
+    }
+
+    //theSplitter.writeCsvFile(r.amps, "AMP" + csvName + ".csv", singleFreqs, r.sampleList);
     //theSplitter.writeCsvFile(phases, "PHA" + csvName + ".csv", singleFreqs);
+    Sitrano::saveHarmonicData(r.finalSamples, r.amps, r.freqs, r.pitch,
+        "INDEX" + csvName + ".bin",
+        "AMP" + csvName + ".bin", 
+        "FREQ" + csvName + ".bin" 
+        );
 
 	return 0;
 }

@@ -82,7 +82,7 @@ std::vector<int> PeriodCutter::getCorrelationPeaks()
 	return peakList;
 }
 
-std::vector<int> PeriodCutter::getCorrelationZeroes()
+std::vector<uint32_t> PeriodCutter::getCorrelationZeroes()
 {
 	return zeroList;
 }
@@ -371,7 +371,7 @@ float PeriodCutter::findMode(const std::vector<float>& data, float threshold = 1
 	return modeCount > 0 ? mode : NAN;
 }
 
-std::vector<int> PeriodCutter::findPeriodSamples(const std::vector<float>& signal, int startSample,
+std::vector<uint32_t> PeriodCutter::findPeriodSamples(const std::vector<float>& signal, int startSample,
 	float msOffset, float inPitch, float correlationThreshold)
 {
 	int expectedPeriodLength = static_cast<int>(sampleRate / inPitch);
@@ -545,7 +545,7 @@ std::vector<int> PeriodCutter::findPeriodSamples(const std::vector<float>& signa
 	backwardFuture.get();
 
 	// Merge both lists
-	std::vector<int> periodZeroes;
+	std::vector<uint32_t> periodZeroes;
 	periodZeroes.insert(periodZeroes.end(), backwardList.begin(), backwardList.end());
 	periodZeroes.insert(periodZeroes.end(), ++forwardList.begin(), forwardList.end());
 

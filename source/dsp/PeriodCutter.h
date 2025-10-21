@@ -33,7 +33,7 @@ public:
 	void printZeroList(std::string& filename);
 	float findPitch(const std::vector<float>& signal);
 	std::vector<int> getCorrelationPeaks();
-	std::vector<int> getCorrelationZeroes();
+	std::vector<uint32_t> getCorrelationZeroes();
 
 	std::vector<std::vector<int>>	chopPositions;
 	std::vector<std::vector<float>>	multiChannel;
@@ -50,7 +50,7 @@ private:
 	Sitrano::Results& res;
 	//std::vector<float>&	audioFile;
 	std::vector<int>	peakList;
-	std::vector<int>	zeroList;
+	std::vector<uint32_t>	zeroList;
 	std::vector<int>	allZeroes;
 	//SF_INFO&			sfInfo;
 	PyinCpp				pitchDetector;
@@ -68,7 +68,7 @@ private:
 	float	findPeakValue(const std::vector<float>& signal, bool useAbsolute = true);
 	int		findPeakSample(const std::vector<float>& signal, int startSample, int endSample, bool useAbsolute = true);
 	int		findPeakSample(const std::vector<float>& signal, bool useAbsolute = true);
-	std::vector<int> findPeriodSamples(const std::vector<float>& signal, int startSample, 
+	std::vector<uint32_t> findPeriodSamples(const std::vector<float>& signal, int startSample,
 				float msOffset, float inPitch, float correlationThreshold = 0.2);
 	std::vector<int> findZeroCrossings(const std::vector<float>& signal, int initSample);
 	int findNearestZeroCached(const std::vector<int>& zeroCrossings, int sample);
