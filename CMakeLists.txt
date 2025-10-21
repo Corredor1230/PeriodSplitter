@@ -32,26 +32,26 @@ set(IMGUI_INCLUDE_DIR "C:/Libraries/vcpkg/packages/imgui_x64-windows/include")
 
 # Add the source file(s)
 add_executable(${EXECUTABLE_NAME} ${SOURCE_DIR}/main.cpp 
-				${SOURCE_DIR}/Splitter.cpp 
-				${SOURCE_DIR}/Splitter.h 
-				${SOURCE_DIR}/PeriodCutter.cpp 
-				${SOURCE_DIR}/PeriodCutter.h
-				${SOURCE_DIR}/csv.h
-				${SOURCE_DIR}/FIRFilter.cpp
-				${SOURCE_DIR}/FIRFilter.h
-				${SOURCE_DIR}/GUI.h
-				${SOURCE_DIR}/GUI.cpp
-				${SOURCE_DIR}/HarmonicTracker.h
-				${SOURCE_DIR}/HarmonicTracker.cpp
-				${SOURCE_DIR}/SpectrumView.cpp
-				${SOURCE_DIR}/SpectrumView.h
-				${SOURCE_DIR}/NoiseTracker.cpp
-				${SOURCE_DIR}/NoiseTracker.h
-				${SOURCE_DIR}/SitranoAnalysis.cpp
-				${SOURCE_DIR}/SitranoAnalysis.h
-				${SOURCE_DIR}/SitranoHeader.h
-				${SOURCE_DIR}/PitchFinder.h
-				${SOURCE_DIR}/PitchFinder.cpp
+				${SOURCE_DIR}/include/csv.h
+				${SOURCE_DIR}/include/SitranoHeader.h
+				${SOURCE_DIR}/analysis/HarmonicTracker.h
+				${SOURCE_DIR}/analysis/HarmonicTracker.cpp
+				${SOURCE_DIR}/analysis/NoiseTracker.cpp
+				${SOURCE_DIR}/analysis/NoiseTracker.h
+				${SOURCE_DIR}/analysis/SitranoAnalysis.cpp
+				${SOURCE_DIR}/analysis/SitranoAnalysis.h
+				${SOURCE_DIR}/dsp/PeriodCutter.cpp 
+				${SOURCE_DIR}/dsp/PeriodCutter.h
+				${SOURCE_DIR}/dsp/FIRFilter.cpp
+				${SOURCE_DIR}/dsp/FIRFilter.h
+				${SOURCE_DIR}/dsp/PitchFinder.h
+				${SOURCE_DIR}/dsp/PitchFinder.cpp
+				${SOURCE_DIR}/support/Splitter.cpp 
+				${SOURCE_DIR}/support/Splitter.h 
+				${SOURCE_DIR}/gui/GUI.h
+				${SOURCE_DIR}/gui/GUI.cpp
+				${SOURCE_DIR}/gui/SpectrumView.cpp
+				${SOURCE_DIR}/gui/SpectrumView.h
 				)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
