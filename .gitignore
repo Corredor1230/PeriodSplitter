@@ -3,6 +3,7 @@ build/
 *.ini
 *.xlsx
 *.csv
+*.bin
 media/*.txt
 glad/
 fast-cpp-csv-parser/
