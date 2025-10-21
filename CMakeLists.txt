@@ -30,29 +30,87 @@ set(GLFW3_LIBRARY_DIR "C:/Libraries/vcpkg/packages/glfw3_x64-windows/lib")
 set(IMGUI_LIBRARY_DIR "C:/Libraries/vcpkg/packages/imgui_x64-windows/lib")
 set(IMGUI_INCLUDE_DIR "C:/Libraries/vcpkg/packages/imgui_x64-windows/include")
 
+# --- Define your logical components ---
+
+set(ANALYSIS_SOURCES
+    ${SOURCE_DIR}/analysis/HarmonicTracker.cpp
+    ${SOURCE_DIR}/analysis/HarmonicTracker.h
+    ${SOURCE_DIR}/analysis/NoiseTracker.cpp
+    ${SOURCE_DIR}/analysis/NoiseTracker.h
+    ${SOURCE_DIR}/analysis/SitranoAnalysis.cpp
+    ${SOURCE_DIR}/analysis/SitranoAnalysis.h
+)
+
+set(DSP_SOURCES
+    ${SOURCE_DIR}/dsp/PeriodCutter.cpp 
+    ${SOURCE_DIR}/dsp/PeriodCutter.h
+    ${SOURCE_DIR}/dsp/FIRFilter.cpp
+    ${SOURCE_DIR}/dsp/FIRFilter.h
+    ${SOURCE_DIR}/dsp/PitchFinder.h
+    ${SOURCE_DIR}/dsp/PitchFinder.cpp
+)
+
+set(GUI_SOURCES
+    ${SOURCE_DIR}/gui/GUI.h
+    ${SOURCE_DIR}/gui/GUI.cpp
+    ${SOURCE_DIR}/gui/SpectrumView.cpp
+    ${SOURCE_DIR}/gui/SpectrumView.h
+)
+
+set(SUPPORT_SOURCES
+    ${SOURCE_DIR}/support/Splitter.cpp 
+    ${SOURCE_DIR}/support/Splitter.h
+	${SOURCE_DIR}/support/AudioChunkStrategy.cpp
+	${SOURCE_DIR}/support/AudioChunkStrategy.h
+	${SOURCE_DIR}/support/PeriodLoopStrategy.cpp
+	${SOURCE_DIR}/support/PeriodLoopStrategy.h
+	${SOURCE_DIR}/support/SinglePeriodStrategy.cpp
+	${SOURCE_DIR}/support/SinglePeriodStrategy.h
+	${SOURCE_DIR}/support/IWindowStrategy.h
+)
+
+set(INCLUDE_FILES
+    ${SOURCE_DIR}/include/csv.h
+    ${SOURCE_DIR}/include/SitranoHeader.h
+)
+
+# --- Create the executable ---
+
+# Start by creating the target with just the main file
+add_executable(${EXECUTABLE_NAME} ${SOURCE_DIR}/main.cpp)
+
+# --- Add all other sources to the target ---
+target_sources(${EXECUTABLE_NAME} PRIVATE
+    ${ANALYSIS_SOURCES}
+    ${DSP_SOURCES}
+    ${GUI_SOURCES}
+    ${SUPPORT_SOURCES}
+    ${INCLUDE_FILES}
+)
+
 # Add the source file(s)
-add_executable(${EXECUTABLE_NAME} ${SOURCE_DIR}/main.cpp 
-				${SOURCE_DIR}/include/csv.h
-				${SOURCE_DIR}/include/SitranoHeader.h
-				${SOURCE_DIR}/analysis/HarmonicTracker.h
-				${SOURCE_DIR}/analysis/HarmonicTracker.cpp
-				${SOURCE_DIR}/analysis/NoiseTracker.cpp
-				${SOURCE_DIR}/analysis/NoiseTracker.h
-				${SOURCE_DIR}/analysis/SitranoAnalysis.cpp
-				${SOURCE_DIR}/analysis/SitranoAnalysis.h
-				${SOURCE_DIR}/dsp/PeriodCutter.cpp 
-				${SOURCE_DIR}/dsp/PeriodCutter.h
-				${SOURCE_DIR}/dsp/FIRFilter.cpp
-				${SOURCE_DIR}/dsp/FIRFilter.h
-				${SOURCE_DIR}/dsp/PitchFinder.h
-				${SOURCE_DIR}/dsp/PitchFinder.cpp
-				${SOURCE_DIR}/support/Splitter.cpp 
-				${SOURCE_DIR}/support/Splitter.h 
-				${SOURCE_DIR}/gui/GUI.h
-				${SOURCE_DIR}/gui/GUI.cpp
-				${SOURCE_DIR}/gui/SpectrumView.cpp
-				${SOURCE_DIR}/gui/SpectrumView.h
-				)
+# add_executable(${EXECUTABLE_NAME} ${SOURCE_DIR}/main.cpp 
+# 				${SOURCE_DIR}/include/csv.h
+# 				${SOURCE_DIR}/include/SitranoHeader.h
+# 				${SOURCE_DIR}/analysis/HarmonicTracker.h
+# 				${SOURCE_DIR}/analysis/HarmonicTracker.cpp
+# 				${SOURCE_DIR}/analysis/NoiseTracker.cpp
+# 				${SOURCE_DIR}/analysis/NoiseTracker.h
+# 				${SOURCE_DIR}/analysis/SitranoAnalysis.cpp
+# 				${SOURCE_DIR}/analysis/SitranoAnalysis.h
+# 				${SOURCE_DIR}/dsp/PeriodCutter.cpp 
+# 				${SOURCE_DIR}/dsp/PeriodCutter.h
+# 				${SOURCE_DIR}/dsp/FIRFilter.cpp
+# 				${SOURCE_DIR}/dsp/FIRFilter.h
+# 				${SOURCE_DIR}/dsp/PitchFinder.h
+# 				${SOURCE_DIR}/dsp/PitchFinder.cpp
+# 				${SOURCE_DIR}/support/Splitter.cpp 
+# 				${SOURCE_DIR}/support/Splitter.h 
+# 				${SOURCE_DIR}/gui/GUI.h
+# 				${SOURCE_DIR}/gui/GUI.cpp
+# 				${SOURCE_DIR}/gui/SpectrumView.cpp
+# 				${SOURCE_DIR}/gui/SpectrumView.h
+# 				)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
 
