@@ -122,6 +122,7 @@ target_include_directories(${EXECUTABLE_NAME} PRIVATE
     ${GLFW3_INCLUDE_DIR}
     ${IMGUI_INCLUDE_DIR}
 	${OPENGL_LIBRARIES}
+	${SOURCE_DIR}
 )
 
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE 
