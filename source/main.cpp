@@ -7,11 +7,11 @@
 #include<Windows.h>
 #include<commdlg.h>
 #include<filesystem>
-#include"FIRFilter.h"
-#include"GUI.h"
-#include"Splitter.h"
-#include"SitranoAnalysis.h"
-#include"csv.h"
+#include"dsp/FIRFilter.h"
+#include"gui/GUI.h"
+#include"support/Splitter.h"
+#include"analysis/SitranoAnalysis.h"
+#include"include/csv.h"
 
 namespace fs = std::filesystem;
 

@@ -14,7 +14,7 @@
 #include<algorithm>
 #include<future>
 #include<chrono>
-#include"SitranoHeader.h"
+#include"include/SitranoHeader.h"
 
 class PeriodCutter
 {

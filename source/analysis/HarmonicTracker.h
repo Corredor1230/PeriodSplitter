@@ -6,7 +6,7 @@
 #include<math.h>
 #include<algorithm>
 #include<iostream>
-#include"SitranoHeader.h"
+#include"include/SitranoHeader.h"
 
 //constexpr double M_PI = 3.14159265358979323846;
 

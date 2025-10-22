@@ -6,7 +6,7 @@
 #include<cmath>
 #include<sndfile.h>
 #include<fstream>
-#include"SitranoHeader.h"
+#include"include/SitranoHeader.h"
 
 class NoiseTracker {
 public:

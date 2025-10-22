@@ -6,11 +6,11 @@
 #include<math.h>
 #include<algorithm>
 #include<iostream>
-#include"PitchFinder.h"
-#include"PeriodCutter.h"
-#include"HarmonicTracker.h"
-#include"NoiseTracker.h"
-#include"SitranoHeader.h"
+#include"dsp/PitchFinder.h"
+#include"dsp/PeriodCutter.h"
+#include"analysis/HarmonicTracker.h"
+#include"analysis/NoiseTracker.h"
+#include"include/SitranoHeader.h"
 
 class Analyzer {
 public:

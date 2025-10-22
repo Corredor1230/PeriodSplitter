@@ -5,7 +5,7 @@
 #include<string.h>
 #include<vector>
 #include<algorithm>
-#include"SitranoHeader.h"
+#include"include/SitranoHeader.h"
 
 class PitchFinder {
 public:
