@@ -39,6 +39,8 @@ set(ANALYSIS_SOURCES
     ${SOURCE_DIR}/analysis/NoiseTracker.h
     ${SOURCE_DIR}/analysis/SitranoAnalysis.cpp
     ${SOURCE_DIR}/analysis/SitranoAnalysis.h
+	${SOURCE_DIR}/analysis/OvertoneFinder.h
+	${SOURCE_DIR}/analysis/OvertoneFinder.cpp
 )
 
 set(DSP_SOURCES
