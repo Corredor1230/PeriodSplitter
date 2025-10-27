@@ -10,17 +10,26 @@
 #include<cstdint>
 #include<fftw3.h>
 #include<filesystem>
+#include<type_traits>
+#include<iomanip>
 
-class Sitrano
+namespace Sitrano
 {
-public:
-	//Structures
 
+    constexpr double PI = 3.14159265358979323846;
+	//Structures
     // Enum for different FFT window styles used for analysis
     enum WindowStyle {
         periodLoop = 0,
         singlePeriod,
         audioChunk
+    };
+
+    struct HarmonicResults {
+        std::vector<std::vector<float>> amps;
+        std::vector<std::vector<float>> phases;
+        std::vector<std::vector<float>> freqs;
+        std::vector<uint32_t> finalSamples;
     };
 
     /* This structure contains the main settings for the HarmonicTracker class
@@ -32,9 +41,32 @@ public:
     * toleranceValue: The value in cents around each top harmonic where buckets will be considered the same overtone.
     */
     struct HarmonicSettings {
-        bool applyHanning = true;
+        bool applyHanning;
         WindowStyle style;
-        float toleranceValue = 300.0;
+        float toleranceValue;
+    };
+
+    struct OvertoneSettings {
+        bool useTolerance = true;
+        int overtoneFirstSample = 0;
+        double toleranceValue = 100.0;
+        bool useCustomSignal = true;
+        bool sumAmplitudes = true;
+        int fftSize = 65536;
+    };
+
+    struct AnalysisConfig {
+        int numHarmonics = 32;
+        int nfft = 16384 * 2;
+        int hopSize = 1024;
+        int startSample = 0;
+        float tolerance = 100.f;
+        OvertoneSettings oConfig{
+            true, 0, 100.0, true, true, 65536
+        };
+        HarmonicSettings hConfig{
+            true, WindowStyle::audioChunk, 100.f
+        };
     };
 
     struct ChangePoint {
@@ -54,10 +86,6 @@ public:
 		std::vector<float> soundFile;
         std::string filename;
 		float sampleRate;
-		int numHarmonics;
-		int nfft;
-        int hopSize;
-        int startSample;
 	};
 
 	//An amplitude bucket resulting from an FFT
@@ -72,6 +100,7 @@ public:
     struct Settings {
         bool pitchAnalysis = true;
         bool periodAnalysis = true;
+        bool overtoneAnalysis = true;
         bool harmonicAnalysis = true;
         bool noiseAnalysis = true;
         bool transientSeparation = true;
@@ -82,16 +111,12 @@ public:
         std::vector<uint32_t> sampleList;
 		std::vector<Peak> topFreqs;
         float pitch;
-		std::vector<std::vector<float>> amps;
-		std::vector<std::vector<float>> phases;
-		std::vector<std::vector<float>> freqs;
         std::vector<std::vector<float>> noise;
         std::vector<uint32_t> finalSamples;
+        HarmonicResults hResults;
 	};
 
-    //const static double M_PI = 3.14159265358979323846;
 	//Helper functions
-
     static inline double hann_gain_rms() { return 0.5; };
     static inline double interp_delta(int k, const std::vector<double>& mags)
     {
@@ -242,6 +267,23 @@ public:
         }
     }
 
+    static float getPitchFromFilename(const std::string& filename)
+    {
+        std::string name = filename;
+        std::vector<std::string> parts;
+        size_t start = 0, pos;
+
+        while ((pos = name.find('_', start)) != std::string::npos) {
+            parts.push_back(name.substr(start, pos - start));
+            start = pos + 1;
+        }
+        parts.push_back(name.substr(start));
+
+        float outPitch = std::stof(parts[2]);
+
+        return outPitch;
+    }
+
     static void saveHarmonicData(
         const std::vector<uint32_t>& indices,
         const std::vector<std::vector<float>>& fastData,   // RMS per harmonic
@@ -303,6 +345,68 @@ public:
         }
     }
 
+    template <typename T>
+    static void applyHann(T* data, size_t N) {
+        static_assert(std::is_arithmetic_v<T>,
+            "applyHann can only be used with numerical types.");
+
+        // 1. Define constants for precision
+        constexpr double TWO_PI = 2.0 * M_PI;
+
+        // 2. Handle edge cases
+        if (N < 2) {
+            if (N == 1) {
+                data[0] = static_cast<T>(0.0);
+            }
+            return; // Do nothing for size 0
+        }
+
+        // 3. Denominator for window (N-1)
+        // We use 'double' for all intermediate math to maintain precision.
+        const double M = static_cast<double>(N - 1);
+
+        // 4. Apply the window
+        for (size_t n = 0; n < N; ++n) {
+            const double n_double = static_cast<double>(n);
+
+            // Hanning window formula: w(n) = 0.5 * (1 - cos(2*pi*n / (N-1)))
+            const double window_val = 0.5 * (1.0 - std::cos(TWO_PI * n_double / M));
+
+            // 5. Apply the window in-place, casting the final result back to T
+            data[n] = static_cast<T>(static_cast<double>(data[n]) * window_val);
+        }
+    }
+
+    template <typename T>
+    static void applyHann(std::vector<double>& data) {
+        static_assert(std::is_arithmetic_v<T>,
+            "applyHanningWindow can only be used with numerical types.");
+
+        const size_t N = data.size();
+
+        // 2. Handle edge cases to avoid division by zero
+        if (N < 2) {
+            if (N == 1) {
+                data[0] = static_cast<T>(0.0); // A 1-point Hanning window is 0
+            }
+            return; // Do nothing for an empty vector
+        }
+
+        // 3. We use 'double' for all intermediate math to maintain precision,
+        //    regardless of whether T is float, double, or int.
+        const double M = static_cast<double>(N - 1);
+        constexpr double TWO_PI = 2.0 * PI;
+
+        for (size_t n = 0; n < N; ++n) {
+            const double n_double = static_cast<double>(n);
+
+            // Hanning window formula: w(n) = 0.5 * (1 - cos(2*pi*n / (N-1)))
+            const double window_val = 0.5 * (1.0 - std::cos(TWO_PI * n_double / M));
+
+            // 4. Apply the window. We explicitly cast the final result
+            data[n] = static_cast<T>(data[n] * window_val);
+        }
+    }
 
 
 
