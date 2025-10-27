@@ -185,7 +185,7 @@ int main()
 
     //theSplitter.writeCsvFile(r.amps, "AMP" + csvName + ".csv", singleFreqs, r.sampleList);
     //theSplitter.writeCsvFile(phases, "PHA" + csvName + ".csv", singleFreqs);
-    Sitrano::saveHarmonicData(r.finalSamples, r.hResults.amps, r.hResults.freqs, r.pitch,
+    Sitrano::saveHarmonicData(r.hResults.finalSamples, r.hResults.amps, r.hResults.freqs, r.pitch,
         "INDEX" + csvName + ".bin",
         "AMP" + csvName + ".bin", 
         "FREQ" + csvName + ".bin" 

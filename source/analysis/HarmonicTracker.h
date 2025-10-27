@@ -9,8 +9,6 @@
 #include"include/SitranoHeader.h"
 #include"support/IWindowStrategy.h"
 
-//constexpr double M_PI = 3.14159265358979323846;
-
 class HarmonicTracker {
 public:
 
@@ -27,7 +25,6 @@ public:
 
     void analyze();
     Sitrano::HarmonicResults getEnvelopes();
-    //void analyzeFullFile();
     double interpolatePeak(int k, const std::vector<double>& mags);
 
     const std::vector<std::vector<float>>& getAmplitudes() const { return hResults.amps; }

@@ -112,7 +112,6 @@ namespace Sitrano
 		std::vector<Peak> topFreqs;
         float pitch;
         std::vector<std::vector<float>> noise;
-        std::vector<uint32_t> finalSamples;
         HarmonicResults hResults;
 	};
 

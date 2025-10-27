@@ -51,65 +51,6 @@ void HarmonicTracker::applyHann(float* data, int size) {
     }
 }
 
-//void HarmonicTracker::analyze() {
-//    LoopParameters params = mWindowStrategy->getLoopParameters(results, unit);
-//    size_t numFrames = params.numFrames;
-//    int frameStep = params.frameStep;
-//
-//    float ampThresh = Sitrano::dbToAmp(-50.0);
-//
-//    for (size_t i = 0; i < numFrames - (frameStep + 1); i+=frameStep) {
-//
-//        int periodLength{ 0 };
-//
-//        bool success = mWindowStrategy->processFrame(
-//            i, frameStep, unit, results, input, periodLength
-//        );
-//
-//        if (!success) continue;
-//        if (settings.applyHanning) applyHann(input, unit.nfft);
-//
-//        fftwf_execute(plan);
-//        
-//        for (int h = 1; h <= tFreqs.size(); ++h) {
-//            if (tFreqs[h - 1].freq <= 20.0) continue;
-//            float targetFreq = tFreqs[h - 1].freq;
-//            float binFreq = 0.f;
-//            binFreq = Sitrano::findPeakWithinTolerance(targetFreq, settings.toleranceValue, unit.nfft, unit.sampleRate, output);
-//            
-//            int bin = static_cast<int>(std::round(targetFreq * unit.nfft / float(unit.sampleRate)));
-//
-//            if (bin < unit.nfft / 2 + 1) {
-//                float real = output[bin][0];
-//                float imag = output[bin][1];
-//
-//                float mag = std::sqrt(real * real + imag * imag);
-//                float amp = Sitrano::mag_to_amp(mag, unit.nfft);
-//                float phase = std::atan2(imag, real);  // radians, range [-?, ?]
-//                
-//                for (int step = 0; step < frameStep; step++)
-//                {
-//                    results.amps[h - 1].push_back(amp);
-//                    results.phases[h - 1].push_back(phase);
-//                    results.freqs[h - 1].push_back(binFreq);
-//                    
-//                }
-//            }
-//        }
-//    }
-//    if (results.finalSamples.size() > results.amps[0].size())
-//    {
-//        results.finalSamples.resize(results.amps[0].size());
-//    }
-//    else if (results.finalSamples.size() < results.amps[0].size())
-//    {
-//        for (int i = results.finalSamples.size(); i < results.amps[0].size(); i++)
-//        {
-//            std::cerr << "This is wrong\n";
-//        }
-//    }
-//}
-
 double HarmonicTracker::interpolatePeak(int k, const std::vector<double>& mags)
 {
     if (k <= 0 || k >= (int)mags.size() - 1) return 0.0;
@@ -122,7 +63,6 @@ double HarmonicTracker::interpolatePeak(int k, const std::vector<double>& mags)
 Sitrano::HarmonicResults HarmonicTracker::getEnvelopes()
 {
     LoopParameters params = mWindowStrategy->getLoopParameters(sList, unit, config);
-    //Sitrano::HarmonicResults hResults;
 
     hResults.amps.resize(config.numHarmonics);
     hResults.freqs.resize(config.numHarmonics);
@@ -167,7 +107,6 @@ Sitrano::HarmonicResults HarmonicTracker::getEnvelopes()
                     hResults.amps[h - 1].push_back(amp);
                     hResults.phases[h - 1].push_back(phase);
                     hResults.freqs[h - 1].push_back(binFreq);
-
                 }
             }
         }
