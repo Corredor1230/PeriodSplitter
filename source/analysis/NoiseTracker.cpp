@@ -1,9 +1,11 @@
 #include "NoiseTracker.h"
 
-NoiseTracker::NoiseTracker(const Sitrano::AnalysisUnit& ana, 
+NoiseTracker::NoiseTracker(const Sitrano::AnalysisConfig& conf,
+    const Sitrano::AnalysisUnit& ana, 
 	Sitrano::Results& r,
 	float startFreq):
 	unit(ana),
+    config(conf),
 	r(r),
 	startFreq(startFreq)
 {
@@ -16,7 +18,7 @@ NoiseTracker::NoiseTracker(const Sitrano::AnalysisUnit& ana,
 	}
 
 	// FFTW Initialization
-	N = unit.nfft / 4;
+	N = config.nfft / 4;
 	fft_in = fftwf_alloc_real(N);
 	fft_out = fftwf_alloc_complex(N / 2 + 1);
 
@@ -38,8 +40,8 @@ void NoiseTracker::applyFrameTable(std::vector<int> table)
 
 void NoiseTracker::analyze() {
     // --- Initialization (mostly unchanged) ---
-    const int N = unit.nfft;
-    const int hop = unit.hopSize;
+    const int N = config.nfft;
+    const int hop = config.hopSize;
     const std::vector<float>& signal = unit.soundFile;
     const float sampleRate = unit.sampleRate;
 

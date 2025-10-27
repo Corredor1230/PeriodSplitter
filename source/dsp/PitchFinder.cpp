@@ -6,22 +6,6 @@ PitchFinder::PitchFinder(const Sitrano::AnalysisUnit& u) :
 
 }
 
-float PitchFinder::getPitchFromFilename(const std::string& filename)
-{
-    std::string name = filename;
-    std::vector<std::string> parts;
-    size_t start = 0, pos;
-
-    while ((pos = name.find('_', start)) != std::string::npos) {
-        parts.push_back(name.substr(start, pos - start));
-        start = pos + 1;
-    }
-    parts.push_back(name.substr(start));
-
-    float outPitch = std::stof(parts[2]);
-
-    return outPitch;
-}
 
 float PitchFinder::findPitch()
 {
@@ -33,7 +17,7 @@ float PitchFinder::findPitch()
 
     //std::cout << "Current pitch: " << pitch << "Hz\n";
 
-    float metaPitch = getPitchFromFilename(unit.filename);
+    float metaPitch = Sitrano::getPitchFromFilename(unit.filename);
     float pitch{ 0.0 };
     float tolerance = 3.0;
 

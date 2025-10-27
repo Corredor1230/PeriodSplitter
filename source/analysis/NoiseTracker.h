@@ -10,7 +10,8 @@
 
 class NoiseTracker {
 public:
-	NoiseTracker(const Sitrano::AnalysisUnit& ana, 
+	NoiseTracker(const Sitrano::AnalysisConfig& config,
+		const Sitrano::AnalysisUnit& ana, 
 		Sitrano::Results& r,
 		float startFreq);
 	~NoiseTracker();
@@ -26,6 +27,7 @@ public:
 private:
 
 	const Sitrano::AnalysisUnit& unit;
+	const Sitrano::AnalysisConfig& config;
 	Sitrano::Results& r;
 
 	bool useFrameTable = false;
