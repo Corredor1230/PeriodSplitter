@@ -1,7 +1,7 @@
 #include "PeriodCutter.h"
 
-PeriodCutter::PeriodCutter(const Sitrano::AnalysisUnit& ana, Sitrano::Results& res, float sizeInMs, float hopInMs) :
-	unit(ana), res(res), pitchDetector(res.pitch)
+PeriodCutter::PeriodCutter(const Sitrano::AnalysisUnit& ana, const float pitch, float sizeInMs, float hopInMs) :
+	unit(ana), pitchDetector(pitch)
 {
 	sampleRate = unit.sampleRate;
 }

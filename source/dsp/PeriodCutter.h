@@ -19,7 +19,7 @@
 class PeriodCutter
 {
 public:
-	PeriodCutter(const Sitrano::AnalysisUnit& ana, Sitrano::Results& results, float sizeInMs = 50.f, float hopInMs = 0.25);
+	PeriodCutter(const Sitrano::AnalysisUnit& ana, const float pitch, float sizeInMs = 50.f, float hopInMs = 0.25);
 	~PeriodCutter() {};
 
 	void initialize(float pitch, float threshold = 0.1);
@@ -47,7 +47,6 @@ private:
 	};
 
 	const Sitrano::AnalysisUnit& unit;
-	Sitrano::Results& res;
 	//std::vector<float>&	audioFile;
 	std::vector<int>	peakList;
 	std::vector<uint32_t>	zeroList;
@@ -80,7 +79,7 @@ private:
 	int windowSize = 512;
 	int hopLength = 4;
 	int sampleRate = 48000.0;
-	float pitch = 0.f;
+	float pitch;
 	int startSample = 0;
 	float correlationThreshold = 0.95;
 	bool correlationStatus = false;
