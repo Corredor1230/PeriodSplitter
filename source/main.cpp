@@ -99,7 +99,9 @@ int main()
     int maxHarmonics = 32;
     int N = 16384 * 2;
     int hopSize = 1024;
-    float tolerance = 200.f;
+    int startSample = 0;
+    float tolerance = 100.0;
+
 
     std::vector<std::string> fileList = getFileListFromExtension("source", ".wav");
 
@@ -108,7 +110,6 @@ int main()
     SF_INFO sfInfo;
     std::vector<float> delaced = getAudioFromFile(filename, sfInfo);
     Sitrano::normalizeByMaxAbs(delaced);
-    int startSample = 0;
 
     //CSV creation
     std::string csvName = Sitrano::getRawFilename(filename);
@@ -118,18 +119,15 @@ int main()
     /*auto windows = theSplitter.loadCSV(csvName + ".csv", delaced.size());
     WaveformViewer viewer(delaced, windows);
     viewer.run();*/
-
-    Sitrano::Results r;
     Sitrano::AnalysisUnit unit{ 
         delaced, 
         filename,
-        (float)sfInfo.samplerate, 
-        maxHarmonics, 
-        N,
-        hopSize,
-        startSample};
+        (float)sfInfo.samplerate
+    };
 
+    int overtoneStart = (int)((double)unit.soundFile.size() * 0.12);
     Sitrano::Settings settings{
+        true,
         true,
         true,
         true,
@@ -137,35 +135,57 @@ int main()
         true
     };
 
-    Analyzer a(
-        unit, 
-        r, 
-        true, 
-        300.0);
+    Sitrano::OvertoneSettings oSettings{
+        true,
+        overtoneStart,
+        100.f,
+        true,
+        true,
+        N * 4
+    };
 
-    a.analyze(settings);
+    Sitrano::HarmonicSettings hSettings{
+        true, 
+        Sitrano::WindowStyle::audioChunk, 
+        100.f
+    };
+
+    Sitrano::AnalysisConfig config{
+        maxHarmonics,
+        N,
+        hopSize,
+        startSample,
+        tolerance,
+        oSettings,
+        hSettings
+    };
+
+    Analyzer ana(config);
+
+    //a.analyze(settings);
+    Sitrano::Results r = ana.analyze(unit, settings);
 
     std::vector<float> singleFreqs;
 
-    for (int i = 0; i < r.freqs.size(); i++) {
-        if (r.freqs[i].size() <= 0) continue;
-        singleFreqs.push_back(r.freqs[i][0]);
+    for (int i = 0; i < r.hResults.freqs.size(); i++) {
+        if (r.hResults.freqs[i].size() <= 0) continue;
+        singleFreqs.push_back(r.hResults.freqs[i][0]);
     }
 
-    for (int i = 0; i < r.amps.size(); i++)
+    for (int i = 0; i < r.hResults.amps.size(); i++)
     {
-        if (r.amps[i].size() <= 0) continue;
-        Sitrano::filterVector(r.amps[i], 4, true);
+        if (r.hResults.amps[i].size() <= 0) continue;
+        Sitrano::filterVector(r.hResults.amps[i], 4, true);
     }
 
-    for (int i = 0; i < r.freqs.size(); i++) {
-        if (r.freqs[i].size() <= 0) continue;
-        Sitrano::filterVector(r.freqs[i], 40, false);
+    for (int i = 0; i < r.hResults.freqs.size(); i++) {
+        if (r.hResults.freqs[i].size() <= 0) continue;
+        Sitrano::filterVector(r.hResults.freqs[i], 40, false);
     }
 
     //theSplitter.writeCsvFile(r.amps, "AMP" + csvName + ".csv", singleFreqs, r.sampleList);
     //theSplitter.writeCsvFile(phases, "PHA" + csvName + ".csv", singleFreqs);
-    Sitrano::saveHarmonicData(r.finalSamples, r.amps, r.freqs, r.pitch,
+    Sitrano::saveHarmonicData(r.finalSamples, r.hResults.amps, r.hResults.freqs, r.pitch,
         "INDEX" + csvName + ".bin",
         "AMP" + csvName + ".bin", 
         "FREQ" + csvName + ".bin" 
