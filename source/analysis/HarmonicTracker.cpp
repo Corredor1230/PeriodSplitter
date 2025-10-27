@@ -1,28 +1,47 @@
 #include"HarmonicTracker.h"
+#include"support/AudioChunkStrategy.h"
+#include"support/PeriodLoopStrategy.h"
+#include"support/SinglePeriodStrategy.h"
 
 HarmonicTracker::HarmonicTracker(
     const Sitrano::AnalysisUnit& a,
-    const Sitrano::HarmonicSettings& h,
-    Sitrano::Results& r,
-    std::vector<Sitrano::Peak> top) :
+    const Sitrano::AnalysisConfig& conf,
+    const std::vector<Sitrano::Peak>& top,
+    const std::vector<uint32_t>& sampleList) :
     unit(a),
-    settings(h),
-    results(r),
+    config(conf),
+    sList(sampleList),
+    settings(conf.hConfig),
     tFreqs(top)
 {
-    window.resize(unit.nfft);
-    checker.resize(unit.nfft * 2);
-    for (int i = 0; i < unit.nfft; i++)
+    nfft = config.nfft;
+    window.resize(nfft);
+    checker.resize(nfft * 2);
+    for (int i = 0; i < nfft; i++)
     {
         window[i] = 0.0;
     }
     initFFTW();
+
+    switch (settings.style)
+    {
+    case Sitrano::WindowStyle::periodLoop:
+        mWindowStrategy = std::make_unique<PeriodLoopStrategy>();
+        break;
+    case Sitrano::WindowStyle::singlePeriod:
+        mWindowStrategy = std::make_unique<SinglePeriodStrategy>();
+        break;
+    case Sitrano::WindowStyle::audioChunk:
+    default:
+        mWindowStrategy = std::make_unique<AudioChunkStrategy>();
+        break;
+    }
 }
 
 void HarmonicTracker::initFFTW() {
-    input = (float*)fftwf_malloc(sizeof(float) * unit.nfft);
-    output = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex) * (unit.nfft / 2 + 1));
-    plan = fftwf_plan_dft_r2c_1d(unit.nfft, input, output, FFTW_MEASURE);
+    input = (float*)fftwf_malloc(sizeof(float) * nfft);
+    output = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex) * (nfft / 2 + 1));
+    plan = fftwf_plan_dft_r2c_1d(nfft, input, output, FFTW_MEASURE);
 }
 
 void HarmonicTracker::applyHann(float* data, int size) {
@@ -32,162 +51,64 @@ void HarmonicTracker::applyHann(float* data, int size) {
     }
 }
 
-void HarmonicTracker::analyze() {
-    size_t numFrames{0};
-    int frameStep{ 1 };
-
-    switch (settings.style)
-    {
-    case Sitrano::WindowStyle::periodLoop:
-    {
-        frameStep = 2;
-        numFrames = (results.sampleList.size() - 1) / frameStep;
-        break;
-    }
-    case Sitrano::WindowStyle::singlePeriod:
-    {
-        frameStep = 2;
-        numFrames = (results.sampleList.size() - 1) / frameStep;
-        break;
-    }
-    case Sitrano::WindowStyle::audioChunk:
-    {
-        frameStep = 1;
-        int chunkSize = unit.soundFile.size() - results.sampleList[0];
-        numFrames = chunkSize / unit.hopSize;
-        break;
-    }
-    default:
-    {
-        frameStep = 2;
-        numFrames = (results.sampleList.size() - 1) / frameStep;
-        break;
-    }
-    }
-
-    float ampThresh = Sitrano::dbToAmp(-50.0);
-
-    for (size_t i = 0; i < numFrames - (frameStep + 1); i+=frameStep) {
-
-        int start{ 0 };
-        int end{ 0 };
-        int periodLength{ 0 };
-
-        //results.finalSamples.push_back(results.sampleList[i]);
-
-        switch (settings.style)
-        {
-        case Sitrano::WindowStyle::periodLoop:
-        {
-            start = results.sampleList[i];
-            end = results.sampleList[i + frameStep];
-            periodLength = end - start;
-
-            if (periodLength <= 0 || end > unit.soundFile.size()) continue;
-
-            // Repeat the period to fill the FFT input buffer
-            for (int j = 0; j < unit.nfft; ++j) {
-                int srcIdx = start + (j % periodLength);
-                input[j] = (srcIdx < unit.soundFile.size()) ? unit.soundFile[srcIdx] : 0.f;
-            }
-            break;
-        }
-        case Sitrano::WindowStyle::singlePeriod:
-        {
-            start = results.sampleList[i];
-            end = results.sampleList[i + frameStep];
-            periodLength = end - start;
-
-            if (periodLength <= 0 || end > unit.soundFile.size()) continue;
-
-            for (int j = 0; j < unit.nfft; ++j) {
-                int srcIdx = start + j;
-                input[j] = (srcIdx < end) ? unit.soundFile[srcIdx] : 0.f;
-            }
-            break;
-        }
-        case Sitrano::WindowStyle::audioChunk:
-        {
-            start = i * unit.hopSize;
-            end = start + unit.nfft;
-            results.finalSamples.push_back(start);
-
-            if (end > unit.soundFile.size()) continue;
-
-            for (int j = 0; j < unit.nfft; ++j) {
-                input[j] = unit.soundFile[start + j];
-            }
-            break;
-        }
-        default:
-        {
-            start = results.sampleList[i];
-            end = results.sampleList[i + frameStep];
-            periodLength = end - start;
-
-            if (periodLength <= 0 || end > unit.soundFile.size()) continue;
-
-            // Repeat the period to fill the FFT input buffer
-            for (int j = 0; j < unit.nfft; ++j) {
-                int srcIdx = start + (j % periodLength);
-                input[j] = (srcIdx < unit.soundFile.size()) ? unit.soundFile[srcIdx] : 0.f;
-            }
-            break;
-        }
-        }
-        if (settings.applyHanning)
-            applyHann(input, unit.nfft);
-
-        fftwf_execute(plan);
-
-        // Approximate fundamental frequency for this period
-        float f0 = float(unit.sampleRate) / float(periodLength);
-        if (settings.style != Sitrano::WindowStyle::audioChunk)
-        {
-            for (int b = 0; b < frameStep && i + b < results.sampleList.size(); b++)
-            {
-                results.finalSamples.push_back(results.sampleList[i + b]);
-            }
-        }
-        
-        for (int h = 1; h <= tFreqs.size(); ++h) {
-            if (tFreqs[h - 1].freq <= 20.0) continue;
-            float targetFreq = tFreqs[h - 1].freq;
-            float binFreq = 0.f;
-            binFreq = Sitrano::findPeakWithinTolerance(targetFreq, settings.toleranceValue, unit.nfft, unit.sampleRate, output);
-            
-            int bin = static_cast<int>(std::round(targetFreq * unit.nfft / float(unit.sampleRate)));
-
-            if (bin < unit.nfft / 2 + 1) {
-                float real = output[bin][0];
-                float imag = output[bin][1];
-
-                float mag = std::sqrt(real * real + imag * imag);
-                float amp = Sitrano::mag_to_amp(mag, unit.nfft);
-                float phase = std::atan2(imag, real);  // radians, range [-?, ?]
-                
-                for (int step = 0; step < frameStep; step++)
-                {
-                    results.amps[h - 1].push_back(amp);
-                    results.phases[h - 1].push_back(phase);
-                    results.freqs[h - 1].push_back(binFreq);
-                    
-                }
-            }
-        }
-    }
-    if (results.finalSamples.size() > results.amps[0].size())
-    {
-        results.finalSamples.resize(results.amps[0].size());
-    }
-    else if (results.finalSamples.size() < results.amps[0].size())
-    {
-        for (int i = results.finalSamples.size(); i < results.amps[0].size(); i++)
-        {
-            std::cerr << "This is wrong\n";
-        }
-    }
-}
+//void HarmonicTracker::analyze() {
+//    LoopParameters params = mWindowStrategy->getLoopParameters(results, unit);
+//    size_t numFrames = params.numFrames;
+//    int frameStep = params.frameStep;
+//
+//    float ampThresh = Sitrano::dbToAmp(-50.0);
+//
+//    for (size_t i = 0; i < numFrames - (frameStep + 1); i+=frameStep) {
+//
+//        int periodLength{ 0 };
+//
+//        bool success = mWindowStrategy->processFrame(
+//            i, frameStep, unit, results, input, periodLength
+//        );
+//
+//        if (!success) continue;
+//        if (settings.applyHanning) applyHann(input, unit.nfft);
+//
+//        fftwf_execute(plan);
+//        
+//        for (int h = 1; h <= tFreqs.size(); ++h) {
+//            if (tFreqs[h - 1].freq <= 20.0) continue;
+//            float targetFreq = tFreqs[h - 1].freq;
+//            float binFreq = 0.f;
+//            binFreq = Sitrano::findPeakWithinTolerance(targetFreq, settings.toleranceValue, unit.nfft, unit.sampleRate, output);
+//            
+//            int bin = static_cast<int>(std::round(targetFreq * unit.nfft / float(unit.sampleRate)));
+//
+//            if (bin < unit.nfft / 2 + 1) {
+//                float real = output[bin][0];
+//                float imag = output[bin][1];
+//
+//                float mag = std::sqrt(real * real + imag * imag);
+//                float amp = Sitrano::mag_to_amp(mag, unit.nfft);
+//                float phase = std::atan2(imag, real);  // radians, range [-?, ?]
+//                
+//                for (int step = 0; step < frameStep; step++)
+//                {
+//                    results.amps[h - 1].push_back(amp);
+//                    results.phases[h - 1].push_back(phase);
+//                    results.freqs[h - 1].push_back(binFreq);
+//                    
+//                }
+//            }
+//        }
+//    }
+//    if (results.finalSamples.size() > results.amps[0].size())
+//    {
+//        results.finalSamples.resize(results.amps[0].size());
+//    }
+//    else if (results.finalSamples.size() < results.amps[0].size())
+//    {
+//        for (int i = results.finalSamples.size(); i < results.amps[0].size(); i++)
+//        {
+//            std::cerr << "This is wrong\n";
+//        }
+//    }
+//}
 
 double HarmonicTracker::interpolatePeak(int k, const std::vector<double>& mags)
 {
@@ -196,4 +117,72 @@ double HarmonicTracker::interpolatePeak(int k, const std::vector<double>& mags)
     double denom = (m1 - 2 * m0 + p1);
     if (fabs(denom) < 1e-12) return 0.0;
     return 0.5 * (m1 - p1) / denom;
+}
+
+Sitrano::HarmonicResults HarmonicTracker::getEnvelopes()
+{
+    LoopParameters params = mWindowStrategy->getLoopParameters(sList, unit, config);
+    //Sitrano::HarmonicResults hResults;
+
+    hResults.amps.resize(config.numHarmonics);
+    hResults.freqs.resize(config.numHarmonics);
+    hResults.phases.resize(config.numHarmonics);
+
+    size_t numFrames = params.numFrames;
+    int frameStep = params.frameStep;
+
+    float ampThresh = Sitrano::dbToAmp(-50.0);
+
+    for (size_t i = 0; i < numFrames - (frameStep + 1); i += frameStep) {
+
+        int periodLength{ 0 };
+
+        bool success = mWindowStrategy->processFrame(
+            i, frameStep, config, unit, sList, hResults, input, periodLength
+        );
+
+        if (!success) continue;
+        if (settings.applyHanning) applyHann(input, nfft);
+
+        fftwf_execute(plan);
+
+        for (int h = 1; h <= tFreqs.size(); ++h) {
+            if (tFreqs[h - 1].freq <= 20.0) continue;
+            float targetFreq = tFreqs[h - 1].freq;
+            float binFreq = 0.f;
+            binFreq = Sitrano::findPeakWithinTolerance(targetFreq, settings.toleranceValue, nfft, unit.sampleRate, output);
+
+            int bin = static_cast<int>(std::round(targetFreq * nfft / float(unit.sampleRate)));
+
+            if (bin < nfft / 2 + 1) {
+                float real = output[bin][0];
+                float imag = output[bin][1];
+
+                float mag = std::sqrt(real * real + imag * imag);
+                float amp = Sitrano::mag_to_amp(mag, nfft);
+                float phase = std::atan2(imag, real);  // radians, range [-?, ?]
+
+                for (int step = 0; step < frameStep; step++)
+                {
+                    hResults.amps[h - 1].push_back(amp);
+                    hResults.phases[h - 1].push_back(phase);
+                    hResults.freqs[h - 1].push_back(binFreq);
+
+                }
+            }
+        }
+    }
+    if (hResults.finalSamples.size() > hResults.amps[0].size())
+    {
+        hResults.finalSamples.resize(hResults.amps[0].size());
+    }
+    else if (hResults.finalSamples.size() < hResults.amps[0].size())
+    {
+        for (int i = hResults.finalSamples.size(); i < hResults.amps[0].size(); i++)
+        {
+            std::cerr << "This is wrong\n";
+        }
+    }
+
+    return hResults;
 }
