@@ -96,12 +96,28 @@ std::vector<float> getAudioFromFile(std::string& filename, SF_INFO& sfInfo, floa
 
 int main()
 {
-    int maxHarmonics = 32;
-    int N = 16384 * 2;
-    int hopSize = 1024;
-    int startSample = 0;
-    float tolerance = 100.0;
+    //General settings
+    int maxHarmonics    = 32;
+    int N               = 16384 * 2;
+    int hopSize         = 1024;
+    int startSample     = 0;
+    float tolerance     = 100.0;
+    float oTolerance    = 100.0;
+    bool verbose        = true;
 
+    // Pitch config
+    float modeThreshold = 3.0; //This is for finding the mode of the pitch array
+    float tInCents      = 50.f; //Tolerance to compare found pitch with metadata
+    float minFreq       = 60.f;
+    float maxFreq       = 1300.f;
+
+    //Correlation config
+    float transientRms  = 1.0f; //Measured in milliseconds
+    float rmsHopRatio   = 1.0f;
+    float tFactor       = 3.0f; //How big of an increase between RMS windows is a transient
+    float tThreshold    = 0.1f;
+    float periodOffset  = 50.0f; //How far after the transient should the analysis start
+    float corrThreshold = 0.95f; //How similar should adjacent periods be
 
     std::vector<std::string> fileList = getFileListFromExtension("source", ".wav");
 
@@ -114,11 +130,13 @@ int main()
     //CSV creation
     std::string csvName = Sitrano::getRawFilename(filename);
     Splitter theSplitter(sfInfo);
+
     //theSplitter.writeCsvFile(periodStart, csvName + ".csv");
 
     /*auto windows = theSplitter.loadCSV(csvName + ".csv", delaced.size());
     WaveformViewer viewer(delaced, windows);
     viewer.run();*/
+
     Sitrano::AnalysisUnit unit{ 
         delaced, 
         filename,
@@ -137,17 +155,33 @@ int main()
 
     Sitrano::OvertoneSettings oSettings{
         true,
+        tolerance,
         overtoneStart,
-        100.f,
         true,
         true,
         N * 4
     };
 
+    Sitrano::CorrelationSettings cSettings{
+        transientRms,
+        rmsHopRatio,
+        tFactor,
+        tThreshold,
+        periodOffset,
+        corrThreshold
+    };
+
     Sitrano::HarmonicSettings hSettings{
         true, 
         Sitrano::WindowStyle::audioChunk, 
-        100.f
+        oTolerance
+    };
+
+    Sitrano::PitchSettings pSettings{
+        modeThreshold, 
+        tInCents, 
+        minFreq, 
+        maxFreq
     };
 
     Sitrano::AnalysisConfig config{
@@ -156,8 +190,11 @@ int main()
         hopSize,
         startSample,
         tolerance,
+        pSettings,
+        cSettings,
         oSettings,
-        hSettings
+        hSettings,
+        verbose
     };
 
     Analyzer ana(config);
