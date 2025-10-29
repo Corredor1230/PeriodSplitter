@@ -32,13 +32,14 @@ namespace Sitrano
         std::vector<uint32_t> finalSamples;
     };
 
-    /* This structure contains the main settings for the HarmonicTracker class
-    * applyHanning: Defines whether a hanning window is applied to each FFT window.
-    * windowStyle: Features three different types of FFT processing
-    |-----periodLoop: Fills the FFT window with a single period looped over.
-    |-----singlePeriod: zero-pads the window after the single harmonci event.
-    L-----audioChunk: takes the window directly from the original audio signal.
-    * toleranceValue: The value in cents around each top harmonic where buckets will be considered the same overtone.
+    /** 
+    * @brief This structure contains the main settings for the HarmonicTracker class
+    * @param applyHanning: Defines whether a hanning window is applied to each FFT window.
+    * @param windowStyle: Features three different types of FFT processing
+    * @param periodLoop: Fills the FFT window with a single period looped over.
+    * @param singlePeriod: zero-pads the window after the single harmonci event.
+    * @param audioChunk: takes the window directly from the original audio signal.
+    * @param toleranceValue: The value in cents around each top harmonic where buckets will be considered the same overtone.
     */
     struct HarmonicSettings {
         bool applyHanning;
@@ -46,13 +47,41 @@ namespace Sitrano
         float toleranceValue;
     };
 
+    /**
+    * @brief This structure contains the main parameters for the most representative overtone analysis.
+    * @param useTolerance: Decides whether bins should be grouped as one.
+    * @param toleranceValue: Measured in cents
+    * @param overtoneFirstSample: The first sample from which the top overtones will be found.
+    * @param useCustomSignal: If false, no custom data range will be analyzed.
+    * @param sumAmplitudes: Sums the amplitudes of all bins within the tolerance range.
+    * @param fftSize: Generally a larger FFT size than the global config.
+    * toleranceValue is measured in cents.
+    */
     struct OvertoneSettings {
         bool useTolerance = true;
-        int overtoneFirstSample = 0;
         double toleranceValue = 100.0;
+        int overtoneFirstSample = 0;
         bool useCustomSignal = true;
         bool sumAmplitudes = true;
         int fftSize = 65536;
+    };
+    struct PitchSettings {
+        float modeThreshold = 3.0;
+        float toleranceInCents = 50.f;
+        float minFreq = 60.f;
+        float maxFreq = 1300.f;
+    };
+
+    struct CorrelationSettings {
+        //Transient detection
+        float transientRmsSizeMs = 1.0f;
+        float transientRmsHopRatio = 1.0f;
+        float transientFactor = 3.0f;
+        float transientThreshold = 0.1f;
+
+        //Period detection
+        float periodStartOffsetMs = 50.0f;
+        float correlationThreshold = 0.95f;
     };
 
     struct AnalysisConfig {
@@ -61,12 +90,11 @@ namespace Sitrano
         int hopSize = 1024;
         int startSample = 0;
         float tolerance = 100.f;
-        OvertoneSettings oConfig{
-            true, 0, 100.0, true, true, 65536
-        };
-        HarmonicSettings hConfig{
-            true, WindowStyle::audioChunk, 100.f
-        };
+        PitchSettings pConfig;
+        CorrelationSettings cSettings;
+        OvertoneSettings oConfig;
+        HarmonicSettings hConfig;
+        bool verbose = true;
     };
 
     struct ChangePoint {
