@@ -13,7 +13,7 @@ Sitrano::Results Analyzer::analyze(
     //Find the pitch
     if (settings.pitchAnalysis)
     {
-        PitchFinder finder{ unit };
+        PitchFinder finder{ unit, mConfig };
         results.pitch = finder.findPitch();
     }
     else
@@ -24,13 +24,11 @@ Sitrano::Results Analyzer::analyze(
     //Use the pitch to find the periods' zero crossings
     if (settings.periodAnalysis)
     {
-        PeriodCutter cutter{ unit, results.pitch };
-        if (results.pitch > 0.0)
-            cutter.initialize(results.pitch);
-        else
-            cutter.initialize(unit.sampleRate / provisionalHop);
+        float pitch = results.pitch;
+        if (!pitch > mConfig.pConfig.minFreq) pitch = unit.sampleRate / provisionalHop;
 
-        results.sampleList = cutter.getCorrelationZeroes();
+        PeriodCutter cutter{ unit, mConfig.cSettings, results.pitch, mConfig.startSample };
+        results.sampleList = cutter.findPeriodSamples();
     }
     else
     {
@@ -69,8 +67,7 @@ Sitrano::Results Analyzer::analyze(
     if (settings.harmonicAnalysis)
     {
         HarmonicTracker tracker(unit, mConfig, results.topFreqs, results.sampleList);
-        results.hResults = tracker.getEnvelopes();
-        results.finalSamples = results.hResults.finalSamples;
+        results.hResults = tracker.analyze();
     }
 
     return results;
