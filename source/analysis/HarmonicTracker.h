@@ -23,8 +23,7 @@ public:
         fftwf_free(output);
     }
 
-    void analyze();
-    Sitrano::HarmonicResults getEnvelopes();
+    Sitrano::HarmonicResults analyze();
     double interpolatePeak(int k, const std::vector<double>& mags);
 
     const std::vector<std::vector<float>>& getAmplitudes() const { return hResults.amps; }

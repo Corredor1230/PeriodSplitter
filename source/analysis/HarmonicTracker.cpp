@@ -60,7 +60,7 @@ double HarmonicTracker::interpolatePeak(int k, const std::vector<double>& mags)
     return 0.5 * (m1 - p1) / denom;
 }
 
-Sitrano::HarmonicResults HarmonicTracker::getEnvelopes()
+Sitrano::HarmonicResults HarmonicTracker::analyze()
 {
     LoopParameters params = mWindowStrategy->getLoopParameters(sList, unit, config);
 
