@@ -1,89 +1,73 @@
 #pragma once
 
-#include<fftw3.h>
-#include<libpyincpp.h>
-#include<sndfile.h>
-#include<iostream>
-#include<vector>
-#include<deque>
-#include<array>
-#include<string>
-#include<fstream>
-#include<map>
-#include<cmath>
-#include<algorithm>
-#include<future>
-#include<chrono>
-#include"include/SitranoHeader.h"
+#include <vector>
+#include <cstdint> // For uint32_t
+#include "include/SitranoHeader.h"
 
 class PeriodCutter
 {
 public:
-	PeriodCutter(const Sitrano::AnalysisUnit& ana, const float pitch, float sizeInMs = 50.f, float hopInMs = 0.25);
-	~PeriodCutter() {};
+    /**
+     * @brief Constructs a stateless PeriodCutter.
+     * @param unit The input audio data.
+     * @param config The configuration for transient and correlation.
+     * @param pitch The fundamental pitch (from PitchFinder) to search for.
+     */
+    PeriodCutter(const Sitrano::AnalysisUnit& unit,
+        const Sitrano::CorrelationSettings& config,
+        float pitch, int start);
 
-	void initialize(float pitch, float threshold = 0.1);
-	void setWindowSize(int sizeInSamples = 512);
-	void setWindowSize(float sizeInMs);
-	void setThreshold(float thresh);
-	void setPitch(float pitch);
-	void enableHopping(bool hopping);
-	void setHopLength(float hopInMs);
-	void setHopLength(int hopInSamples);
-	void printZeroList(std::string& filename);
-	float findPitch(const std::vector<float>& signal);
-	std::vector<int> getCorrelationPeaks();
-	std::vector<uint32_t> getCorrelationZeroes();
+    ~PeriodCutter() = default;
 
-	std::vector<std::vector<int>>	chopPositions;
-	std::vector<std::vector<float>>	multiChannel;
+    /**
+     * @brief Performs the full analysis to find period zero-crossings.
+     * This is the main entry point for the class.
+     * @return A vector of sample indices (uint32_t) for each period start.
+     */
+    std::vector<uint32_t> findPeriodSamples();
 
 private:
+    // --- Private Member Data ---
+    const Sitrano::AnalysisUnit& mUnit;
+    const Sitrano::CorrelationSettings& mConfig;
+    const int mStartSample;
+    const float mPitch;
+    const float mSampleRate;
 
-	struct CorrelationState
-	{
-		float numerator = 0.f;
-		float squareB = 0.f;
-	};
+    // --- Private Implementation Methods ---
 
-	const Sitrano::AnalysisUnit& unit;
-	//std::vector<float>&	audioFile;
-	std::vector<int>	peakList;
-	std::vector<uint32_t>	zeroList;
-	std::vector<int>	allZeroes;
-	//SF_INFO&			sfInfo;
-	PyinCpp				pitchDetector;
+    /**
+     * @brief Finds the first major transient in the signal based on RMS.
+     * @return The sample index of the nearest zero-crossing *before* the transient.
+     */
+    int findStartTransient();
 
-	int		findStartTransient(int startSample, std::vector<float>& vector, 
-			int rmsSize, int rmsHopLength, float transFactor = 2.0, float transThresh = 0.2);
-	int		findStartTransient(int startSample, std::vector<float>& vector, 
-			float rmsSizeInMs, float rmsHopLengthInRatio, float transFactor = 2.0, float transThresh = 0.2);
+    // --- Static Utility Functions (Helpers) ---
+    // These are static because they don't depend on the object's state,
+    // only on their arguments.
 
-	int		findPeak(int startSample, std::vector<float> vector);
+    static int findPeak(const std::vector<float>& transientVector);
 
-	int		findPreviousZero(const std::vector<float>& signal, int startSample);
-	int		findNextZero(const std::vector<float>& signal, int startSample);
-	int		findNearestZero(const std::vector<float>& signal, int startSample);
-	float	findPeakValue(const std::vector<float>& signal, bool useAbsolute = true);
-	int		findPeakSample(const std::vector<float>& signal, int startSample, int endSample, bool useAbsolute = true);
-	int		findPeakSample(const std::vector<float>& signal, bool useAbsolute = true);
-	std::vector<uint32_t> findPeriodSamples(const std::vector<float>& signal, int startSample,
-				float msOffset, float inPitch, float correlationThreshold = 0.2);
-	std::vector<int> findZeroCrossings(const std::vector<float>& signal, int initSample);
-	int findNearestZeroCached(const std::vector<int>& zeroCrossings, int sample);
-	float	findMode(const std::vector<float>& vctr, float threshold, float minFreq, float maxFreq);
-	float	signalCorrelation(std::vector<float>& window, const std::vector<float>& signal, int startSample);
-	float	signalCorrelationRolling(const std::vector<float>& window, float squareA,
-		const std::vector<float>& signal, int startSample, CorrelationState& state, bool first);
+    static int findPreviousZero(const std::vector<float>& signal, int startSample);
 
-	int windowSize = 512;
-	int hopLength = 4;
-	int sampleRate = 48000.0;
-	float pitch;
-	int startSample = 0;
-	float correlationThreshold = 0.95;
-	bool correlationStatus = false;
-	bool hoppingEnabled = true;
+    static int findNextZero(const std::vector<float>& signal, int startSample);
 
-	std::vector<float> rmsTransient;
+    static int findNearestZero(const std::vector<float>& signal, int startSample);
+
+    static int findPeakSample(const std::vector<float>& signal, int startSample, int endSample, bool useAbsolute = true);
+
+    static std::vector<int> findZeroCrossings(const std::vector<float>& signal, int initSample);
+
+    static int findNearestZeroCached(const std::vector<int>& zeroCrossings, int sample);
+
+    static float signalCorrelation(const std::vector<float>& window, const std::vector<float>& signal, int startSample);
+
+    struct CorrelationState {
+        float numerator = 0.f;
+        float squareB = 0.f;
+    };
+
+    static float signalCorrelationRolling(const std::vector<float>& window, float squareA,
+        const std::vector<float>& signal, int startSample,
+        CorrelationState& state);
 };
