@@ -142,7 +142,7 @@ namespace Sitrano
         HarmonicResults hResults;
 	};
 
-	//Helper functions
+	//Small helper functions
     static inline double hann_gain_rms() { return 0.5; };
     static inline double interp_delta(int k, const std::vector<double>& mags)
     {
@@ -189,6 +189,8 @@ namespace Sitrano
         float freq = n != 0 ? static_cast<float>(bin) * fs / static_cast<float>(n) : 0.0;
         return freq;
     }
+
+    //Functions with a definition in .cpp file
     BinFreq findPeakWithinTolerance(float targetFreq, float tolerance, int n, float sr, void* out);
     void filterVector(std::vector<float>& input, int filterSize, bool zeroPad);
     void normalizeByMaxAbs(std::vector<float>& vec);
@@ -205,34 +207,29 @@ namespace Sitrano
         const std::string& pathSlow
     );
 
+    //Template functions
     template <typename T>
     static void applyHann(T* data, size_t N) {
         static_assert(std::is_arithmetic_v<T>,
             "applyHann can only be used with numerical types.");
 
-        // 1. Define constants for precision
-        constexpr double TWO_PI = 2.0 * M_PI;
-
-        // 2. Handle edge cases
+        // Handle edge cases
         if (N < 2) {
             if (N == 1) {
                 data[0] = static_cast<T>(0.0);
             }
-            return; // Do nothing for size 0
+            return;
         }
 
-        // 3. Denominator for window (N-1)
         // We use 'double' for all intermediate math to maintain precision.
         const double M = static_cast<double>(N - 1);
 
-        // 4. Apply the window
+        // Apply the window
         for (size_t n = 0; n < N; ++n) {
             const double n_double = static_cast<double>(n);
-
-            // Hanning window formula: w(n) = 0.5 * (1 - cos(2*pi*n / (N-1)))
             const double window_val = 0.5 * (1.0 - std::cos(TWO_PI * n_double / M));
 
-            // 5. Apply the window in-place, casting the final result back to T
+            // Apply the window in-place, casting the final result back to T
             data[n] = static_cast<T>(static_cast<double>(data[n]) * window_val);
         }
     }
@@ -244,26 +241,23 @@ namespace Sitrano
 
         const size_t N = data.size();
 
-        // 2. Handle edge cases to avoid division by zero
+        // Handle edge cases to avoid division by zero
         if (N < 2) {
             if (N == 1) {
                 data[0] = static_cast<T>(0.0); // A 1-point Hanning window is 0
             }
-            return; // Do nothing for an empty vector
+            return;
         }
 
-        // 3. We use 'double' for all intermediate math to maintain precision,
-        //    regardless of whether T is float, double, or int.
+        // We use double for all intermediate math to maintain precision
         const double M = static_cast<double>(N - 1);
         constexpr double TWO_PI = 2.0 * PI;
 
         for (size_t n = 0; n < N; ++n) {
             const double n_double = static_cast<double>(n);
-
-            // Hanning window formula: w(n) = 0.5 * (1 - cos(2*pi*n / (N-1)))
             const double window_val = 0.5 * (1.0 - std::cos(TWO_PI * n_double / M));
 
-            // 4. Apply the window. We explicitly cast the final result
+            // We explicitly cast the final result
             data[n] = static_cast<T>(data[n] * window_val);
         }
     }

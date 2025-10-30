@@ -17,7 +17,7 @@ Sitrano::BinFreq Sitrano::findPeakWithinTolerance(float targetFreq, float tolera
     int hiBin = freqToBin(hiFreq, n, sr);
     int targetBin = freqToBin(targetFreq, n, sr);
 
-    Sitrano::BinFreq outBF;
+    Sitrano::BinFreq outBF{ 0.f, 0.f };
 
     int binNumber = std::abs(hiBin - lowBin);
 
@@ -46,7 +46,8 @@ Sitrano::BinFreq Sitrano::findPeakWithinTolerance(float targetFreq, float tolera
     else
     {
         outFreq = targetFreq;
-
+        outBF.freq = outFreq;
+        outBF.bin = freqToBin(outFreq, n, sr);
     }
 
     return outBF;
@@ -200,3 +201,4 @@ void Sitrano::saveHarmonicData(
         }
     }
 }
+
