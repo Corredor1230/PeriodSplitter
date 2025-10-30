@@ -89,7 +89,7 @@ Sitrano::HarmonicResults HarmonicTracker::analyze()
         for (int h = 1; h <= tFreqs.size(); ++h) {
             if (tFreqs[h - 1].freq <= 20.0) continue;
             float targetFreq = tFreqs[h - 1].freq;
-            float binFreq = 0.f;
+            Sitrano::BinFreq binFreq;
             binFreq = Sitrano::findPeakWithinTolerance(targetFreq, settings.toleranceValue, nfft, unit.sampleRate, output);
 
             int bin = static_cast<int>(std::round(targetFreq * nfft / float(unit.sampleRate)));
@@ -106,7 +106,7 @@ Sitrano::HarmonicResults HarmonicTracker::analyze()
                 {
                     hResults.amps[h - 1].push_back(amp);
                     hResults.phases[h - 1].push_back(phase);
-                    hResults.freqs[h - 1].push_back(binFreq);
+                    hResults.freqs[h - 1].push_back(binFreq.freq);
                 }
             }
         }
