@@ -123,6 +123,11 @@ namespace Sitrano
 		double amp = 0.0;
 	};
 
+    struct BinFreq {
+        float bin;
+        float freq;
+    };
+
     // Main settings for the Analyzer. 
     // This structure decides which processing steps will be completed.
     struct Settings {
@@ -190,7 +195,7 @@ namespace Sitrano
         float freq = n != 0 ? static_cast<float>(bin) * fs / static_cast<float>(n) : 0.0;
         return freq;
     }
-    static inline float findPeakWithinTolerance(float targetFreq, float tolerance, int n, float sr, fftwf_complex* out) {
+    static inline BinFreq findPeakWithinTolerance(float targetFreq, float tolerance, int n, float sr, fftwf_complex* out) {
         float midiTolerance = tolerance / 100.0;
         float lowMidi = freqToMidi(targetFreq) - midiTolerance;
         float lowFreq = midiToFreq(lowMidi);
@@ -200,6 +205,7 @@ namespace Sitrano
         int hiBin = freqToBin(hiFreq, n, sr);
         int targetBin = freqToBin(targetFreq, n, sr);
 
+        Sitrano::BinFreq outBF;
 
         int binNumber = std::abs(hiBin - lowBin);
 
@@ -218,15 +224,20 @@ namespace Sitrano
 
                 if (amp > peakAmp)
                 {
-                    outFreq = binToFreq(currentBin, n, sr);
+                    outBF.bin = currentBin;
+                    outBF.freq = binToFreq(currentBin, n, sr);
                     peakAmp = amp;
                 }
                 
             }
         }
-        else outFreq = targetFreq;
+        else
+        {
+            outFreq = targetFreq;
 
-        return outFreq;
+        }
+
+        return outBF;
     };
     static inline void filterVector(std::vector<float>& input, int filterSize, bool zeroPad) {
         std::vector<float> filter;
