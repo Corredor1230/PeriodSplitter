@@ -74,6 +74,7 @@ set(SUPPORT_SOURCES
 set(INCLUDE_FILES
     ${SOURCE_DIR}/include/csv.h
     ${SOURCE_DIR}/include/SitranoHeader.h
+	${SOURCE_DIR}/include/SitranoHeader.cpp
 )
 
 # --- Create the executable ---
@@ -89,30 +90,6 @@ target_sources(${EXECUTABLE_NAME} PRIVATE
     ${SUPPORT_SOURCES}
     ${INCLUDE_FILES}
 )
-
-# Add the source file(s)
-# add_executable(${EXECUTABLE_NAME} ${SOURCE_DIR}/main.cpp 
-# 				${SOURCE_DIR}/include/csv.h
-# 				${SOURCE_DIR}/include/SitranoHeader.h
-# 				${SOURCE_DIR}/analysis/HarmonicTracker.h
-# 				${SOURCE_DIR}/analysis/HarmonicTracker.cpp
-# 				${SOURCE_DIR}/analysis/NoiseTracker.cpp
-# 				${SOURCE_DIR}/analysis/NoiseTracker.h
-# 				${SOURCE_DIR}/analysis/SitranoAnalysis.cpp
-# 				${SOURCE_DIR}/analysis/SitranoAnalysis.h
-# 				${SOURCE_DIR}/dsp/PeriodCutter.cpp 
-# 				${SOURCE_DIR}/dsp/PeriodCutter.h
-# 				${SOURCE_DIR}/dsp/FIRFilter.cpp
-# 				${SOURCE_DIR}/dsp/FIRFilter.h
-# 				${SOURCE_DIR}/dsp/PitchFinder.h
-# 				${SOURCE_DIR}/dsp/PitchFinder.cpp
-# 				${SOURCE_DIR}/support/Splitter.cpp 
-# 				${SOURCE_DIR}/support/Splitter.h 
-# 				${SOURCE_DIR}/gui/GUI.h
-# 				${SOURCE_DIR}/gui/GUI.cpp
-# 				${SOURCE_DIR}/gui/SpectrumView.cpp
-# 				${SOURCE_DIR}/gui/SpectrumView.h
-# 				)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
 
