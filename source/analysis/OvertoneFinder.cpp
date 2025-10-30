@@ -1,4 +1,5 @@
 #include "OvertoneFinder.h"
+#include<algorithm>
 
 OvertoneFinder::OvertoneFinder(const Sitrano::AnalysisUnit& unit,
     const Sitrano::AnalysisConfig& conf) : 
