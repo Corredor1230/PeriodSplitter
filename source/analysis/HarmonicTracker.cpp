@@ -46,7 +46,7 @@ void HarmonicTracker::initFFTW() {
 
 void HarmonicTracker::applyHann(float* data, int size) {
     for (int i = 0; i < size; ++i) {
-        float w = 0.5f * (1.0f - std::cos(2.0f * M_PI * i / (size - 1)));
+        float w = 0.5f * (1.0f - std::cos(Sitrano::TWO_PI * i / (size - 1)));
         data[i] *= w;
     }
 }
