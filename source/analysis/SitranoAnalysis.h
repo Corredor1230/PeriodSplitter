@@ -14,11 +14,12 @@
 #include"include/SitranoHeader.h"
 
 class Analyzer {
-    Sitrano::AnalysisConfig mConfig;
+    const Sitrano::AnalysisConfig mConfig;
 
 public:
 
-    Analyzer(const Sitrano::AnalysisConfig& config) {};
+    Analyzer(const Sitrano::AnalysisConfig& config) : mConfig(config) 
+    {};
 
     ~Analyzer() {}
 
