@@ -4,6 +4,7 @@
 #include<fstream>
 #include<filesystem>
 #include<iomanip>
+#include<complex>
 
 Sitrano::BinFreq Sitrano::findPeakWithinTolerance(float targetFreq, float tolerance, int n, float sr, void* generic_out)
 {
@@ -51,6 +52,64 @@ Sitrano::BinFreq Sitrano::findPeakWithinTolerance(float targetFreq, float tolera
     }
 
     return outBF;
+}
+
+Sitrano::FreqUnit Sitrano::findPeak(Sitrano::BinFreq inTarget, void* fftwfOut,
+    int nfft, float fs, int binRange)
+{
+    Sitrano::BinFreq target = inTarget;
+    Sitrano::FreqUnit outData;
+
+    fftwf_complex* out = reinterpret_cast<fftwf_complex*>(fftwfOut);
+    Sitrano::BinFreq outBin;
+    outBin.bin = target.bin;
+
+    float log_km1 = logf(hypotf(out[target.bin - 1][0],
+        out[target.bin - 1][1]));
+    float log_k = logf(hypotf(out[target.bin][0],
+        out[target.bin][1]));
+    float log_kp1 = logf(hypotf(out[target.bin + 1][0],
+        out[target.bin + 1][1]));
+
+    int iStart = -std::abs(binRange);
+    int iEnd = std::abs(binRange) + 1;
+
+    if (log_km1 > log_k || log_kp1 > log_k)
+    {
+        std::vector<float> inputvector;
+        for (int i = iStart; i < iEnd; i++)
+        {
+            inputvector.push_back(logf(hypotf(out[target.bin + i][0],
+                out[target.bin + i][1])));
+        }
+        target.bin += Sitrano::findPeakIndexVector(inputvector) + iStart;
+
+        float log_km1 = logf(hypotf(out[target.bin - 1][0],
+            out[target.bin - 1][1]));
+        float log_k = logf(hypotf(out[target.bin][0],
+            out[target.bin][1]));
+        float log_kp1 = logf(hypotf(out[target.bin + 1][0],
+            out[target.bin + 1][1]));
+    }
+
+    float delta = 0.5f * (log_km1 - log_kp1) / 
+        (log_km1 - 2.0f * log_k + log_kp1);
+
+    outBin.fBin = (float)target.bin + delta;
+    outBin.freq = binToFreq(outBin.fBin, nfft, fs);
+
+    outData.bin = outBin;
+
+    float interpLogMag = log_k - 0.25f * (log_km1 - log_kp1) * delta;
+    outData.mag = expf(interpLogMag);
+    outData.amp = mag_to_amp(outData.mag, nfft);
+
+    float phaseAtBin = atan2f(out[target.bin][1], out[target.bin][0]);
+    float phase = phaseAtBin - (PI * outData.bin.fBin);
+
+    outData.pha = fmodf(phase + PI, TWO_PI) - PI;
+
+    return outData;
 }
 
 void Sitrano::filterVector(std::vector<float>& input, int filterSize, bool zeroPad)
@@ -202,3 +261,16 @@ void Sitrano::saveHarmonicData(
     }
 }
 
+int Sitrano::findPeakIndexVector(const std::vector<float>& input)
+{
+    int outIndex = 0;
+    float maxVal = 0.f;
+
+    for (int i = 0; i < input.size(); i++)
+    {
+        if (input[i] > maxVal) outIndex = i;
+        else continue;
+    }
+
+    return outIndex;
+}
