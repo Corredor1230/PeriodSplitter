@@ -9,12 +9,13 @@ HarmonicTracker::HarmonicTracker(
     const std::vector<Sitrano::Peak>& top,
     const std::vector<uint32_t>& sampleList) :
     unit(a),
+    sr(unit.sampleRate),
     config(conf),
     sList(sampleList),
+    nfft(conf.nfft),
     settings(conf.hConfig),
     tFreqs(top)
 {
-    nfft = config.nfft;
     window.resize(nfft);
     checker.resize(nfft * 2);
     for (int i = 0; i < nfft; i++)
@@ -89,24 +90,27 @@ Sitrano::HarmonicResults HarmonicTracker::analyze()
         for (int h = 1; h <= tFreqs.size(); ++h) {
             if (tFreqs[h - 1].freq <= 20.0) continue;
             float targetFreq = tFreqs[h - 1].freq;
-            Sitrano::BinFreq binFreq;
-            binFreq = Sitrano::findPeakWithinTolerance(targetFreq, settings.toleranceValue, nfft, unit.sampleRate, output);
+            Sitrano::BinFreq binFreq = Sitrano::findPeakWithinTolerance(targetFreq, settings.toleranceValue, nfft,
+                sr, output);
 
-            int bin = static_cast<int>(std::round(targetFreq * nfft / float(unit.sampleRate)));
+            if (binFreq.bin < nfft / 2 + 1) {
+                Sitrano::FreqUnit fUnit{ binFreq, 0.0, 0.0, 0.0 };
+                int binRange = 5; //Gotta improve this eventually, make algorithm
 
-            if (bin < nfft / 2 + 1) {
-                float real = output[bin][0];
-                float imag = output[bin][1];
+                fUnit = Sitrano::findPeak(fUnit.bin, output, nfft, unit.sampleRate, binRange);
 
-                float mag = std::sqrt(real * real + imag * imag);
-                float amp = Sitrano::mag_to_amp(mag, nfft);
-                float phase = std::atan2(imag, real);  // radians, range [-?, ?]
+                //float real = output[bin][0];
+                //float imag = output[bin][1];
+
+                //float mag = std::sqrt(real * real + imag * imag);
+                //float amp = Sitrano::mag_to_amp(mag, nfft);
+                //float phase = std::atan2(imag, real);  // radians, range [-?, ?]
 
                 for (int step = 0; step < frameStep; step++)
                 {
-                    hResults.amps[h - 1].push_back(amp);
-                    hResults.phases[h - 1].push_back(phase);
-                    hResults.freqs[h - 1].push_back(binFreq.freq);
+                    hResults.amps[h - 1].push_back(fUnit.amp);
+                    hResults.phases[h - 1].push_back(fUnit.pha);
+                    hResults.freqs[h - 1].push_back(fUnit.bin.freq);
                 }
             }
         }

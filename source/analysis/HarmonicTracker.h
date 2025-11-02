@@ -35,7 +35,7 @@ private:
     std::vector<float> window;
     std::unique_ptr<IWindowStrategy> mWindowStrategy;
 
-    int nfft;
+    const int nfft;
 
     fftwf_plan plan;
     float* input;
@@ -47,6 +47,7 @@ private:
     const Sitrano::HarmonicSettings& settings;
     const Sitrano::AnalysisConfig& config;
     const std::vector<uint32_t>& sList;
+    const float sr;
     Sitrano::HarmonicResults hResults;
 
     void initFFTW();
