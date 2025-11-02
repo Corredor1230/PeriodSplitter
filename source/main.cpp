@@ -102,8 +102,9 @@ int main()
     int hopSize         = 1024;
     int startSample     = 0;
     float tolerance     = 100.0;
-    float oTolerance    = 100.0;
+    float hTolerance    = 25.0;
     bool verbose        = true;
+    Sitrano::WindowStyle w = Sitrano::WindowStyle::audioChunk;
 
     // Pitch config
     float modeThreshold = 3.0; //This is for finding the mode of the pitch array
@@ -118,6 +119,17 @@ int main()
     float tThreshold    = 0.1f;
     float periodOffset  = 50.0f; //How far after the transient should the analysis start
     float corrThreshold = 0.95f; //How similar should adjacent periods be
+
+    //Overtone config
+    bool overtoneTolerance  = true;
+    bool oTolerance         = 200.f;
+    bool postTransientStart = true;
+    int overtoneFirstSample = 2000;
+    bool useCustomSignal    = true;
+    bool sumAmplitudes      = true;
+    int oNfft               = N * 2;
+    float ignoreThreshold   = -60.f;
+    bool setAbsThreshold    = true;
 
     std::vector<std::string> fileList = getFileListFromExtension("source", ".wav");
 
@@ -154,12 +166,15 @@ int main()
     };
 
     Sitrano::OvertoneSettings oSettings{
-        true,
-        tolerance,
-        overtoneStart,
-        true,
-        true,
-        N * 4
+        overtoneTolerance,
+        oTolerance,
+        postTransientStart,
+        overtoneFirstSample,
+        useCustomSignal,
+        sumAmplitudes,
+        oNfft,
+        ignoreThreshold,
+        setAbsThreshold
     };
 
     Sitrano::CorrelationSettings cSettings{
@@ -173,8 +188,8 @@ int main()
 
     Sitrano::HarmonicSettings hSettings{
         true, 
-        Sitrano::WindowStyle::audioChunk, 
-        oTolerance
+        w, 
+        hTolerance
     };
 
     Sitrano::PitchSettings pSettings{
