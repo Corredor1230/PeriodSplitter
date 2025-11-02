@@ -6,7 +6,7 @@ OvertoneFinder::OvertoneFinder(const Sitrano::AnalysisUnit& unit,
     unit(unit),
     config(conf),
     settings(conf.oConfig),
-    N(config.nfft * 4),
+    N(config.oConfig.fftSize),
     Nout(N / 2 + 1)
 {
     initFFTW();
@@ -76,20 +76,6 @@ std::vector<Sitrano::Peak> OvertoneFinder::getRelevantOvertones(
         return a.amp > b.amp;
         });
 
-    // --- 5. CLUSTER PEAKS TO FIND HARMONICS ---
-
-    // Implement the tolerance logic correctly
-    auto withinTolerance = [&](double baseFreq, double compFreq) {
-        if (settings.useTolerance) {
-            double tolHz = Sitrano::cents_to_hz(baseFreq, settings.toleranceValue);
-            return std::abs(compFreq - baseFreq) <= tolHz;
-        }
-        else {
-            // Assume 'tolerance' is in Hz if 'useCentTolerance' is false
-            return std::abs(compFreq - baseFreq) <= settings.toleranceValue;
-        }
-        };
-
     std::vector<Sitrano::Peak> merged;
     merged.reserve(outHarm);
 
@@ -103,33 +89,28 @@ std::vector<Sitrano::Peak> OvertoneFinder::getRelevantOvertones(
 
         // This is our new "seed" peak
         const auto& seedPeak = peaks[i];
+        float tolInHz = Sitrano::cents_to_hz(seedPeak.freq, settings.toleranceValue);
         peak_processed[i] = true;
+        bool withinTolerance = false;
 
         // Apply filters to the seed peak
         if (seedPeak.freq < pitch * 0.9 ||
             seedPeak.freq > 20000.f ||
-            seedPeak.amp < 1.0e-6) {
+            seedPeak.mag < 1.0e-3) {
             continue; // This peak is invalid, skip it
         }
 
         Sitrano::Peak cluster = seedPeak;
 
-        // Implement 'sumAmplitudesInCluster' logic
-        if (settings.sumAmplitudes) {
-            // Iterate over *remaining* peaks to find matches
-            for (int j = i + 1; j < peaks.size(); ++j) {
-                if (peak_processed[j]) continue;
-
-                if (withinTolerance(cluster.freq, peaks[j].freq)) {
-                    // It's in the cluster. Sum its amplitude.
-                    cluster.amp += peaks[j].amp;
-                    cluster.mag += peaks[j].mag; // Also sum mag
-                    peak_processed[j] = true; // Mark as processed
-                }
+        for (int i = 0; i < merged.size(); i++)
+        {
+            if (Sitrano::withinTolerance(merged[i].freq, seedPeak.freq, tolInHz))
+            {
+                withinTolerance = true;
             }
         }
 
-        merged.push_back(cluster);
+        if (!withinTolerance) merged.push_back(cluster);
     }
 
     // --- 6. FINAL SORTING & CLEANUP ---
