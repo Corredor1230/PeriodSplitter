@@ -54,10 +54,13 @@ namespace Sitrano
     struct OvertoneSettings {
         bool useTolerance = true;
         double toleranceValue = 100.0;
+        bool postTransientStart = true;
         int overtoneFirstSample = 0;
         bool useCustomSignal = true;
         bool sumAmplitudes = true;
         int fftSize = 65536;
+        float ignoreThreshold = -60.f;
+        bool setAbsoluteThreshold = true;
     };
     struct PitchSettings {
         float modeThreshold = 3.0;
@@ -118,9 +121,18 @@ namespace Sitrano
 	};
 
     struct BinFreq {
-        float bin;
+        int bin;
         float freq;
+        float fBin;
     };
+
+    struct FreqUnit {
+        Sitrano::BinFreq bin;
+        float mag;
+        float amp;
+        float pha;
+    };
+
 
     // Main settings for the Analyzer. 
     // This structure decides which processing steps will be completed.
@@ -135,6 +147,7 @@ namespace Sitrano
 
 	//Larger structure containing all results of the analysis
 	struct Results {
+        int transientStart;
         std::vector<uint32_t> sampleList;
 		std::vector<Peak> topFreqs;
         float pitch;
@@ -143,8 +156,8 @@ namespace Sitrano
 	};
 
 	//Small helper functions
-    static inline double hann_gain_rms() { return 0.5; };
-    static inline double interp_delta(int k, const std::vector<double>& mags)
+    inline double hann_gain_rms() { return 0.5; };
+    inline double interp_delta(int k, const std::vector<double>& mags)
     {
         if (k <= 0 || k >= (int)mags.size() - 1) return 0.0;
         double m1 = mags[k - 1], m0 = mags[k], p1 = mags[k + 1];
@@ -152,52 +165,67 @@ namespace Sitrano
         if (std::abs(denom) < 1e-20) return 0.0;
         return 0.5 * (m1 - p1) / denom;
     }
-    static inline double mag_to_amp(double mag, int N)
+    inline double mag_to_amp(double mag, int N)
     {
         double A = (2.0 * mag) / double(N);
         A /= hann_gain_rms();
         return A;
     } //Converts FFT magnitude to linear gain
-    static inline float dbToAmp(float db)
+    inline float dbToAmp(float db)
     {
         float gain = std::pow<float>(10.0, db / 20.0);
         return gain;
     } //Converts FS decibel values to linear gain
-    static inline float ampToDb(float amp)
+    inline float ampToDb(float amp)
     {
         float decibels = 20.0 * std::log10(amp / 1.0);
         return decibels;
     } //Converts linear gain to FS decibel
-    static inline float midiToFreq(float midi) {
+    inline float midiToFreq(float midi) {
         float freq = std::pow<float>(2.0, (midi - 69.0) / 12.0) * 440.0;
         return freq;
     }
-    static inline float freqToMidi(float freq) {
+    inline float freqToMidi(float freq) {
         float midi = 12.0 * std::log2(freq / 440.0) + 69.0;
         return midi;
     }
-    static inline double cents_to_hz(double f_center, double cents)
+    inline double cents_to_hz(double f_center, double cents)
     {
         double r = std::pow<double>(2.0, cents / 1200.0);
         return std::max<double>(1e-12, f_center * (r - 1.0));
     }
-    static inline int freqToBin(float freq, int n, float fs) {
+    inline int freqToBin(float freq, int n, float fs) {
         int bin = static_cast<int>(std::round(freq * n / fs));
         return bin;
     }
-    static inline float binToFreq(int bin, int n, float fs) {
+    inline float binToFreq(int bin, int n, float fs) {
         float freq = n != 0 ? static_cast<float>(bin) * fs / static_cast<float>(n) : 0.0;
         return freq;
+    }
+    inline float binToFreq(float bin, int n, float fs)
+    {
+        float freq = n != 0 ? bin * fs / static_cast<float>(n) : 0.0;
+        return freq;
+    }
+    inline bool withinTolerance(float source, float comp, float tolerance)
+    {
+        bool result = false;
+        if (std::abs(source - comp) < tolerance) result = true;
+        return result;
+    }
+    inline float freqRangeToBinRangeSize(float lowF, float highF, int n, float fs) {
+
     }
 
     //Functions with a definition in .cpp file
     BinFreq findPeakWithinTolerance(float targetFreq, float tolerance, int n, float sr, void* out);
+    FreqUnit findPeak(BinFreq target, void* fftwfOut, int nfft, float fs, int binRange);
     void filterVector(std::vector<float>& input, int filterSize, bool zeroPad);
     void normalizeByMaxAbs(std::vector<float>& vec);
     std::string getRawFilename(std::string& filename);
     void applyWindow(std::vector<float>& frame);
-    static float getPitchFromFilename(const std::string& filename);
-    static void saveHarmonicData(
+    float getPitchFromFilename(const std::string& filename);
+    void saveHarmonicData(
         const std::vector<uint32_t>& indices,
         const std::vector<std::vector<float>>& fastData,   // RMS per harmonic
         const std::vector<std::vector<float>>& slowData,   // raw frequencies per harmonic
@@ -206,6 +234,8 @@ namespace Sitrano
         const std::string& pathFast,
         const std::string& pathSlow
     );
+    int findPeakIndexVector(const std::vector<float>& input);
+
 
     //Template functions
     template <typename T>
