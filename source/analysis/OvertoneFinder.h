@@ -24,6 +24,8 @@ private:
 	float* input;
 	int N;
 	int Nout;
+	bool absThreshold;
+	float threshold;
 	fftwf_plan plan;
 	fftwf_complex* output;
 };

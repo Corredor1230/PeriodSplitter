@@ -7,7 +7,9 @@ OvertoneFinder::OvertoneFinder(const Sitrano::AnalysisUnit& unit,
     config(conf),
     settings(conf.oConfig),
     N(config.oConfig.fftSize),
-    Nout(N / 2 + 1)
+    Nout(N / 2 + 1),
+    absThreshold(conf.oConfig.setAbsoluteThreshold),
+    threshold(conf.oConfig.overtoneThreshold)
 {
     initFFTW();
 }
@@ -26,28 +28,16 @@ std::vector<Sitrano::Peak> OvertoneFinder::getRelevantOvertones(
     const int outHarm = config.numHarmonics;
     N = config.oConfig.fftSize;
     const int Nout = N / 2 + 1;
-
-    // --- 1. PREPARE THE INPUT BUFFER ---
-    // We use the pre-allocated 'm_fft_in' member buffer
-
-    // Find how much data to copy: either the whole signal or just enough to fill nfft
     size_t numToCopy = std::min(checkSignal.size(), (size_t)N);
 
-    // Clear the buffer (in case previous run left data)
     std::fill_n(input, N, 0.0f);
-
-    // Copy the signal. If checkSignal.size() < m_nfft, this is zero-padded.
     std::copy(checkSignal.begin(), checkSignal.begin() + numToCopy, input);
 
-    // Apply the Hanning window to the entire nfft buffer
-    // (Using the safer vector-based function from our last conversation)
     Sitrano::applyHann<float>(input, N);
 
-    // --- 2. EXECUTE FFT ---
-    // We re-use the *exact same plan* every time. This is much faster.
     fftwf_execute(plan);
 
-    // --- 3. CALCULATE MAGNITUDES ---
+    // CALCULATE MAGNITUDES
     std::vector<double> mags(Nout);
     for (int k = 0; k < Nout; ++k) {
         double re = output[k][0];
@@ -55,9 +45,9 @@ std::vector<Sitrano::Peak> OvertoneFinder::getRelevantOvertones(
         mags[k] = std::sqrt(re * re + im * im);
     }
 
-    // --- 4. FIND & INTERPOLATE PEAKS ---
+    // FIND & INTERPOLATE PEAKS 
     std::vector<Sitrano::Peak> peaks;
-    peaks.reserve(Nout); // Good practice
+    peaks.reserve(Nout); 
     for (int k = 1; k < Nout - 1; ++k) {
         // Find local maxima (basic peak-picking)
         if (mags[k] > mags[k - 1] && mags[k] > mags[k + 1])
@@ -82,6 +72,17 @@ std::vector<Sitrano::Peak> OvertoneFinder::getRelevantOvertones(
     // This is a much safer way to track processed peaks
     std::vector<bool> peak_processed(peaks.size(), false);
 
+    float ampThresh = 0.5;
+    if (absThreshold)
+    {
+        ampThresh = Sitrano::dbToAmp(threshold);
+    }
+    else
+    {
+        float peakDb = Sitrano::ampToDb(peaks[0].amp);
+        ampThresh = Sitrano::dbToAmp(peakDb - std::abs(threshold));
+    }
+
     for (int i = 0; i < peaks.size() && merged.size() < outHarm; ++i) {
         if (peak_processed[i]) {
             continue; // This peak was already added to a cluster
@@ -96,7 +97,7 @@ std::vector<Sitrano::Peak> OvertoneFinder::getRelevantOvertones(
         // Apply filters to the seed peak
         if (seedPeak.freq < pitch * 0.9 ||
             seedPeak.freq > 20000.f ||
-            seedPeak.mag < 1.0e-3) {
+            seedPeak.amp < ampThresh) {
             continue; // This peak is invalid, skip it
         }
 
