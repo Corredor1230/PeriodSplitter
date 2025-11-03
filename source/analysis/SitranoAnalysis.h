@@ -9,6 +9,7 @@
 #include"dsp/PitchFinder.h"
 #include"dsp/PeriodCutter.h"
 #include"analysis/OvertoneFinder.h"
+#include"analysis/TransientRecognition.h"
 #include"analysis/HarmonicTracker.h"
 #include"analysis/NoiseTracker.h"
 #include"include/SitranoHeader.h"

@@ -21,13 +21,23 @@ Sitrano::Results Analyzer::analyze(
         results.pitch = Sitrano::getPitchFromFilename(unit.filename);
     }
 
+    if (settings.transientSeparation)
+    {
+        Transient t(unit, mConfig.tSettings);
+        results.tRange = t.findStartTransient();
+    }
+    else
+    {
+        results.tRange = { 0, 0 };
+    }
+
     //Use the pitch to find the periods' zero crossings
     if (settings.periodAnalysis)
     {
         float pitch = results.pitch;
         if (!pitch > mConfig.pConfig.minFreq) pitch = unit.sampleRate / provisionalHop;
 
-        PeriodCutter cutter{ unit, mConfig.cSettings, results.pitch, mConfig.startSample };
+        PeriodCutter cutter{ unit, mConfig.cSettings, results.pitch, results.tRange.endSample };
         results.sampleList = cutter.findPeriodSamples();
     }
     else
