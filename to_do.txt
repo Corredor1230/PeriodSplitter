@@ -1,0 +1,5 @@
+#To-do 11/03
+Harmonic analysis seems to be mostly working.
+Need to get rid of duplicate overtones.
+
+	
