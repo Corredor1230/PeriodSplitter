@@ -134,8 +134,8 @@ int main()
     bool useCustomSignal    = true;
     bool sumAmplitudes      = true;
     int oNfft               = N * 2;
-    float ignoreThreshold   = -60.f;
-    bool setAbsThreshold    = true;
+    float ignoreThreshold   = -40.f;
+    bool setAbsThreshold    = false;
 
     std::vector<std::string> fileList = getFileListFromExtension("source", ".wav");
 
