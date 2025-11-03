@@ -30,35 +30,11 @@ private:
     // --- Private Member Data ---
     const Sitrano::AnalysisUnit& mUnit;
     const Sitrano::CorrelationSettings& mConfig;
-    const int mStartSample;
+    const int startSample;
     const float mPitch;
     const float mSampleRate;
 
     // --- Private Implementation Methods ---
-
-    /**
-     * @brief Finds the first major transient in the signal based on RMS.
-     * @return The sample index of the nearest zero-crossing *before* the transient.
-     */
-    int findStartTransient();
-
-    // --- Static Utility Functions (Helpers) ---
-    // These are static because they don't depend on the object's state,
-    // only on their arguments.
-
-    static int findPeak(const std::vector<float>& transientVector);
-
-    static int findPreviousZero(const std::vector<float>& signal, int startSample);
-
-    static int findNextZero(const std::vector<float>& signal, int startSample);
-
-    static int findNearestZero(const std::vector<float>& signal, int startSample);
-
-    static int findPeakSample(const std::vector<float>& signal, int startSample, int endSample, bool useAbsolute = true);
-
-    static std::vector<int> findZeroCrossings(const std::vector<float>& signal, int initSample);
-
-    static int findNearestZeroCached(const std::vector<int>& zeroCrossings, int sample);
 
     static float signalCorrelation(const std::vector<float>& window, const std::vector<float>& signal, int startSample);
 

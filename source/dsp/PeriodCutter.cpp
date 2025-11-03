@@ -18,14 +18,13 @@ PeriodCutter::PeriodCutter(const Sitrano::AnalysisUnit& unit,
     mUnit(unit),
     mConfig(config),
     mPitch(pitch),
-    mStartSample(start),
+    startSample(start),
     mSampleRate(unit.sampleRate)
 {}
 
 // This is the main public function that does all the work.
 std::vector<uint32_t> PeriodCutter::findPeriodSamples()
 {
-    int startSample = findStartTransient();
 
     // dynamic values
     int expectedPeriodLength = static_cast<int>(mSampleRate / mPitch);
@@ -33,7 +32,7 @@ std::vector<uint32_t> PeriodCutter::findPeriodSamples()
     int expectedNumPeriods = static_cast<int>(mUnit.soundFile.size() / expectedPeriodLength);
 
     // Pre-find all zero crossings
-    std::vector<int> zeroCrossings = findZeroCrossings(mUnit.soundFile, startSample);
+    std::vector<int> zeroCrossings = Sitrano::findZeroCrossings(mUnit.soundFile, startSample);
     if (zeroCrossings.empty()) {
         std::cerr << "PeriodCutter: No zero crossings found. Aborting." << std::endl;
         return {};
@@ -41,8 +40,8 @@ std::vector<uint32_t> PeriodCutter::findPeriodSamples()
 
     // Find the initial period start
     int initialSample = startSample + static_cast<int>(mSampleRate * (mConfig.periodStartOffsetMs / 1000.0));
-    int peakSample = findPeakSample(mUnit.soundFile, initialSample, initialSample + windowSize, true);
-    int periodStart = findNearestZeroCached(zeroCrossings, peakSample);
+    int peakSample = Sitrano::findPeakSample(mUnit.soundFile, initialSample, initialSample + windowSize, true);
+    int periodStart = Sitrano::findNearestCachedZero(zeroCrossings, peakSample);
     int margin = std::max<int>(4, std::ceil<int>((float)expectedPeriodLength * 0.02));
 
     // create the window template
@@ -92,7 +91,7 @@ std::vector<uint32_t> PeriodCutter::findPeriodSamples()
                 corrVals.push_back(corr);
             }
             else if (filePos > lastStart + expectedPeriodLength + 3) {
-                int nz = findNearestZeroCached(zeroCrossings, lastStart + expectedPeriodLength);
+                int nz = Sitrano::findNearestCachedZero(zeroCrossings, lastStart + expectedPeriodLength);
                 if (nz == forwardList.back()) { filePos++; continue; }
                 if (nz - forwardList.back() >= expectedPeriodLength - margin &&
                     nz - forwardList.back() <= expectedPeriodLength + margin)
@@ -117,7 +116,7 @@ std::vector<uint32_t> PeriodCutter::findPeriodSamples()
             bool isPeak = (corrVals[lc - 1] > corrVals[lc]) && (corrVals[lc - 1] > corrVals[lc - 2]);
 
             if (isPeak) {
-                int nz = findNearestZeroCached(zeroCrossings, filePos);
+                int nz = Sitrano::findNearestCachedZero(zeroCrossings, filePos);
                 if (nz == forwardList.back()) { filePos++; continue; }
                 int currentWindowSize = nz - forwardList.back();
                 if (currentWindowSize >= (expectedPeriodLength - margin))
@@ -174,7 +173,7 @@ std::vector<uint32_t> PeriodCutter::findPeriodSamples()
             bool isPeak = (corrVals[lc - 1] > corrVals[lc]) && (corrVals[lc - 1] > corrVals[lc - 2]);
 
             if (isPeak && aboveThreshold) {
-                int nz = findNearestZeroCached(zeroCrossings, filePos);
+                int nz = Sitrano::findNearestCachedZero(zeroCrossings, filePos);
                 int currentWindowSize = backwardList.front() - nz;
                 if (currentWindowSize <= expectedPeriodLength + margin &&
                     currentWindowSize >= expectedPeriodLength - margin)
@@ -205,191 +204,6 @@ std::vector<uint32_t> PeriodCutter::findPeriodSamples()
     periodZeroes.insert(periodZeroes.end(), ++forwardList.begin(), forwardList.end());
 
     return periodZeroes;
-}
-
-
-// --- Private Implementation Methods ---
-
-int PeriodCutter::findStartTransient()
-{
-    std::vector<float> rmsList;
-    bool transientFound = false;
-    int tInitSample = 0;
-
-    // Get parameters from config
-    int rmsSize = (mConfig.transientRmsSizeMs / 1000.f) * mSampleRate;
-    int rmsHopLength = std::max(1, (int)((float)rmsSize * mConfig.transientRmsHopRatio));
-    float factor = mConfig.transientFactor;
-    float threshold = mConfig.transientThreshold;
-
-    std::vector<float> rmsWindow(rmsSize); // This will hold the transient
-
-    for (int samp = mStartSample; samp < mUnit.soundFile.size(); samp += rmsHopLength)
-    {
-        float windowSum = 0.f;
-        std::vector<float> tempRms(rmsSize);
-
-        for (int rmsSamp = 0; rmsSamp < rmsSize && (rmsSamp + samp) < mUnit.soundFile.size(); rmsSamp++)
-        {
-            float x = mUnit.soundFile[samp + rmsSamp];
-            windowSum += (x * x);
-            tempRms[rmsSamp] = x;
-        }
-
-        float rms = std::sqrt(windowSum / rmsSize);
-        if (rmsList.size() < 2) {
-            rmsList.push_back(rms);
-            continue;
-        }
-
-        float rmsRatio = rmsList.back() == 0.f ? 1.f : rms / rmsList.back();
-        rmsList.push_back(rms);
-
-        if (rmsRatio > factor && rms > threshold) {
-            transientFound = true;
-            rmsWindow = tempRms; // Save the window that triggered
-            tInitSample = samp;
-            break;
-        }
-    }
-
-    if (!transientFound) {
-        // No transient, just find the first peak in a small window
-        int peakSample = findPeakSample(mUnit.soundFile, 0, std::min((int)mUnit.soundFile.size(), 4096), true);
-        return findPreviousZero(mUnit.soundFile, peakSample);
-    }
-
-    int rmsPeakSample = findPeak(rmsWindow);
-    int peakSample = tInitSample + rmsPeakSample;
-    return findPreviousZero(mUnit.soundFile, peakSample);
-}
-
-
-// --- Static Utility Functions (copied from your .cpp) ---
-// (These are unchanged, just marked static)
-
-int PeriodCutter::findPeak(const std::vector<float>& transientVector)
-{
-    if (transientVector.empty()) return 0;
-
-    std::vector<float> absTransient(transientVector.size());
-    for (int i = 0; i < absTransient.size(); i++)
-    {
-        absTransient[i] = std::abs(transientVector[i]);
-    }
-
-    int peakSample = std::distance(absTransient.begin(),
-        std::max_element(absTransient.begin(), absTransient.end()));
-    return peakSample;
-}
-
-int PeriodCutter::findPreviousZero(const std::vector<float>& signal, int startSample)
-{
-    int zeroSample = 0;
-    for (int i = startSample; i > 2 && i < signal.size(); i--)
-    {
-        bool zeroFound = false;
-        zeroFound = (signal[i] >= 0.0 && signal[i - 2] <= 0.0)
-            || (signal[i] <= 0.0 && signal[i - 2] >= 0.0);
-
-        if (zeroFound) {
-            if (std::abs(signal[i - 2]) <= std::abs(signal[i - 1]))
-                zeroSample = i - 2;
-            else
-                zeroSample = i - 1;
-            break;
-        }
-    }
-    return zeroSample;
-}
-
-int PeriodCutter::findNextZero(const std::vector<float>& signal, int startSample)
-{
-    int zeroSample = 0;
-    for (int i = startSample; i > 1 && i < signal.size(); i++)
-    {
-        bool zeroFound = false;
-        zeroFound = (signal[i] >= 0.0 && signal[i - 2] < 0.0)
-            || (signal[i] <= 0.0 && signal[i - 2] > 0.0);
-
-        if (zeroFound) {
-            if (std::abs(signal[i - 2]) <= std::abs(signal[i - 1]))
-                zeroSample = i - 2;
-            else
-                zeroSample = i - 1;
-            break;
-        }
-    }
-    return zeroSample;
-}
-
-int PeriodCutter::findNearestZero(const std::vector<float>& signal, int startSample)
-{
-    int prevZero = findPreviousZero(signal, startSample);
-    int nextZero = findNextZero(signal, startSample);
-
-    int distancePrev = std::abs(startSample - prevZero);
-    int distanceNext = std::abs(startSample - nextZero);
-
-    if (distancePrev < distanceNext)
-        return prevZero;
-    else
-        return nextZero;
-}
-
-int PeriodCutter::findPeakSample(const std::vector<float>& signal, int startSample, int endSample, bool useAbsolute)
-{
-    int peakSample = startSample;
-    float peakValue = -1.0e30f; // Use a very small number, not 0
-    if (useAbsolute) peakValue = 0.f;
-
-    int safeEndSample = std::min((int)signal.size(), endSample);
-    int safeStartSample = std::max(0, startSample);
-
-    for (int sample = safeStartSample; sample < safeEndSample; sample++)
-    {
-        if (useAbsolute) {
-            if (std::abs(signal[sample]) > peakValue) {
-                peakValue = std::abs(signal[sample]);
-                peakSample = sample;
-            }
-        }
-        else {
-            if (signal[sample] > peakValue) {
-                peakValue = signal[sample];
-                peakSample = sample;
-            }
-        }
-    }
-    return peakSample;
-}
-
-std::vector<int> PeriodCutter::findZeroCrossings(const std::vector<float>& signal, int initSample)
-{
-    std::vector<int> zeroCrossings;
-    for (int i = std::max(1, initSample); i < signal.size(); ++i)
-    {
-        if ((signal[i - 1] < 0 && signal[i] >= 0) ||
-            (signal[i - 1] > 0 && signal[i] <= 0))
-        {
-            // Find the sample closer to zero
-            zeroCrossings.push_back(std::abs(signal[i - 1]) < std::abs(signal[i]) ? (i - 1) : i);
-        }
-    }
-    return zeroCrossings;
-}
-
-int PeriodCutter::findNearestZeroCached(const std::vector<int>& zeroCrossings, int sample)
-{
-    if (zeroCrossings.empty()) return sample; // Safety check
-
-    auto it = std::lower_bound(zeroCrossings.begin(), zeroCrossings.end(), sample);
-    if (it == zeroCrossings.end()) return zeroCrossings.back();
-    if (it == zeroCrossings.begin()) return *it;
-
-    int after = *it;
-    int before = *(it - 1);
-    return (std::abs(after - sample) < std::abs(before - sample)) ? after : before;
 }
 
 float PeriodCutter::signalCorrelation(const std::vector<float>& window, const std::vector<float>& signal, int startSample)
