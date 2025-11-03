@@ -274,3 +274,121 @@ int Sitrano::findPeakIndexVector(const std::vector<float>& input)
 
     return outIndex;
 }
+
+int Sitrano::findPreviousZero(const std::vector<float>& signal, int startSmaple)
+{
+    int zeroSample = 0;
+    for (int i = startSmaple; i > 2 && i < signal.size(); i--)
+    {
+        bool zeroFound = false;
+        zeroFound = (signal[i] >= 0.0 && signal[i - 2] <= 0.0)
+            || (signal[i] <= 0.0 && signal[i - 2] >= 0.0);
+
+        if (zeroFound) {
+            if (std::abs(signal[i - 2]) <= std::abs(signal[i - 1]))
+                zeroSample = i - 2;
+            else
+                zeroSample = i - 1;
+            break;
+        }
+    }
+    return zeroSample;
+}
+
+int Sitrano::findNextZero(const std::vector<float>& signal, int startSample) {
+    int zeroSample = 0;
+    for (int i = startSample; i > 1 && i < signal.size(); i++)
+    {
+        bool zeroFound = false;
+        zeroFound = (signal[i] >= 0.0 && signal[i - 2] < 0.0)
+            || (signal[i] <= 0.0 && signal[i - 2] > 0.0);
+
+        if (zeroFound) {
+            if (std::abs(signal[i - 2]) <= std::abs(signal[i - 1]))
+                zeroSample = i - 2;
+            else
+                zeroSample = i - 1;
+            break;
+        }
+    }
+    return zeroSample;
+}
+
+int Sitrano::findNearestZero(const std::vector<float>& signal, int startSample) {
+    int prevZero = findPreviousZero(signal, startSample);
+    int nextZero = findNextZero(signal, startSample);
+
+    int distancePrev = std::abs(startSample - prevZero);
+    int distanceNext = std::abs(startSample - nextZero);
+
+    if (distancePrev < distanceNext)
+        return prevZero;
+    else
+        return nextZero;
+}
+
+int Sitrano::findPeakSample(const std::vector<float>& signal, int startSample, int endSample, bool useAbsolute) {
+    int peakSample = startSample;
+    float peakValue = -1.0e30f; // Use a very small number, not 0
+    if (useAbsolute) peakValue = 0.f;
+
+    int safeEndSample = std::min((int)signal.size(), endSample);
+    int safeStartSample = std::max(0, startSample);
+
+    for (int sample = safeStartSample; sample < safeEndSample; sample++)
+    {
+        if (useAbsolute) {
+            if (std::abs(signal[sample]) > peakValue) {
+                peakValue = std::abs(signal[sample]);
+                peakSample = sample;
+            }
+        }
+        else {
+            if (signal[sample] > peakValue) {
+                peakValue = signal[sample];
+                peakSample = sample;
+            }
+        }
+    }
+    return peakSample;
+}
+
+std::vector<int> Sitrano::findZeroCrossings(const std::vector<float>& signal, int startSample) {
+    std::vector<int> zeroCrossings;
+    for (int i = std::max(1, startSample); i < signal.size(); ++i)
+    {
+        if ((signal[i - 1] < 0 && signal[i] >= 0) ||
+            (signal[i - 1] > 0 && signal[i] <= 0))
+        {
+            // Find the sample closer to zero
+            zeroCrossings.push_back(std::abs(signal[i - 1]) < std::abs(signal[i]) ? (i - 1) : i);
+        }
+    }
+    return zeroCrossings;
+}
+
+int Sitrano::findNearestCachedZero(const std::vector<int>& zeroCrossings, int sample) {
+    if (zeroCrossings.empty()) return sample; // Safety check
+
+    auto it = std::lower_bound(zeroCrossings.begin(), zeroCrossings.end(), sample);
+    if (it == zeroCrossings.end()) return zeroCrossings.back();
+    if (it == zeroCrossings.begin()) return *it;
+
+    int after = *it;
+    int before = *(it - 1);
+    return (std::abs(after - sample) < std::abs(before - sample)) ? after : before;
+}
+
+int Sitrano::findAbsPeakIndex(const std::vector<float>& vector) {
+    if (vector.empty()) return 0;
+
+    std::vector<float> absTransient(vector.size());
+    for (int i = 0; i < absTransient.size(); i++)
+    {
+        absTransient[i] = std::abs(vector[i]);
+    }
+
+    int peakSample = std::distance(absTransient.begin(),
+        std::max_element(absTransient.begin(), absTransient.end()));
+    return peakSample;
+}

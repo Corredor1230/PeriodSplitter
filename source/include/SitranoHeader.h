@@ -26,6 +26,17 @@ namespace Sitrano
         std::vector<uint32_t> finalSamples;
     };
 
+    struct TransientSettings {
+        int tStartSample = 0;
+        bool useMs = false;
+        int rmsSampleSize = 128;
+        int rmsSampleHopLength = 64;
+        float transientRmsSizeMs = 1.0f;
+        float transientRmsHopRatio = 1.0f;
+        float transientFactor = 3.0f;
+        float transientThreshold = 0.1f;
+    };
+
     /** 
     * @brief This structure contains the main settings for the HarmonicTracker class
     * @param applyHanning: Defines whether a hanning window is applied to each FFT window.
@@ -70,12 +81,6 @@ namespace Sitrano
     };
 
     struct CorrelationSettings {
-        //Transient detection
-        float transientRmsSizeMs = 1.0f;
-        float transientRmsHopRatio = 1.0f;
-        float transientFactor = 3.0f;
-        float transientThreshold = 0.1f;
-
         //Period detection
         float periodStartOffsetMs = 50.0f;
         float correlationThreshold = 0.95f;
@@ -88,6 +93,7 @@ namespace Sitrano
         int startSample = 0;
         float tolerance = 100.f;
         PitchSettings pConfig;
+        TransientSettings tSettings;
         CorrelationSettings cSettings;
         OvertoneSettings oConfig;
         HarmonicSettings hConfig;
@@ -120,10 +126,20 @@ namespace Sitrano
 		double amp = 0.0;
 	};
 
+    struct Sample {
+        int index;
+        float value;
+    };
+
     struct BinFreq {
         int bin;
         float freq;
         float fBin;
+    };
+
+    struct SampleRange {
+        int initSample;
+        int endSample;
     };
 
     struct FreqUnit {
@@ -147,7 +163,7 @@ namespace Sitrano
 
 	//Larger structure containing all results of the analysis
 	struct Results {
-        int transientStart;
+        SampleRange tRange;
         std::vector<uint32_t> sampleList;
 		std::vector<Peak> topFreqs;
         float pitch;
@@ -213,9 +229,6 @@ namespace Sitrano
         if (std::abs(source - comp) < tolerance) result = true;
         return result;
     }
-    inline float freqRangeToBinRangeSize(float lowF, float highF, int n, float fs) {
-
-    }
 
     //Functions with a definition in .cpp file
     BinFreq findPeakWithinTolerance(float targetFreq, float tolerance, int n, float sr, void* out);
@@ -235,6 +248,13 @@ namespace Sitrano
         const std::string& pathSlow
     );
     int findPeakIndexVector(const std::vector<float>& input);
+    int findPreviousZero(const std::vector<float>& signal, int startSmaple);
+    int findNextZero(const std::vector<float>& signal, int startSample);
+    int findNearestZero(const std::vector<float>& signal, int startSample);
+    int findPeakSample(const std::vector<float>& signal, int startSample, int endSample, bool useAbsolute = true);
+    std::vector<int> findZeroCrossings(const std::vector<float>& signal, int startSample);
+    int findNearestCachedZero(const std::vector<int>& zeroCrossings, int sample);
+    int findAbsPeakIndex(const std::vector<float>& vector);
 
 
     //Template functions
