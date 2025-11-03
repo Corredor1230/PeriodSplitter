@@ -108,6 +108,8 @@ Sitrano::HarmonicResults HarmonicTracker::analyze()
 
                 for (int step = 0; step < frameStep; step++)
                 {
+                    if (fUnit.amp > 1.0)
+                        std::cout << "i: " << i << " , h: " << h << " , val: " << fUnit.amp << '\n';
                     hResults.amps[h - 1].push_back(fUnit.amp);
                     hResults.phases[h - 1].push_back(fUnit.pha);
                     hResults.freqs[h - 1].push_back(fUnit.bin.freq);
