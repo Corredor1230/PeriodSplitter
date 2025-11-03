@@ -99,13 +99,6 @@ Sitrano::HarmonicResults HarmonicTracker::analyze()
 
                 fUnit = Sitrano::findPeak(fUnit.bin, output, nfft, unit.sampleRate, binRange);
 
-                //float real = output[bin][0];
-                //float imag = output[bin][1];
-
-                //float mag = std::sqrt(real * real + imag * imag);
-                //float amp = Sitrano::mag_to_amp(mag, nfft);
-                //float phase = std::atan2(imag, real);  // radians, range [-?, ?]
-
                 for (int step = 0; step < frameStep; step++)
                 {
                     if (fUnit.amp > 1.0)
