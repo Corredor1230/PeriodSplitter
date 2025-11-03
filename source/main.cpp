@@ -112,11 +112,17 @@ int main()
     float minFreq       = 60.f;
     float maxFreq       = 1300.f;
 
-    //Correlation config
+    //Transient config
+    int tStartSample    = 0;
+    bool tUseMs         = false;
+    int rmsSampleSize   = 128;
+    int rmsHop          = rmsSampleSize / 2;
     float transientRms  = 1.0f; //Measured in milliseconds
     float rmsHopRatio   = 1.0f;
     float tFactor       = 3.0f; //How big of an increase between RMS windows is a transient
     float tThreshold    = 0.1f;
+
+    //Correlation config
     float periodOffset  = 50.0f; //How far after the transient should the analysis start
     float corrThreshold = 0.95f; //How similar should adjacent periods be
 
@@ -178,12 +184,19 @@ int main()
     };
 
     Sitrano::CorrelationSettings cSettings{
+        periodOffset,
+        corrThreshold
+    };
+
+    Sitrano::TransientSettings tSettings{
+        tStartSample,
+        tUseMs,
+        rmsSampleSize,
+        rmsHop,
         transientRms,
         rmsHopRatio,
         tFactor,
         tThreshold,
-        periodOffset,
-        corrThreshold
     };
 
     Sitrano::HarmonicSettings hSettings{
@@ -206,6 +219,7 @@ int main()
         startSample,
         tolerance,
         pSettings,
+        tSettings,
         cSettings,
         oSettings,
         hSettings,
