@@ -70,7 +70,7 @@ namespace Sitrano
         bool useCustomSignal = true;
         bool sumAmplitudes = true;
         int fftSize = 65536;
-        float ignoreThreshold = -60.f;
+        float overtoneThreshold = -60.f;
         bool setAbsoluteThreshold = true;
     };
     struct PitchSettings {
@@ -187,6 +187,20 @@ namespace Sitrano
         A /= hann_gain_rms();
         return A;
     } //Converts FFT magnitude to linear gain
+    /**
+    * @brief Converts linear amplitude to FFT magnitude for a non-DC/non-Nyquist bin.
+    *
+    * This is the inverse of the mag_to_amp function.
+    *
+    * @param A The linear amplitude of the sinusoid.
+    * @param N The FFT size.
+    * @return double The corresponding FFT magnitude bin value.
+    */
+    inline double amp_to_mag(double A, int N)
+    {
+        double mag = (A * (double)N) / 4.0;
+        return mag;
+    }
     inline float dbToAmp(float db)
     {
         float gain = std::pow<float>(10.0, db / 20.0);

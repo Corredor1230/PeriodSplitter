@@ -95,6 +95,10 @@ Sitrano::FreqUnit Sitrano::findPeak(Sitrano::BinFreq inTarget, void* fftwfOut,
     float delta = 0.5f * (log_km1 - log_kp1) / 
         (log_km1 - 2.0f * log_k + log_kp1);
 
+    if (delta > 1.0f || delta < -1.0f) {
+        delta = 0.0f; // Reset to no offset
+    }
+
     outBin.fBin = (float)target.bin + delta;
     outBin.freq = binToFreq(outBin.fBin, nfft, fs);
 
