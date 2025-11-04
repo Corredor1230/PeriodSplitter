@@ -1,4 +1,7 @@
-#To-do 11/03
+#To-do 11/04
+Batch processing is outputting .sihat files in build directory.
+
+#To-do 11/03 - DONE
 Harmonic analysis seems to be mostly working.
 Need to get rid of duplicate overtones.
 
