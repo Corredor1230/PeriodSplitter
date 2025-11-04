@@ -140,9 +140,9 @@ def synthesize(indices, fastData, slowData, sr=48000, filename="default", unique
 if __name__ == "__main__":
 
     instr = "EGuit6"
-    freq = "104"
+    freq = "82"
     dyn = "F"
-    flag = "plot" #"plot" or "synth"
+    flag = "synth" #"plot" or "synth"
 
     filename = instr + "_" + freq + "_" + dyn
     outname = "GEN_" + filename
