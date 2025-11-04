@@ -37,7 +37,7 @@ std::string openFileDialog() {
     return "";
 }
 
-std::vector<std::string> getFileListFromExtension(const std::string& inDirectory, const std::string& extension)
+Sitrano::DirAndFiles getFileListFromExtension(const std::string& inDirectory, const std::string& extension)
 {
     std::vector<std::string> filenames;
 
@@ -70,7 +70,7 @@ std::vector<std::string> getFileListFromExtension(const std::string& inDirectory
         std::cerr << "Error: " << e.what() << '\n';
     }
 
-    return filenames;
+    return Sitrano::DirAndFiles{ directory, filenames };
 }
 
 std::vector<float> getAudioFromFile(const std::string& filename, SF_INFO& sfInfo, float maxLength = 30.f)
@@ -97,7 +97,8 @@ std::vector<float> getAudioFromFile(const std::string& filename, SF_INFO& sfInfo
 int main()
 {
 
-    bool bulkProcess = true;
+    bool bulkProcess    = true;
+    std::string bulkDir = "media";
 
     //General settings
     int maxHarmonics    = 32;
@@ -141,76 +142,76 @@ int main()
     float ignoreThreshold   = -40.f;
     bool setAbsThreshold    = false;
 
-    std::vector<std::string> fileList = getFileListFromExtension("source", ".wav");
+    if (!bulkProcess)
+    {
+        std::string filename = openFileDialog();
 
-    std::string filename = openFileDialog();
+        SF_INFO sfInfo;
+        std::vector<float> delaced = getAudioFromFile(filename, sfInfo);
+        Sitrano::normalizeByMaxAbs(delaced);
 
-    SF_INFO sfInfo;
-    std::vector<float> delaced = getAudioFromFile(filename, sfInfo);
-    Sitrano::normalizeByMaxAbs(delaced);
+        //CSV creation
+        std::string csvName = Sitrano::getRawFilename(filename);
 
-    //CSV creation
-    std::string csvName = Sitrano::getRawFilename(filename);
+        Sitrano::AnalysisUnit unit{
+            delaced,
+            filename,
+            (float)sfInfo.samplerate
+        };
 
-    Sitrano::AnalysisUnit unit{ 
-        delaced, 
-        filename,
-        (float)sfInfo.samplerate
-    };
+        int overtoneStart = (int)((double)unit.soundFile.size() * 0.12);
+        Sitrano::Settings settings{
+            true,
+            true,
+            true,
+            true,
+            true,
+            true
+        };
 
-    int overtoneStart = (int)((double)unit.soundFile.size() * 0.12);
-    Sitrano::Settings settings{
-        true,
-        true,
-        true,
-        true,
-        true,
-        true
-    };
+        Sitrano::OvertoneSettings oSettings{
+            overtoneTolerance,
+            oTolerance,
+            postTransientStart,
+            overtoneFirstSample,
+            useCustomSignal,
+            sumAmplitudes,
+            oNfft,
+            ignoreThreshold,
+            setAbsThreshold
+        };
 
-    Sitrano::OvertoneSettings oSettings{
-        overtoneTolerance,
-        oTolerance,
-        postTransientStart,
-        overtoneFirstSample,
-        useCustomSignal,
-        sumAmplitudes,
-        oNfft,
-        ignoreThreshold,
-        setAbsThreshold
-    };
+        Sitrano::CorrelationSettings cSettings{
+            periodOffset,
+            corrThreshold
+        };
 
-    Sitrano::CorrelationSettings cSettings{
-        periodOffset,
-        corrThreshold
-    };
+        Sitrano::TransientSettings tSettings{
+            tStartSample,
+            tUseMs,
+            rmsSampleSize,
+            rmsHop,
+            transientRms,
+            rmsHopRatio,
+            tFactor,
+            tThreshold,
+            preAttack
+        };
 
-    Sitrano::TransientSettings tSettings{
-        tStartSample,
-        tUseMs,
-        rmsSampleSize,
-        rmsHop,
-        transientRms,
-        rmsHopRatio,
-        tFactor,
-        tThreshold,
-        preAttack
-    };
+        Sitrano::HarmonicSettings hSettings{
+            true,
+            w,
+            hTolerance
+        };
 
-    Sitrano::HarmonicSettings hSettings{
-        true, 
-        w, 
-        hTolerance
-    };
+        Sitrano::PitchSettings pSettings{
+            modeThreshold,
+            tInCents,
+            minFreq,
+            maxFreq
+        };
 
-    Sitrano::PitchSettings pSettings{
-        modeThreshold, 
-        tInCents, 
-        minFreq, 
-        maxFreq
-    };
-
-    Sitrano::AnalysisConfig config{
+        Sitrano::AnalysisConfig config{
             maxHarmonics,
             N,
             hopSize,
@@ -222,10 +223,8 @@ int main()
             oSettings,
             hSettings,
             verbose
-    };
+        };
 
-    if (!bulkProcess)
-    {
         Analyzer ana(config);
 
         //a.analyze(settings);
@@ -255,22 +254,101 @@ int main()
 
     else
     {
-        // --- Create the Analyzer ONCE, outside the loop ---
-        Analyzer ana(config);
-
         // --- Get the list of files to process ---
-        std::vector<std::string> fileList = getFileListFromExtension("source", ".wav");
+        Sitrano::DirAndFiles dnf = getFileListFromExtension(bulkDir, ".wav");
 
-        if (fileList.empty()) {
+        if (dnf.files.empty()) {
             std::cerr << "No .wav files found." << std::endl;
             return -1;
         }
 
-        std::cout << "Found " << fileList.size() << " files to process." << std::endl;
+        std::cout << "Found " << dnf.files.size() << " files to process." << std::endl;
 
         // --- This is your new batch processing loop ---
-        for (const std::string& filename : fileList)
+        for (const std::string& fn : dnf.files)
         {
+            SF_INFO sfInfo;
+            std::string filename = dnf.directory + "/" + fn;
+            std::vector<float> delaced = getAudioFromFile(filename, sfInfo);
+            Sitrano::normalizeByMaxAbs(delaced);
+
+            //CSV creation
+            std::string csvName = Sitrano::getRawFilename(filename);
+
+            Sitrano::AnalysisUnit unit{
+                delaced,
+                filename,
+                (float)sfInfo.samplerate
+            };
+
+            int overtoneStart = (int)((double)unit.soundFile.size() * 0.12);
+            Sitrano::Settings settings{
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+            };
+
+            Sitrano::OvertoneSettings oSettings{
+                overtoneTolerance,
+                oTolerance,
+                postTransientStart,
+                overtoneFirstSample,
+                useCustomSignal,
+                sumAmplitudes,
+                oNfft,
+                ignoreThreshold,
+                setAbsThreshold
+            };
+
+            Sitrano::CorrelationSettings cSettings{
+                periodOffset,
+                corrThreshold
+            };
+
+            Sitrano::TransientSettings tSettings{
+                tStartSample,
+                tUseMs,
+                rmsSampleSize,
+                rmsHop,
+                transientRms,
+                rmsHopRatio,
+                tFactor,
+                tThreshold,
+                preAttack
+            };
+
+            Sitrano::HarmonicSettings hSettings{
+                true,
+                w,
+                hTolerance
+            };
+
+            Sitrano::PitchSettings pSettings{
+                modeThreshold,
+                tInCents,
+                minFreq,
+                maxFreq
+            };
+
+            Sitrano::AnalysisConfig config{
+                maxHarmonics,
+                N,
+                hopSize,
+                startSample,
+                tolerance,
+                pSettings,
+                tSettings,
+                cSettings,
+                oSettings,
+                hSettings,
+                verbose
+            };
+
+            Analyzer ana(config);
+
             // Add a try-catch block for robust error handling
             try
             {
