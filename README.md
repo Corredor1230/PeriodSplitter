@@ -1,7 +1,7 @@
 # SIHAT: Sitrano-Inspired Harmonic Analysis Tool
 
 [![C++](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://isocpp.org/)
-[![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/YOUR_USERNAME/YOUR_REPO)
+[![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/Corredor1230/PeriodSplitter)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 SIHAT is a high-performance C++ library and command-line tool for in-depth analysis of musical audio. It specializes in deconstructing a sound into its constituent partials, tracking the time-varying amplitude and frequency of each one.
@@ -123,13 +123,17 @@ Currently, the analysis is configured, compiled, and run from the `main()` funct
 
 ## Output
 
-The program saves the analysis data to three binary files:
+The program saves the analysis data to one binary file with extension .sihat:
 
-* **`INDEX_FILENAME.bin`**: A `std::vector<int>` containing the sample index for the start of each analysis frame. The size of this vector defines the time dimension of the other files.
-* **`AMP_FILENAME.bin`**: A `std::vector<std::vector<float>>` (Harmonic x Time) containing the tracked amplitude for each partial in each frame.
-* **`FREQ_FILENAME.bin`**: A `std::vector<std::vector<float>>` (Harmonic x Time) containing the tracked frequency for each partial in each frame.
+* **`GEN_FILENAME.sihat`**: 
 
-These files can be loaded by other C++ applications or read in scripting languages like Python (using `numpy.fromfile`) for plotting and further modeling.
+1. A `std::vector<int>` containing the sample index for the start of each analysis frame. The size of this vector defines the time dimension of the other files.
+
+2. A `std::vector<std::vector<float>>` (Harmonic x Time) containing the tracked amplitude for each partial in each frame.
+
+3. A `std::vector<std::vector<float>>` (Harmonic x Time) containing the tracked frequency for each partial in each frame.
+
+This file can be loaded by other C++ applications or read in scripting languages like Python (using `numpy.fromfile`) for plotting and further modeling.
 
 ## License
 
