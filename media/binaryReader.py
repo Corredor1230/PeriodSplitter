@@ -230,9 +230,9 @@ def synthesize(indices, fastData, slowData, sr=48000, filepath="gen/output.wav")
 # =============================
 if __name__ == "__main__":
     inPrefix = "DATA_"
-    instr = "AGuit"
+    instr = "EGuit"
     string = "6"
-    freq = "82"
+    freq = "124"
     dyn = "F"
     inExt = ".sihat"
     outExt = ".wav"
@@ -241,7 +241,7 @@ if __name__ == "__main__":
     outPrefix = "GEN_"
     sampleRate = 96000
 
-    runMode = "synth"
+    runMode = "plot"
 
     fileName = instr + string + "_" + freq + "_" + dyn
     inName = inPrefix + fileName + inExt
@@ -250,6 +250,7 @@ if __name__ == "__main__":
     outPath = outputDir + outName
 
     if runMode == "synthesize_all":
+        inPath = inputDir
         outPath = outputDir
 
     parser = argparse.ArgumentParser(
