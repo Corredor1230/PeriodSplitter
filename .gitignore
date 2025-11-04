@@ -4,6 +4,10 @@ build/
 *.xlsx
 *.csv
 *.bin
+*.sihat
 media/*.txt
+media/sihat
+media/gen
+media/oldGen
 glad/
 fast-cpp-csv-parser/
