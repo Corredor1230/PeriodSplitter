@@ -37,7 +37,7 @@ Sitrano::Results Analyzer::analyze(
         float pitch = results.pitch;
         if (!pitch > mConfig.pConfig.minFreq) pitch = unit.sampleRate / provisionalHop;
 
-        PeriodCutter cutter{ unit, mConfig.cSettings, results.pitch, results.tRange.endSample };
+        PeriodCutter cutter{ unit, mConfig.cSettings, results.pitch, results.tRange };
         results.sampleList = cutter.findPeriodSamples();
     }
     else
