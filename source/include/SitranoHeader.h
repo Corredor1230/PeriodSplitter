@@ -35,6 +35,7 @@ namespace Sitrano
         float transientRmsHopRatio = 1.0f;
         float transientFactor = 3.0f;
         float transientThreshold = 0.1f;
+        int preAttack = 20; // number of samples before transient detection
     };
 
     /** 
