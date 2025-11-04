@@ -129,7 +129,7 @@ int main()
 
     //Overtone config
     bool overtoneTolerance  = true;
-    bool oTolerance         = 300.f;
+    bool oTolerance         = 200.f;
     bool postTransientStart = true;
     int overtoneFirstSample = 2000;
     bool useCustomSignal    = true;
