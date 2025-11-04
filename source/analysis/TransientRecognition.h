@@ -20,6 +20,7 @@ public:
 private:
 	int rmsSize;
 	int rmsHopLength;
+	int backwards;
 	float factor;
 	float threshold;
 	float sampleRate;
