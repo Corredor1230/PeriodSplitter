@@ -7,6 +7,7 @@
 #include<Windows.h>
 #include<commdlg.h>
 #include<filesystem>
+#include<shlobj.h>
 #include"dsp/FIRFilter.h"
 #include"gui/GUI.h"
 #include"support/Splitter.h"
@@ -35,6 +36,38 @@ std::string openFileDialog() {
         return std::string(ofn.lpstrFile);
     }
     return "";
+}
+
+/**
+ * Opens the Windows folder picker dialog.
+ * Returns the selected folder path, or an empty string if canceled.
+ */
+std::string openFolderDialog() {
+    CoInitialize(NULL); // Initialize COM
+
+    char szPath[MAX_PATH] = { 0 }; // Buffer to receive the folder path
+
+    BROWSEINFOA bi;
+    ZeroMemory(&bi, sizeof(bi));
+    bi.hwndOwner = NULL;
+    bi.lpszTitle = "Select a folder to save your .sihat files...";
+    bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
+
+    LPITEMIDLIST pidl = SHBrowseForFolderA(&bi);
+
+    std::string result = "";
+    if (pidl != NULL) {
+        // Convert the "PIDL" (a shell data structure) into a normal string path
+        if (SHGetPathFromIDListA(pidl, szPath)) {
+            result = std::string(szPath);
+        }
+
+        // Free the memory allocated by the shell
+        CoTaskMemFree(pidl);
+    }
+
+    CoUninitialize(); // Uninitialize COM
+    return result;
 }
 
 Sitrano::DirAndFiles getFileListFromExtension(const std::string& inDirectory, const std::string& extension)
@@ -98,7 +131,6 @@ int main()
 {
 
     bool bulkProcess    = true;
-    std::string bulkDir = "media";
 
     //General settings
     int maxHarmonics    = 32;
@@ -255,6 +287,8 @@ int main()
     else
     {
         // --- Get the list of files to process ---
+        std::string bulkDir = openFolderDialog();
+        std::string saveDir = openFolderDialog();
         Sitrano::DirAndFiles dnf = getFileListFromExtension(bulkDir, ".wav");
 
         if (dnf.files.empty()) {
@@ -391,7 +425,7 @@ int main()
 
                 // --- Save the output file ---
                 Sitrano::saveHarmonicDataSihat(r.hResults.finalSamples, r.hResults.amps,
-                    r.hResults.freqs, r.pitch, "sihat", "DATA_" + csvName, ".sihat");
+                    r.hResults.freqs, r.pitch, saveDir, "DATA_" + csvName, ".sihat");
 
                 std::cout << "--- Finished: " << filename << " ---" << std::endl;
             }
