@@ -95,21 +95,7 @@ std::string openFolderDialog() {
 Sitrano::DirAndFiles getFileListFromExtension(const std::string& inDirectory, const std::string& extension)
 {
     std::vector<std::string> filenames;
-
-    std::string directory;
-
-    if (inDirectory == "media")
-    {
-        directory = "C:/Users/usuario/Documents/Programming/CMake_Learning/PeriodicSplitter/media";
-    }
-    else if (inDirectory == "source")
-    {
-        directory = "C:/Users/usuario/Documents/Universidad/Tokyo_geijutsu_daigaku/2025_01/Master_Thesis/Media/Elec_Guitar/splitAudios";
-    }
-    else
-    {
-        directory = "C:/Users/usuario/Documents/Programming/CMake_Learning/PeriodicSplitter/media";
-    }
+    std::string directory = inDirectory;
 
     try {
         for (const auto& entry : fs::directory_iterator(directory)) {
@@ -151,7 +137,6 @@ std::vector<float> getAudioFromFile(const std::string& filename, SF_INFO& sfInfo
 
 int main()
 {
-
     bool bulkProcess    = true;
 
     //General settings
