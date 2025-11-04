@@ -73,7 +73,7 @@ std::vector<std::string> getFileListFromExtension(const std::string& inDirectory
     return filenames;
 }
 
-std::vector<float> getAudioFromFile(std::string& filename, SF_INFO& sfInfo, float maxLength = 30.f)
+std::vector<float> getAudioFromFile(const std::string& filename, SF_INFO& sfInfo, float maxLength = 30.f)
 {
     SNDFILE* file = sf_open(filename.c_str(), SFM_READ, &sfInfo);
     int maxNumSamples = sfInfo.samplerate * maxLength;
@@ -96,6 +96,9 @@ std::vector<float> getAudioFromFile(std::string& filename, SF_INFO& sfInfo, floa
 
 int main()
 {
+
+    bool bulkProcess = true;
+
     //General settings
     int maxHarmonics    = 32;
     int N               = 16384 * 2;
@@ -148,13 +151,6 @@ int main()
 
     //CSV creation
     std::string csvName = Sitrano::getRawFilename(filename);
-    Splitter theSplitter(sfInfo);
-
-    //theSplitter.writeCsvFile(periodStart, csvName + ".csv");
-
-    /*auto windows = theSplitter.loadCSV(csvName + ".csv", delaced.size());
-    WaveformViewer viewer(delaced, windows);
-    viewer.run();*/
 
     Sitrano::AnalysisUnit unit{ 
         delaced, 
@@ -215,52 +211,125 @@ int main()
     };
 
     Sitrano::AnalysisConfig config{
-        maxHarmonics,
-        N,
-        hopSize,
-        startSample,
-        tolerance,
-        pSettings,
-        tSettings,
-        cSettings,
-        oSettings,
-        hSettings,
-        verbose
+            maxHarmonics,
+            N,
+            hopSize,
+            startSample,
+            tolerance,
+            pSettings,
+            tSettings,
+            cSettings,
+            oSettings,
+            hSettings,
+            verbose
     };
 
-    Analyzer ana(config);
-
-    //a.analyze(settings);
-    Sitrano::Results r = ana.analyze(unit, settings);
-
-    std::vector<float> singleFreqs;
-
-    for (int i = 0; i < r.hResults.freqs.size(); i++) {
-        if (r.hResults.freqs[i].size() <= 0) continue;
-        singleFreqs.push_back(r.hResults.freqs[i][0]);
-    }
-
-    for (int i = 0; i < r.hResults.amps.size(); i++)
+    if (!bulkProcess)
     {
-        if (r.hResults.amps[i].size() <= 0) continue;
-        Sitrano::filterVector(r.hResults.amps[i], 4, true);
+        Analyzer ana(config);
+
+        //a.analyze(settings);
+        Sitrano::Results r = ana.analyze(unit, settings);
+
+        std::vector<float> singleFreqs;
+
+        for (int i = 0; i < r.hResults.freqs.size(); i++) {
+            if (r.hResults.freqs[i].size() <= 0) continue;
+            singleFreqs.push_back(r.hResults.freqs[i][0]);
+        }
+
+        for (int i = 0; i < r.hResults.amps.size(); i++)
+        {
+            if (r.hResults.amps[i].size() <= 0) continue;
+            Sitrano::filterVector(r.hResults.amps[i], 4, true);
+        }
+
+        for (int i = 0; i < r.hResults.freqs.size(); i++) {
+            if (r.hResults.freqs[i].size() <= 0) continue;
+            Sitrano::filterVector(r.hResults.freqs[i], 40, false);
+        }
+
+        Sitrano::saveHarmonicDataSihat(r.hResults.finalSamples, r.hResults.amps,
+            r.hResults.freqs, r.pitch, "sihat", "DATA_" + csvName, ".sihat");
     }
 
-    for (int i = 0; i < r.hResults.freqs.size(); i++) {
-        if (r.hResults.freqs[i].size() <= 0) continue;
-        Sitrano::filterVector(r.hResults.freqs[i], 40, false);
+    else
+    {
+        // --- Create the Analyzer ONCE, outside the loop ---
+        Analyzer ana(config);
+
+        // --- Get the list of files to process ---
+        std::vector<std::string> fileList = getFileListFromExtension("source", ".wav");
+
+        if (fileList.empty()) {
+            std::cerr << "No .wav files found." << std::endl;
+            return -1;
+        }
+
+        std::cout << "Found " << fileList.size() << " files to process." << std::endl;
+
+        // --- This is your new batch processing loop ---
+        for (const std::string& filename : fileList)
+        {
+            // Add a try-catch block for robust error handling
+            try
+            {
+                std::cout << "--- Processing: " << filename << " ---" << std::endl;
+
+                // --- All the per-file logic is moved inside the loop ---
+                SF_INFO sfInfo;
+                std::vector<float> delaced = getAudioFromFile(filename, sfInfo);
+                Sitrano::normalizeByMaxAbs(delaced);
+
+                //CSV creation
+                std::string csvName = Sitrano::getRawFilename(filename);
+
+                Sitrano::AnalysisUnit unit{
+                    delaced,
+                    filename,
+                    (float)sfInfo.samplerate
+                };
+
+                // Run analysis
+                Sitrano::Results r = ana.analyze(unit, settings);
+
+                // --- All your post-processing (filtering, etc.) ---
+                std::vector<float> singleFreqs;
+                for (int i = 0; i < r.hResults.freqs.size(); i++) {
+                    if (r.hResults.freqs[i].size() <= 0) continue;
+                    singleFreqs.push_back(r.hResults.freqs[i][0]);
+                }
+
+                for (int i = 0; i < r.hResults.amps.size(); i++)
+                {
+                    if (r.hResults.amps[i].size() <= 0) continue;
+                    Sitrano::filterVector(r.hResults.amps[i], 4, true);
+                }
+
+                for (int i = 0; i < r.hResults.freqs.size(); i++) {
+                    if (r.hResults.freqs[i].size() <= 0) continue;
+                    Sitrano::filterVector(r.hResults.freqs[i], 40, false);
+                }
+
+                // --- Save the output file ---
+                Sitrano::saveHarmonicDataSihat(r.hResults.finalSamples, r.hResults.amps,
+                    r.hResults.freqs, r.pitch, "sihat", "DATA_" + csvName, ".sihat");
+
+                std::cout << "--- Finished: " << filename << " ---" << std::endl;
+            }
+            catch (const std::exception& e)
+            {
+                // If one file fails, log it and continue to the next one
+                std::cerr << "!!! FAILED to process " << filename << ": " << e.what() << std::endl;
+            }
+            catch (...)
+            {
+                std::cerr << "!!! FAILED to process " << filename << ": Unknown error" << std::endl;
+            }
+        }
+
+        std::cout << "Batch processing complete." << std::endl;
     }
-
-    //theSplitter.writeCsvFile(r.amps, "AMP" + csvName + ".csv", singleFreqs, r.sampleList);
-    //theSplitter.writeCsvFile(phases, "PHA" + csvName + ".csv", singleFreqs);
-    /*Sitrano::saveHarmonicData(r.hResults.finalSamples, r.hResults.amps, r.hResults.freqs, r.pitch,
-        "INDEX" + csvName + ".bin",
-        "AMP" + csvName + ".bin", 
-        "FREQ" + csvName + ".bin" 
-        );*/
-
-    Sitrano::saveHarmonicDataSihat(r.hResults.finalSamples, r.hResults.amps,
-        r.hResults.freqs, r.pitch, "sihat", "DATA_" + csvName, ".sihat");
 
 	return 0;
 }
