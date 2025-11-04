@@ -125,7 +125,7 @@ int main()
 
     //Correlation config
     float periodOffset  = 50.0f; //How far after the transient should the analysis start
-    float corrThreshold = 0.95f; //How similar should adjacent periods be
+    float corrThreshold = 0.75f; //How similar should adjacent periods be
 
     //Overtone config
     bool overtoneTolerance  = true;
