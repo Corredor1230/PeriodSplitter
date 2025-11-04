@@ -2,7 +2,7 @@
 
 [![C++](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://isocpp.org/)
 [![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/Corredor1230/PeriodSplitter)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 SIHAT is a high-performance C++ library and command-line tool for in-depth analysis of musical audio. It specializes in deconstructing a sound into its constituent partials, tracking the time-varying amplitude and frequency of each one.
 
