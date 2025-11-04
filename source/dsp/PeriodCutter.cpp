@@ -169,7 +169,7 @@ std::vector<uint32_t> PeriodCutter::findPeriodSamples()
             }
             int lc = corrVals.size() - 1;
 
-            bool aboveThreshold = (corrVals[lc] > mConfig.correlationThreshold);
+            bool aboveThreshold = (corrVals[lc - 1] > mConfig.correlationThreshold);
             bool isPeak = (corrVals[lc - 1] > corrVals[lc]) && (corrVals[lc - 1] > corrVals[lc - 2]);
 
             if (isPeak && aboveThreshold) {
