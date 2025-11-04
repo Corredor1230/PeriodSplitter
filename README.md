@@ -6,13 +6,16 @@
 
 SIHAT is a high-performance C++ library and command-line tool for in-depth analysis of musical audio. It specializes in deconstructing a sound into its constituent partials, tracking the time-varying amplitude and frequency of each one.
 
-This tool is ideal for academic research in musical acoustics, development of synthesis models (e.g., spectral or physical modeling), or any application requiring detailed, time-varying harmonic data.
+This tool is ideal for academic research in musical acoustics, development of synthesis models (e.g., spectral or physical modeling), or any application requiring detailed, time-varying harmonic data. 
+
+It can output highly detailed and low-dimensional data while retaining the distinctive harmonic features of single-note audio samples.
 
 ## Features
 
 * **Pitch Detection:** Robust fundamental frequency ($f_0$) estimation.
-* **Period Segmentation:** Intelligently segments the audio by pitch periods, with transient detection to find stable, periodic sections.
-* **Inharmonic Overtone Analysis:** Identifies the most prominent partials in the signal, which are not assumed to be perfectly harmonic.
+* **Transient Detection:** Detects the closest zero-crossings surrounding the initial burst of energy of the signal: the transient.
+* **Period Segmentation:** Intelligently segments the audio by pitch periods from as close to the initial transient as possible to the point where all overtones' amplitudes fall below the specified threshold.
+* **Overtone Analysis:** Identifies the most representative partials in the signal using a long FFT analysis.
 * **Harmonic Tracking:** Tracks the precise frequency and amplitude of each partial over the entire duration of the audio file.
 * **Highly Configurable:** Provides detailed control over every stage of the analysis pipeline.
 * **Binary Output:** Saves analysis data in efficient binary formats for easy loading into other environments (e.g., Python, MATLAB, or back into C++).
@@ -21,16 +24,17 @@ This tool is ideal for academic research in musical acoustics, development of sy
 
 ## Analysis Pipeline
 
-The `Analyzer` class processes an audio file in a sequential, multi-stage pipeline. Each stage's output feeds into the next, allowing for a highly detailed and accurate analysis.
+The `Analyzer` class processes an audio file in a sequential, multi-stage pipeline. Each stage's output feeds into the next, allowing for a highly detailed and accurate analysis. Steps can also be turned off in which case their results will be replaced by default behaviors. Although this will yield less-detailed results, it will speed up performance significantly. 
 
 1.  **Pitch Analysis (`PitchFinder`)**
     * The `PitchFinder` first analyzes the signal to determine a single, representative fundamental frequency ($f_0$) for the entire file.
     * This $f_0$ is used to guide the subsequent period and harmonic analysis stages.
 
 2.  **Period Analysis (`PeriodCutter`)**
-    * Instead of using a standard, fixed-size STFT, Sitrano segments the audio based on pitch periods.
+    * Instead of using a standard, fixed-size STFT, SIHAT segments the audio based on pitch periods.
     * It uses the `CorrelationSettings` (e.g., `transientRms`, `tFactor`) to detect and isolate transients, focusing the analysis on the stable, periodic portions of the sound.
     * The output is a list of sample indices (`sampleList`) marking the beginning of each valid analysis frame.
+    * Standard FFT analysis is also possible using a different FFT window strategy.
 
 3.  **Overtone Analysis (`OvertoneFinder`)**
     * This stage determines *what* to track. It analyzes an initial segment of the audio (defined by `overtoneStart`) to identify the most prominent overtones (partials).
@@ -52,13 +56,14 @@ This project is built using CMake.
 * [**CMake**](https://cmake.org/) (version 3.15 or higher)
 * [**libsndfile**](http://www.mega-nerd.com/libsndfile/): For loading audio files.
 * [**FFTW3**](https://www.fftw.org/): For high-performance Fast Fourier Transforms.
+* [**PYin**](https://code.soundsoftware.ac.uk/projects/pyin): For pitch recognition.
 
 ### Build Steps
 
 1.  Clone the repository:
     ```bash
     git clone [https://github.com/Corredor1230/PeriodSplitter.git](https://github.com/Corredor1230/PeriodSplitter.git)
-    cd Sitrano
+    cd SIHAT
     ```
 
 2.  Create and navigate to the build directory:
