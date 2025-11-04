@@ -128,7 +128,7 @@ int main()
 
     //Overtone config
     bool overtoneTolerance  = true;
-    bool oTolerance         = 200.f;
+    bool oTolerance         = 300.f;
     bool postTransientStart = true;
     int overtoneFirstSample = 2000;
     bool useCustomSignal    = true;
@@ -251,11 +251,14 @@ int main()
 
     //theSplitter.writeCsvFile(r.amps, "AMP" + csvName + ".csv", singleFreqs, r.sampleList);
     //theSplitter.writeCsvFile(phases, "PHA" + csvName + ".csv", singleFreqs);
-    Sitrano::saveHarmonicData(r.hResults.finalSamples, r.hResults.amps, r.hResults.freqs, r.pitch,
+    /*Sitrano::saveHarmonicData(r.hResults.finalSamples, r.hResults.amps, r.hResults.freqs, r.pitch,
         "INDEX" + csvName + ".bin",
         "AMP" + csvName + ".bin", 
         "FREQ" + csvName + ".bin" 
-        );
+        );*/
+
+    Sitrano::saveHarmonicDataSihat(r.hResults.finalSamples, r.hResults.amps,
+        r.hResults.freqs, r.pitch, "sihat", "DATA_" + csvName, ".sihat");
 
 	return 0;
 }
