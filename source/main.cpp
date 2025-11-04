@@ -121,6 +121,7 @@ int main()
     float rmsHopRatio   = 1.0f;
     float tFactor       = 3.0f; //How big of an increase between RMS windows is a transient
     float tThreshold    = 0.1f;
+    int preAttack       = 20;
 
     //Correlation config
     float periodOffset  = 50.0f; //How far after the transient should the analysis start
@@ -197,6 +198,7 @@ int main()
         rmsHopRatio,
         tFactor,
         tThreshold,
+        preAttack
     };
 
     Sitrano::HarmonicSettings hSettings{
