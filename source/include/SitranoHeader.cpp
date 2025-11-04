@@ -265,6 +265,94 @@ void Sitrano::saveHarmonicData(
     }
 }
 
+void Sitrano::saveHarmonicDataSihat(
+    const std::vector<uint32_t>& indices,
+    const std::vector<std::vector<float>>& fastData,
+    const std::vector<std::vector<float>>& slowData,
+    float fundamentalFreq,
+    const std::string& outputDirectory,
+    const std::string& baseFilename,
+    const std::string& extension
+) {
+    try {
+        std::filesystem::create_directories(outputDirectory);
+
+        std::filesystem::path fullPath(outputDirectory);
+        fullPath /= baseFilename;
+        fullPath.replace_extension(extension);
+
+        // write all three data blocks to this one file.
+        std::ofstream f(fullPath, std::ios::binary);
+        if (!f) {
+            throw std::runtime_error("Failed to open file for writing: " + fullPath.string());
+        }
+
+        // Block 1: Write indices
+        {
+            uint32_t n = static_cast<uint32_t>(indices.size());
+            f.write(reinterpret_cast<const char*>(&n), sizeof(uint32_t));
+            f.write(reinterpret_cast<const char*>(indices.data()), n * sizeof(uint32_t));
+        }
+
+        // Block 2: Write fast amp data
+        {
+            uint32_t numHarmonics = static_cast<uint32_t>(fastData.size());
+            f.write(reinterpret_cast<const char*>(&numHarmonics), sizeof(uint32_t));
+            for (const auto& harmonic : fastData) {
+                uint32_t len = static_cast<uint32_t>(harmonic.size());
+                f.write(reinterpret_cast<const char*>(&len), sizeof(uint32_t));
+                f.write(reinterpret_cast<const char*>(harmonic.data()), len * sizeof(float));
+            }
+        }
+
+        // Block 3: Write slow frequency data
+        {
+            uint32_t numHarmonics = static_cast<uint32_t>(slowData.size());
+            f.write(reinterpret_cast<const char*>(&numHarmonics), sizeof(uint32_t));
+
+            for (const auto& freqVec : slowData) {
+                std::vector<ChangePoint> cps;
+
+                if (!freqVec.empty() && !indices.empty()) {
+                    float prev = freqVec.front();
+                    cps.push_back({ indices.front(), prev, prev / fundamentalFreq });
+
+                    for (size_t i = 1; i < freqVec.size() && i < indices.size(); ++i) {
+                        if (std::fabs(freqVec[i] - prev) > 1e-6f) { // detect change
+                            cps.push_back({ indices[i], freqVec[i], freqVec[i] / fundamentalFreq });
+                            prev = freqVec[i];
+                        }
+                    }
+                }
+
+                uint32_t len = static_cast<uint32_t>(cps.size());
+                f.write(reinterpret_cast<const char*>(&len), sizeof(uint32_t));
+
+                // This is safe ONLY if ChangePoint is a POD (Plain Old Data) struct
+                // with no pointers, virtual functions, etc., which it is here.
+                if (len > 0) {
+                    f.write(reinterpret_cast<const char*>(cps.data()), len * sizeof(ChangePoint));
+                }
+
+                /*
+                // Original, safer, but slightly slower loop-based write:
+                for (const auto& cp : cps) {
+                    f.write(reinterpret_cast<const char*>(&cp.index), sizeof(uint32_t));
+                    f.write(reinterpret_cast<const char*>(&cp.value), sizeof(float));
+                    f.write(reinterpret_cast<const char*>(&cp.ratio), sizeof(float));
+                }
+                */
+            }
+        }
+
+        std::cout << "Successfully saved data to: " << fullPath.string() << std::endl;
+
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Error saving harmonic data: " << e.what() << std::endl;
+    }
+}
+
 int Sitrano::findPeakIndexVector(const std::vector<float>& input)
 {
     int outIndex = 0;

@@ -261,6 +261,15 @@ namespace Sitrano
         const std::string& pathFast,
         const std::string& pathSlow
     );
+    void saveHarmonicDataSihat(
+        const std::vector<uint32_t>& indices,
+        const std::vector<std::vector<float>>& amp,
+        const std::vector<std::vector<float>>& freq,
+        float f0,
+        const std::string& outputDirectory,
+        const std::string& baseFilename,
+        const std::string& extension
+    );
     int findPeakIndexVector(const std::vector<float>& input);
     int findPreviousZero(const std::vector<float>& signal, int startSmaple);
     int findNextZero(const std::vector<float>& signal, int startSample);
