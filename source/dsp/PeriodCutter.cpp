@@ -14,12 +14,13 @@
 
 PeriodCutter::PeriodCutter(const Sitrano::AnalysisUnit& unit,
     const Sitrano::CorrelationSettings& config,
-    float pitch, int start) :
+    float pitch, const Sitrano::SampleRange& transient) :
     mUnit(unit),
     mConfig(config),
     mPitch(pitch),
-    startSample(start),
-    mSampleRate(unit.sampleRate)
+    startSample(transient.endSample),
+    mSampleRate(unit.sampleRate),
+    tStart(transient.initSample)
 {}
 
 // This is the main public function that does all the work.
@@ -144,7 +145,7 @@ std::vector<uint32_t> PeriodCutter::findPeriodSamples()
         int lastStart = filePos;
         float backSquareA = squareA; // Use the initial squareA
 
-        while (filePos > (startSample - windowSize / 2)) {
+        while (filePos > tStart) {
             if (first) {
                 first = false;
                 lastStart = filePos;

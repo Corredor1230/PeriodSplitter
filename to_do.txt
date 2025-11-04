@@ -1,4 +1,7 @@
 #To-do 11/04
+Vector error out of range.
+
+#To-do 11/04 - DONE
 Batch processing is outputting .sihat files in build directory.
 
 #To-do 11/03 - DONE

@@ -15,7 +15,7 @@ public:
      */
     PeriodCutter(const Sitrano::AnalysisUnit& unit,
         const Sitrano::CorrelationSettings& config,
-        float pitch, int start);
+        float pitch, const Sitrano::SampleRange& transient);
 
     ~PeriodCutter() = default;
 
@@ -33,6 +33,7 @@ private:
     const int startSample;
     const float mPitch;
     const float mSampleRate;
+    const int tStart;
 
     // --- Private Implementation Methods ---
 
