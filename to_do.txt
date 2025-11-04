@@ -1,4 +1,7 @@
 #To-do 11/04
+Start noise research and development.
+
+#To-do 11/04 - DONE (?)
 Vector error out of range.
 
 #To-do 11/04 - DONE
