@@ -9,7 +9,7 @@ Transient::Transient(
 	aud(unit.soundFile),
     factor(conf.transientFactor),
     threshold(conf.transientThreshold),
-    backwards(conf.sampleBackwards)
+    preAttack(conf.preAttack)
 {
     if (!conf.useMs)
     {
@@ -117,7 +117,7 @@ Sitrano::SampleRange Transient::findStartTransient()
     }
 
     int prevZero = Sitrano::findPreviousZero(aud, peakSample);
-    int offset = prevZero - backwards;
+    int offset = prevZero - preAttack;
 
     range.initSample = Sitrano::findNearestZero(aud, offset);
     range.endSample = Sitrano::findNextZero(aud, peakSample);
