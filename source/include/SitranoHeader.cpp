@@ -360,7 +360,11 @@ int Sitrano::findPeakIndexVector(const std::vector<float>& input)
 
     for (int i = 0; i < input.size(); i++)
     {
-        if (input[i] > maxVal) outIndex = i;
+        if (input[i] > maxVal)
+        {
+            maxVal = input[i];
+            outIndex = i;
+        }
         else continue;
     }
 
