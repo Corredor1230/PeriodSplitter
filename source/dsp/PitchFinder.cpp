@@ -15,11 +15,10 @@ PitchFinder::PitchFinder(const Sitrano::AnalysisUnit& u,
     const Sitrano::AnalysisConfig& config) :
     unit(u),
     mConfig(config),
-    mPitchDetector(std::make_unique<PyinCpp>(u.sampleRate))
+    mPitchDetector(std::make_unique<PyinCpp>(u.sampleRate, mConfig.nfft, mConfig.nfft / 2))
 {
     // The mPitchDetector is now created *once* and stored.
     tolerance = mConfig.tolerance;
-
 }
 
 // 3. The destructor is defined here, where PyinCpp is a complete type.
