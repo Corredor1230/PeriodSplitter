@@ -250,7 +250,7 @@ namespace Sitrano
     FreqUnit findPeak(BinFreq target, void* fftwfOut, int nfft, float fs, int binRange);
     void filterVector(std::vector<float>& input, int filterSize, bool zeroPad);
     void normalizeByMaxAbs(std::vector<float>& vec);
-    std::string getRawFilename(std::string& filename);
+    std::string getRawFilename(const std::string& filename);
     void applyWindow(std::vector<float>& frame);
     float getPitchFromFilename(const std::string& filename);
     void saveHarmonicData(

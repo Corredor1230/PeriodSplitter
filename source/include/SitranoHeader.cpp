@@ -170,7 +170,7 @@ void Sitrano::normalizeByMaxAbs(std::vector<float>& vec)
     }
 }
 
-std::string Sitrano::getRawFilename(std::string& filename)
+std::string Sitrano::getRawFilename(const std::string& filename)
 {
     std::string rawFilename;
     std::filesystem::path path = filename;
