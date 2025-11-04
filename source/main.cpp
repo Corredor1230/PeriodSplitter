@@ -39,35 +39,57 @@ std::string openFileDialog() {
 }
 
 /**
- * Opens the Windows folder picker dialog.
+ * Opens the Windows folder picker dialog (the same as the file picker).
  * Returns the selected folder path, or an empty string if canceled.
  */
 std::string openFolderDialog() {
+    std::string folderPath = "";
     CoInitialize(NULL); // Initialize COM
 
-    char szPath[MAX_PATH] = { 0 }; // Buffer to receive the folder path
+    IFileOpenDialog* pFileOpen;
+    HRESULT hr = CoCreateInstance(__uuidof(FileOpenDialog), NULL, CLSCTX_ALL,
+        IID_IFileOpenDialog, reinterpret_cast<void**>(&pFileOpen));
 
-    BROWSEINFOA bi;
-    ZeroMemory(&bi, sizeof(bi));
-    bi.hwndOwner = NULL;
-    bi.lpszTitle = "Select a folder to save your .sihat files...";
-    bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
-
-    LPITEMIDLIST pidl = SHBrowseForFolderA(&bi);
-
-    std::string result = "";
-    if (pidl != NULL) {
-        // Convert the "PIDL" (a shell data structure) into a normal string path
-        if (SHGetPathFromIDListA(pidl, szPath)) {
-            result = std::string(szPath);
+    if (SUCCEEDED(hr)) {
+        // --- This is the magic line ---
+        // Get the current options and add the FOS_PICKFOLDERS flag
+        DWORD dwOptions;
+        hr = pFileOpen->GetOptions(&dwOptions);
+        if (SUCCEEDED(hr)) {
+            hr = pFileOpen->SetOptions(dwOptions | FOS_PICKFOLDERS);
         }
 
-        // Free the memory allocated by the shell
-        CoTaskMemFree(pidl);
-    }
+        // Show the dialog
+        hr = pFileOpen->Show(NULL);
 
+        // Get the result
+        if (SUCCEEDED(hr)) {
+            IShellItem* pItem;
+            hr = pFileOpen->GetResult(&pItem);
+            if (SUCCEEDED(hr)) {
+                PWSTR pszFilePath;
+                // Get the path in a normal string format
+                hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+
+                if (SUCCEEDED(hr)) {
+                    // Convert the wide-char string (PWSTR) to a std::string
+                    // We need to use WideCharToMultiByte for conversion
+                    int bufferSize = WideCharToMultiByte(CP_UTF8, 0, pszFilePath, -1, NULL, 0, NULL, NULL);
+                    if (bufferSize > 0) {
+                        std::string mbPath(bufferSize, 0);
+                        WideCharToMultiByte(CP_UTF8, 0, pszFilePath, -1, &mbPath[0], bufferSize, NULL, NULL);
+                        mbPath.resize(bufferSize - 1); // Remove the null terminator
+                        folderPath = mbPath;
+                    }
+                    CoTaskMemFree(pszFilePath); // Free the string
+                }
+                pItem->Release(); // Release the item
+            }
+        }
+        pFileOpen->Release(); // Release the dialog
+    }
     CoUninitialize(); // Uninitialize COM
-    return result;
+    return folderPath;
 }
 
 Sitrano::DirAndFiles getFileListFromExtension(const std::string& inDirectory, const std::string& extension)
