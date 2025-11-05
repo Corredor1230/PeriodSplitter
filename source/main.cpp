@@ -137,57 +137,65 @@ std::vector<float> getAudioFromFile(const std::string& filename, SF_INFO& sfInfo
 
 int main()
 {
-    bool bulkProcess    = true;
+    bool bulkProcess = true;
+
+    //Analysis
+    bool pitchAnalysis = true;
+    bool transientSeparation = true;
+    bool periodAnalysis = true;
+    bool overtoneAnalysis = true;
+    bool harmonicAnalysis = true;
+    bool noiseAnalysis = true;
 
     //General settings
-    int maxHarmonics    = 32;
-    int N               = 16384 * 2;
-    int hopSize         = 1024;
-    int startSample     = 0;
-    float tolerance     = 100.0;
-    float hTolerance    = 25.0;
-    bool verbose        = true;
-    Sitrano::WindowStyle w = Sitrano::WindowStyle::audioChunk;
+    int maxHarmonics = 32;
+    int N = 16384 * 2;
+    int hopSize = 1024;
+    int startSample = 0;
+    float tolerance = 100.0;
+    float hTolerance = 25.0;
+    bool verbose = true;
+    Sitrano::WindowStyle w = Sitrano::WindowStyle::periodLoop;
 
     // Pitch config
     float modeThreshold = 3.0; //This is for finding the mode of the pitch array
-    float tInCents      = 50.f; //Tolerance to compare found pitch with metadata
-    float minFreq       = 60.f;
-    float maxFreq       = 1300.f;
+    float tInCents = 50.f; //Tolerance to compare found pitch with metadata
+    float minFreq = 60.f;
+    float maxFreq = 1300.f;
 
     //Transient config
-    int tStartSample    = 0;
-    bool tUseMs         = false;
-    int rmsSampleSize   = 128;
-    int rmsHop          = rmsSampleSize / 2;
-    float transientRms  = 1.0f; //Measured in milliseconds
-    float rmsHopRatio   = 1.0f;
-    float tFactor       = 3.0f; //How big of an increase between RMS windows is a transient
-    float tThreshold    = 0.1f;
-    int preAttack       = 20;
+    int tStartSample = 0;
+    bool tUseMs = false;
+    int rmsSampleSize = 128;
+    int rmsHop = rmsSampleSize / 2;
+    float transientRms = 1.0f; //Measured in milliseconds
+    float rmsHopRatio = 1.0f;
+    float tFactor = 3.0f; //How big of an increase between RMS windows is a transient
+    float tThreshold = 0.1f;
+    int preAttack = 20;
 
     //Correlation config
-    float periodOffset  = 50.0f; //How far after the transient should the analysis start
+    float periodOffset = 50.0f; //How far after the transient should the analysis start
     float corrThreshold = 0.75f; //How similar should adjacent periods be
 
     //Overtone config
-    bool overtoneTolerance  = true;
-    bool oTolerance         = 200.f;
+    bool overtoneTolerance = true;
+    bool oTolerance = 200.f;
     bool postTransientStart = true;
     int overtoneFirstSample = 2000;
-    bool useCustomSignal    = true;
-    bool sumAmplitudes      = true;
-    int oNfft               = N * 2;
-    float ignoreThreshold   = -40.f;
-    bool setAbsThreshold    = false;
+    bool useCustomSignal = true;
+    bool sumAmplitudes = true;
+    int oNfft = N * 2;
+    float ignoreThreshold = -40.f;
+    bool setAbsThreshold = false;
 
     Sitrano::Settings settings{
-        true,
-        true,
-        true,
-        true,
-        true,
-        true
+        pitchAnalysis,
+        transientSeparation,
+        periodAnalysis,
+        overtoneAnalysis,
+        harmonicAnalysis,
+        noiseAnalysis
     };
 
     Sitrano::OvertoneSettings oSettings{
@@ -268,13 +276,6 @@ int main()
         //a.analyze(settings);
         Sitrano::Results r = ana.analyze(unit, settings);
 
-        std::vector<float> singleFreqs;
-
-        for (int i = 0; i < r.hResults.freqs.size(); i++) {
-            if (r.hResults.freqs[i].size() <= 0) continue;
-            singleFreqs.push_back(r.hResults.freqs[i][0]);
-        }
-
         for (int i = 0; i < r.hResults.amps.size(); i++)
         {
             if (r.hResults.amps[i].size() <= 0) continue;
@@ -345,13 +346,6 @@ int main()
                 // Run analysis
                 Sitrano::Results r = ana.analyze(unit, settings);
 
-                // --- All your post-processing (filtering, etc.) ---
-                std::vector<float> singleFreqs;
-                for (int i = 0; i < r.hResults.freqs.size(); i++) {
-                    if (r.hResults.freqs[i].size() <= 0) continue;
-                    singleFreqs.push_back(r.hResults.freqs[i][0]);
-                }
-
                 for (int i = 0; i < r.hResults.amps.size(); i++)
                 {
                     if (r.hResults.amps[i].size() <= 0) continue;
@@ -383,5 +377,5 @@ int main()
         std::cout << "Batch processing complete." << std::endl;
     }
 
-	return 0;
+    return 0;
 }
