@@ -181,6 +181,71 @@ int main()
     float ignoreThreshold   = -40.f;
     bool setAbsThreshold    = false;
 
+    Sitrano::Settings settings{
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+    };
+
+    Sitrano::OvertoneSettings oSettings{
+        overtoneTolerance,
+        oTolerance,
+        postTransientStart,
+        overtoneFirstSample,
+        useCustomSignal,
+        sumAmplitudes,
+        oNfft,
+        ignoreThreshold,
+        setAbsThreshold
+    };
+
+    Sitrano::CorrelationSettings cSettings{
+        periodOffset,
+        corrThreshold
+    };
+
+    Sitrano::TransientSettings tSettings{
+        tStartSample,
+        tUseMs,
+        rmsSampleSize,
+        rmsHop,
+        transientRms,
+        rmsHopRatio,
+        tFactor,
+        tThreshold,
+        preAttack
+    };
+
+    Sitrano::HarmonicSettings hSettings{
+        true,
+        w,
+        hTolerance
+    };
+
+    Sitrano::PitchSettings pSettings{
+        modeThreshold,
+        tInCents,
+        minFreq,
+        maxFreq
+    };
+
+    Sitrano::AnalysisConfig config{
+        maxHarmonics,
+        N,
+        hopSize,
+        startSample,
+        tolerance,
+        pSettings,
+        tSettings,
+        cSettings,
+        oSettings,
+        hSettings,
+        verbose
+    };
+
     if (!bulkProcess)
     {
         std::string filename = openFileDialog();
@@ -196,72 +261,6 @@ int main()
             delaced,
             filename,
             (float)sfInfo.samplerate
-        };
-
-        int overtoneStart = (int)((double)unit.soundFile.size() * 0.12);
-        Sitrano::Settings settings{
-            true,
-            true,
-            true,
-            true,
-            true,
-            true
-        };
-
-        Sitrano::OvertoneSettings oSettings{
-            overtoneTolerance,
-            oTolerance,
-            postTransientStart,
-            overtoneFirstSample,
-            useCustomSignal,
-            sumAmplitudes,
-            oNfft,
-            ignoreThreshold,
-            setAbsThreshold
-        };
-
-        Sitrano::CorrelationSettings cSettings{
-            periodOffset,
-            corrThreshold
-        };
-
-        Sitrano::TransientSettings tSettings{
-            tStartSample,
-            tUseMs,
-            rmsSampleSize,
-            rmsHop,
-            transientRms,
-            rmsHopRatio,
-            tFactor,
-            tThreshold,
-            preAttack
-        };
-
-        Sitrano::HarmonicSettings hSettings{
-            true,
-            w,
-            hTolerance
-        };
-
-        Sitrano::PitchSettings pSettings{
-            modeThreshold,
-            tInCents,
-            minFreq,
-            maxFreq
-        };
-
-        Sitrano::AnalysisConfig config{
-            maxHarmonics,
-            N,
-            hopSize,
-            startSample,
-            tolerance,
-            pSettings,
-            tSettings,
-            cSettings,
-            oSettings,
-            hSettings,
-            verbose
         };
 
         Analyzer ana(config);
@@ -320,72 +319,6 @@ int main()
                 delaced,
                 filename,
                 (float)sfInfo.samplerate
-            };
-
-            int overtoneStart = (int)((double)unit.soundFile.size() * 0.12);
-            Sitrano::Settings settings{
-                true,
-                true,
-                true,
-                true,
-                true,
-                true
-            };
-
-            Sitrano::OvertoneSettings oSettings{
-                overtoneTolerance,
-                oTolerance,
-                postTransientStart,
-                overtoneFirstSample,
-                useCustomSignal,
-                sumAmplitudes,
-                oNfft,
-                ignoreThreshold,
-                setAbsThreshold
-            };
-
-            Sitrano::CorrelationSettings cSettings{
-                periodOffset,
-                corrThreshold
-            };
-
-            Sitrano::TransientSettings tSettings{
-                tStartSample,
-                tUseMs,
-                rmsSampleSize,
-                rmsHop,
-                transientRms,
-                rmsHopRatio,
-                tFactor,
-                tThreshold,
-                preAttack
-            };
-
-            Sitrano::HarmonicSettings hSettings{
-                true,
-                w,
-                hTolerance
-            };
-
-            Sitrano::PitchSettings pSettings{
-                modeThreshold,
-                tInCents,
-                minFreq,
-                maxFreq
-            };
-
-            Sitrano::AnalysisConfig config{
-                maxHarmonics,
-                N,
-                hopSize,
-                startSample,
-                tolerance,
-                pSettings,
-                tSettings,
-                cSettings,
-                oSettings,
-                hSettings,
-                verbose
             };
 
             Analyzer ana(config);
