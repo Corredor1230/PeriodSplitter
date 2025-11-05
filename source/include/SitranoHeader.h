@@ -155,11 +155,11 @@ namespace Sitrano
     // This structure decides which processing steps will be completed.
     struct Settings {
         bool pitchAnalysis = true;
+        bool transientSeparation = true;
         bool periodAnalysis = true;
         bool overtoneAnalysis = true;
         bool harmonicAnalysis = true;
         bool noiseAnalysis = true;
-        bool transientSeparation = true;
     };
 
 	//Larger structure containing all results of the analysis
