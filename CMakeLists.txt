@@ -77,6 +77,12 @@ set(INCLUDE_FILES
     ${SOURCE_DIR}/include/csv.h
     ${SOURCE_DIR}/include/SitranoHeader.h
 	${SOURCE_DIR}/include/SitranoHeader.cpp
+	${SOURCE_DIR}/include/json.hpp
+)
+
+set(FILE_FILES
+	${SOURCE_DIR}/file/Sihatcsv.h
+	${SOURCE_DIR}/file/SihatFile.h
 )
 
 # --- Create the executable ---
@@ -91,6 +97,7 @@ target_sources(${EXECUTABLE_NAME} PRIVATE
     ${GUI_SOURCES}
     ${SUPPORT_SOURCES}
     ${INCLUDE_FILES}
+	${FILE_FILES}
 )
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
