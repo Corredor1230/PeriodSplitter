@@ -172,11 +172,6 @@ namespace Sitrano
         HarmonicResults hResults;
 	};
 
-    struct DirAndFiles {
-        std::string directory;
-        std::vector<std::string> files;
-    };
-
 	//Small helper functions
     inline double hann_gain_rms() { return 0.5; };
     inline double interp_delta(int k, const std::vector<double>& mags)
