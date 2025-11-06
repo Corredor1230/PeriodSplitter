@@ -10,5 +10,6 @@ media/sihat
 media/gen
 media/oldGen
 media/peaks
+source/include/json.hpp
 glad/
 fast-cpp-csv-parser/
