@@ -9,5 +9,6 @@ media/*.txt
 media/sihat
 media/gen
 media/oldGen
+media/peaks
 glad/
 fast-cpp-csv-parser/
