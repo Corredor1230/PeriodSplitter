@@ -6,6 +6,8 @@
 #include<filesystem>
 #include<shlobj.h>
 #include"include/json.hpp"
+#include"include/SitranoHeader.h"
+#include"analysis/SitranoAnalysis.h"
 
 namespace fs = std::filesystem;
 
@@ -14,6 +16,12 @@ namespace SihatFile {
 	struct DirAndFiles {
 		std::string directory;
 		std::vector<std::string> files;
+	};
+
+	struct OutInfo {
+		std::string outDir;
+		std::string prefix;
+		std::string extension;
 	};
 
 	struct AudioFile {
@@ -133,6 +141,66 @@ namespace SihatFile {
 		}
 
 		return delaced[0];
+	}
+
+	/**
+	* @brief processes an audio file with the selected config and settings
+	* @param prefix is empty, but if included, it will be separated from the name by an underscore
+	* @param extension Do not include the period, only the name of the extension. 
+	*/
+	inline void processFile(const std::string& filename,
+		const OutInfo& info,
+		const Sitrano::AnalysisConfig& config,
+		const Sitrano::Settings& settings)
+	{
+		SF_INFO sfInfo;
+		std::vector<float> delaced = SihatFile::getAudioFromFile(filename, sfInfo);
+		Sitrano::normalizeByMaxAbs(delaced);
+
+		Sitrano::AnalysisUnit unit{ delaced, filename, (float)sfInfo.samplerate };
+		Analyzer ana(config);
+		Sitrano::Results r = ana.analyze(unit, settings);
+
+		for (auto& amps : r.hResults.amps)
+			if (!amps.empty()) Sitrano::filterVector(amps, 4, true);
+		for (auto& freqs : r.hResults.freqs)
+			if (!freqs.empty()) Sitrano::filterVector(freqs, 40, false);
+
+		std::string csvName = Sitrano::getRawFilename(filename);
+		std::string dir = info.outDir.empty() ? "sihat" : info.outDir;
+
+		Sitrano::saveHarmonicDataSihat(
+			r.hResults.finalSamples, r.hResults.amps, r.hResults.freqs,
+			r.pitch, dir, info.prefix + "_" + csvName, "." + info.extension);
+	}
+
+	inline void processFolder(const std::string& inputDir,
+		const OutInfo& i,
+		const Sitrano::AnalysisConfig& config,
+		const Sitrano::Settings& settings)
+	{
+		OutInfo info = i;
+		SihatFile::DirAndFiles dnf = SihatFile::getFileListFromExtension(inputDir, ".wav");
+
+		if (dnf.files.empty()) {
+			std::cerr << "No .wav files found.\n";
+			return;
+		}
+
+		for (const std::string& fn : dnf.files)
+		{
+			std::string filename = dnf.directory + "/" + fn;
+			try {
+				std::cout << "--- Processing: " << filename << " ---\n";
+				processFile(filename, info, config, settings);
+				std::cout << "--- Finished: " << filename << " ---\n";
+			}
+			catch (const std::exception& e) {
+				std::cerr << "!!! FAILED " << filename << ": " << e.what() << "\n";
+			}
+		}
+
+		std::cout << "Batch processing complete.\n";
 	}
 
 }
