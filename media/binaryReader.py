@@ -241,7 +241,7 @@ if __name__ == "__main__":
     outPrefix = "GEN_"
     sampleRate = 96000
 
-    runMode = "plot"
+    runMode = "synthesize_all"
 
     fileName = instr + string + "_" + freq + "_" + dyn
     inName = inPrefix + fileName + inExt
