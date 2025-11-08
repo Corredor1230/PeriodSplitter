@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json",
+  "name": "sihat",
+  "version-string": "1.0.0",
+  "dependencies": [
+    "libsndfile",
+    "fftw3",
+    {
+      "name": "imgui",
+      "features": [
+        "glfw-binding",
+        "opengl3-binding"
+      ]
+    },
+    "glfw3"
+  ]
+}
