@@ -42,7 +42,8 @@
             "t_rmsSizeMs": 1.0,
             "t_threshold": 0.10000000149011612
         },
-        "verbose": true
+        "verbose": true,
+		"bulkProcess": true
     },
     "info": {
         "extension": ".sihat",

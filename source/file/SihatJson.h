@@ -9,7 +9,7 @@ using json = nlohmann::json;
 
 namespace SihatJson {
     // ---- PitchSettings ----
-    void to_json(json& j, const Sitrano::PitchSettings& p) {
+    inline void to_json(json& j, const Sitrano::PitchSettings& p) {
         j = json{
             {"p_threshold", p.modeThreshold},
             {"p_inCents", p.toleranceInCents},
@@ -19,7 +19,7 @@ namespace SihatJson {
     }
 
     // ---- TransientSettings ----
-    void to_json(json& j, const Sitrano::TransientSettings& t) {
+    inline void to_json(json& j, const Sitrano::TransientSettings& t) {
         j = json{
             {"t_StartSample", t.tStartSample},
             {"t_UseMs", t.useMs},
@@ -33,7 +33,7 @@ namespace SihatJson {
         };
     }
 
-    void to_json(json& j, const SihatFile::OutInfo& i) {
+    inline void to_json(json& j, const SihatFile::OutInfo& i) {
         j = json{
             {"outDir", i.outDir},
             {"prefix", i.prefix},
@@ -42,7 +42,7 @@ namespace SihatJson {
     }
 
     // ---- CorrelationSettings ----
-    void to_json(json& j, const Sitrano::CorrelationSettings& c) {
+    inline void to_json(json& j, const Sitrano::CorrelationSettings& c) {
         j = json{
             {"c_offset", c.periodStartOffsetMs},
             {"c_threshold", c.correlationThreshold}
@@ -50,7 +50,7 @@ namespace SihatJson {
     }
 
     // ---- OvertoneSettings ----
-    void to_json(json& j, const Sitrano::OvertoneSettings& o) {
+    inline void to_json(json& j, const Sitrano::OvertoneSettings& o) {
         j = json{
             {"o_useTolerance", o.useTolerance},
             {"o_tolerance", o.toleranceValue},
@@ -65,7 +65,7 @@ namespace SihatJson {
     }
 
     // ---- HarmonicSettings ----
-    void to_json(json& j, const Sitrano::HarmonicSettings& h) {
+    inline void to_json(json& j, const Sitrano::HarmonicSettings& h) {
         j = json{
             {"h_enabled", h.applyHanning},
             {"h_windowStyle", static_cast<int>(h.style)},  // convert enum to int
@@ -74,7 +74,7 @@ namespace SihatJson {
     }
 
     // ---- General Settings ----
-    void to_json(json& j, const Sitrano::Settings& s) {
+    inline void to_json(json& j, const Sitrano::Settings& s) {
         j = json{
             {"pitchAnalysis", s.pitchAnalysis},
             {"transientSeparation", s.transientSeparation},
@@ -86,7 +86,7 @@ namespace SihatJson {
     }
 
     // ---- AnalysisConfig ----
-    void to_json(json& j, const Sitrano::AnalysisConfig& c) {
+    inline void to_json(json& j, const Sitrano::AnalysisConfig& c) {
 
         json pSettings;
         json tSettings;
@@ -112,12 +112,13 @@ namespace SihatJson {
             {"correlationSettings", cSettings},
             {"overtoneSettings", oSettings},
             {"harmonicSettings", hSettings},
-            {"verbose", c.verbose}
+            {"verbose", c.verbose},
+            {"bulkProcess", c.bulkProcess}
         };
     }
 
     // ---- PitchSettings ----
-    void from_json(const json& j, Sitrano::PitchSettings& p) {
+    inline void from_json(const json& j, Sitrano::PitchSettings& p) {
         j.at("p_threshold").get_to(p.modeThreshold);
         j.at("p_inCents").get_to(p.toleranceInCents);
         j.at("p_minFreq").get_to(p.minFreq);
@@ -125,7 +126,7 @@ namespace SihatJson {
     }
 
     // ---- TransientSettings ----
-    void from_json(const json& j, Sitrano::TransientSettings& t) {
+    inline void from_json(const json& j, Sitrano::TransientSettings& t) {
         j.at("t_StartSample").get_to(t.tStartSample);
         j.at("t_UseMs").get_to(t.useMs);
         j.at("t_rmsSampleSize").get_to(t.rmsSampleSize);
@@ -138,20 +139,20 @@ namespace SihatJson {
     }
 
     // ---- OutInfo ----
-    void from_json(const json& j, SihatFile::OutInfo& i) {
+    inline void from_json(const json& j, SihatFile::OutInfo& i) {
         j.at("outDir").get_to(i.outDir);
         j.at("prefix").get_to(i.prefix);
         j.at("extension").get_to(i.extension);
     }
 
     // ---- CorrelationSettings ----
-    void from_json(const json& j, Sitrano::CorrelationSettings& c) {
+    inline void from_json(const json& j, Sitrano::CorrelationSettings& c) {
         j.at("c_offset").get_to(c.periodStartOffsetMs);
         j.at("c_threshold").get_to(c.correlationThreshold);
     }
 
     // ---- OvertoneSettings ----
-    void from_json(const json& j, Sitrano::OvertoneSettings& o) {
+    inline void from_json(const json& j, Sitrano::OvertoneSettings& o) {
         j.at("o_useTolerance").get_to(o.useTolerance);
         j.at("o_tolerance").get_to(o.toleranceValue);
         j.at("o_postTransientStart").get_to(o.postTransientStart);
@@ -164,7 +165,7 @@ namespace SihatJson {
     }
 
     // ---- HarmonicSettings ----
-    void from_json(const json& j, Sitrano::HarmonicSettings& h) {
+    inline void from_json(const json& j, Sitrano::HarmonicSettings& h) {
         j.at("h_enabled").get_to(h.applyHanning);
         j.at("h_Tolerance").get_to(h.toleranceValue);
 
@@ -175,7 +176,7 @@ namespace SihatJson {
     }
 
     // ---- General Settings ----
-    void from_json(const json& j, Sitrano::Settings& s) {
+    inline void from_json(const json& j, Sitrano::Settings& s) {
         j.at("pitchAnalysis").get_to(s.pitchAnalysis);
         j.at("transientSeparation").get_to(s.transientSeparation);
         j.at("periodAnalysis").get_to(s.periodAnalysis);
@@ -185,13 +186,14 @@ namespace SihatJson {
     }
 
     // ---- AnalysisConfig ----
-    void from_json(const json& j, Sitrano::AnalysisConfig& c) {
+    inline void from_json(const json& j, Sitrano::AnalysisConfig& c) {
         j.at("maxHarmonics").get_to(c.numHarmonics);
         j.at("N").get_to(c.nfft);
         j.at("hopSize").get_to(c.hopSize);
         j.at("startSample").get_to(c.startSample);
         j.at("tolerance").get_to(c.tolerance);
         j.at("verbose").get_to(c.verbose);
+        j.at("bulkProcess").get_to(c.bulkProcess);
 
         from_json(j.at("pitchSettings"), c.pSettings);
         from_json(j.at("transientSettings"), c.tSettings);
@@ -201,7 +203,7 @@ namespace SihatJson {
     }
 
 
-    void saveSettings(const Sitrano::AnalysisConfig& c, 
+    inline void saveSettings(const Sitrano::AnalysisConfig& c,
         const Sitrano::Settings& s, const SihatFile::OutInfo& i, 
         const std::string& path) 
     { 
@@ -225,7 +227,7 @@ namespace SihatJson {
         std::cout << "Configuration saved to: " << path << std::endl; 
     }
 
-    void loadSettings(Sitrano::AnalysisConfig& c,
+    inline void loadSettings(Sitrano::AnalysisConfig& c,
         Sitrano::Settings& s,
         SihatFile::OutInfo& i,
         const std::string& path)
