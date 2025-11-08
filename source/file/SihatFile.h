@@ -51,6 +51,29 @@ namespace SihatFile {
 		return "";
 	}
 
+	inline std::string openJsonDialog() {
+		OPENFILENAMEA ofn;
+		char szFile[260];
+		ZeroMemory(&ofn, sizeof(ofn));
+		ofn.lStructSize = sizeof(ofn);
+		ofn.hwndOwner = nullptr;
+		ofn.lpstrFile = szFile;
+		ofn.lpstrFile[0] = '\0';
+		ofn.nMaxFile = sizeof(szFile);
+		ofn.lpstrFilter = "JSON Files\0*json\0All Files\0*.*\0";
+		ofn.nFilterIndex = 1;
+		ofn.lpstrFileTitle = nullptr;
+		ofn.nMaxFileTitle = 0;
+		ofn.lpstrInitialDir = nullptr;
+		ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+		if (GetOpenFileNameA(&ofn) == TRUE) {
+			return std::string(ofn.lpstrFile);
+		}
+
+		return "";
+	}
+
 	/**
 	 * Opens the Windows folder picker dialog (the same as the file picker).
 	 * Returns the selected folder path, or an empty string if canceled.
