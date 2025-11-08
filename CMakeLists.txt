@@ -1,37 +1,29 @@
-# Specify the minimum CMake version required
+# Versión mínima de CMake
 cmake_minimum_required(VERSION 3.29)
 
-# Define the project name and set the C++ standard to C++17
-project(WavParser VERSION 1.0 LANGUAGES CXX)
-
-# Set the required C++ standard
+# Nombre del proyecto y C++ 17
+project(Sihat VERSION 1.0 LANGUAGES CXX C)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-# Specify the source files and the executable name
-set(SOURCE_DIR "${CMAKE_SOURCE_DIR}/source")
-set(EXECUTABLE_NAME PeriodicSplitter)
-
-# add_library(glad STATIC ${SOURCE_DIR}/src/glad.c)
-# target_link_directories(glad PUBLIC ${SOURCE_DIR}/include)
-
+# --- ¡LA MAGIA DE VCPKG EMPIEZA AQUÍ! ---
 find_package(OpenGL REQUIRED)
+find_package(glfw3 CONFIG REQUIRED)
+find_package(imgui CONFIG REQUIRED)
+find_package(fftw3 CONFIG REQUIRED)
+find_package(fftw3f CONFIG REQUIRED)
+find_package(SndFile CONFIG REQUIRED) # Corregido (antes libsndfile)
 
-# Manually specify the paths for libsndfile include and lib directories
-# Adjust these paths to where you installed libsndfile
-set(LIBSNDFILE_INCLUDE_DIR "C:/Libraries/libsndfile/include")
-set(LIBSNDFILE_LIBRARY_DIR "C:/Libraries/libsndfile/lib")
+# --- RUTAS A BIBLIOTECAS (Solo para las que no están en vcpkg) ---
 set(LIBPYIN_INCLUDE_DIR "C:/Libraries/LibPyin/source")
 set(LIBPYIN_LIBRARY_DIR "C:/Libraries/LibPyin/Debug")
-set(FFTW_INCLUDE_DIR "C:/Libraries/fftw")
-set(FFTW_LIBRARY_DIR "C:/Libraries/fftw")
-set(GLFW3_INCLUDE_DIR "C:/Libraries/vcpkg/packages/glfw3_x64-windows/include/GLFW")
-set(GLFW3_LIBRARY_DIR "C:/Libraries/vcpkg/packages/glfw3_x64-windows/lib")
-set(IMGUI_LIBRARY_DIR "C:/Libraries/vcpkg/packages/imgui_x64-windows/lib")
-set(IMGUI_INCLUDE_DIR "C:/Libraries/vcpkg/packages/imgui_x64-windows/include")
 
-# --- Define your logical components ---
+# --- Rutas del Proyecto (Esto está bien) ---
+set(SOURCE_DIR "${CMAKE_SOURCE_DIR}/source")
+set(EXECUTABLE_NAME PeriodicSplitter)
+set(PROJECT_INCLUDES ${CMAKE_SOURCE_DIR}/include)
 
+# --- Fuentes del Proyecto (Sin cambios) ---
 set(ANALYSIS_SOURCES
     ${SOURCE_DIR}/analysis/HarmonicTracker.cpp
     ${SOURCE_DIR}/analysis/HarmonicTracker.h
@@ -39,10 +31,10 @@ set(ANALYSIS_SOURCES
     ${SOURCE_DIR}/analysis/NoiseTracker.h
     ${SOURCE_DIR}/analysis/SitranoAnalysis.cpp
     ${SOURCE_DIR}/analysis/SitranoAnalysis.h
-	${SOURCE_DIR}/analysis/OvertoneFinder.h
-	${SOURCE_DIR}/analysis/OvertoneFinder.cpp
-	${SOURCE_DIR}/analysis/TransientRecognition.cpp
-	${SOURCE_DIR}/analysis/TransientRecognition.h
+    ${SOURCE_DIR}/analysis/OvertoneFinder.h
+    ${SOURCE_DIR}/analysis/OvertoneFinder.cpp
+    ${SOURCE_DIR}/analysis/TransientRecognition.cpp
+    ${SOURCE_DIR}/analysis/TransientRecognition.h
 )
 
 set(DSP_SOURCES
@@ -59,73 +51,77 @@ set(GUI_SOURCES
     ${SOURCE_DIR}/gui/GUI.cpp
     ${SOURCE_DIR}/gui/SpectrumView.cpp
     ${SOURCE_DIR}/gui/SpectrumView.h
-	${SOURCE_DIR}/gui/ConfigEditor.h
+    ${SOURCE_DIR}/gui/ConfigEditor.h
+    ${SOURCE_DIR}/gui/SihatEditor.cpp
+    ${SOURCE_DIR}/gui/SihatEditor.h
+    ${SOURCE_DIR}/gui/glad.c
 )
 
 set(SUPPORT_SOURCES
     ${SOURCE_DIR}/support/Splitter.cpp 
     ${SOURCE_DIR}/support/Splitter.h
-	${SOURCE_DIR}/support/AudioChunkStrategy.cpp
-	${SOURCE_DIR}/support/AudioChunkStrategy.h
-	${SOURCE_DIR}/support/PeriodLoopStrategy.cpp
-	${SOURCE_DIR}/support/PeriodLoopStrategy.h
-	${SOURCE_DIR}/support/SinglePeriodStrategy.cpp
-	${SOURCE_DIR}/support/SinglePeriodStrategy.h
-	${SOURCE_DIR}/support/IWindowStrategy.h
+    ${SOURCE_DIR}/support/AudioChunkStrategy.cpp
+    ${SOURCE_DIR}/support/AudioChunkStrategy.h
+    ${SOURCE_DIR}/support/PeriodLoopStrategy.cpp
+    ${SOURCE_DIR}/support/PeriodLoopStrategy.h
+    ${SOURCE_DIR}/support/SinglePeriodStrategy.cpp
+    ${SOURCE_DIR}/support/SinglePeriodStrategy.h
+    ${SOURCE_DIR}/support/IWindowStrategy.h
 )
 
 set(INCLUDE_FILES
     ${SOURCE_DIR}/include/csv.h
     ${SOURCE_DIR}/include/SitranoHeader.h
-	${SOURCE_DIR}/include/SitranoHeader.cpp
-	${SOURCE_DIR}/include/json.hpp
+    ${SOURCE_DIR}/include/SitranoHeader.cpp
+    ${SOURCE_DIR}/include/json.hpp
 )
 
 set(FILE_FILES
-	${SOURCE_DIR}/file/Sihatcsv.h
-	${SOURCE_DIR}/file/SihatFile.cpp
-	${SOURCE_DIR}/file/SihatFile.h
-	${SOURCE_DIR}/file/SihatJson.cpp
-	${SOURCE_DIR}/file/SihatJson.h
-	${SOURCE_DIR}/file/JsonAdapters.h
-	
+    ${SOURCE_DIR}/file/Sihatcsv.h
+    ${SOURCE_DIR}/file/SihatFile.cpp
+    ${SOURCE_DIR}/file/SihatFile.h
+    ${SOURCE_DIR}/file/SihatJson.cpp
+    ${SOURCE_DIR}/file/SihatJson.h
+    ${SOURCE_DIR}/file/JsonAdapters.h
 )
 
-# --- Create the executable ---
-
-# Start by creating the target with just the main file
-add_executable(${EXECUTABLE_NAME} ${SOURCE_DIR}/main.cpp)
-
-# --- Add all other sources to the target ---
-target_sources(${EXECUTABLE_NAME} PRIVATE
+# --- Crear el ejecutable ---
+# ¡¡CAMBIO IMPORTANTE!!
+# Ponemos TODAS las fuentes en add_executable.
+# Esto es más robusto que target_sources.
+add_executable(${EXECUTABLE_NAME}
+    ${SOURCE_DIR}/main.cpp
     ${ANALYSIS_SOURCES}
     ${DSP_SOURCES}
     ${GUI_SOURCES}
     ${SUPPORT_SOURCES}
     ${INCLUDE_FILES}
-	${FILE_FILES}
+    ${FILE_FILES}
 )
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
 
-# Include the libsndfile headers
+# --- Incluir directorios (Híbrido) ---
 target_include_directories(${EXECUTABLE_NAME} PRIVATE 
-    ${LIBSNDFILE_INCLUDE_DIR}
-    ${FFTW_INCLUDE_DIR}
+    # vcpkg añade automáticamente las rutas de include
     ${LIBPYIN_INCLUDE_DIR}
-    ${GLFW3_INCLUDE_DIR}
-    ${IMGUI_INCLUDE_DIR}
-	${OPENGL_LIBRARIES}
-	${SOURCE_DIR}
+    ${SOURCE_DIR}
+    ${PROJECT_INCLUDES}
 )
 
+# --- Enlazar bibliotecas (Híbrido) ---
+# ¡¡CAMBIOS IMPORTANTES AQUÍ!!
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE 
-    "${LIBSNDFILE_LIBRARY_DIR}/sndfile.lib"
-    "${FFTW_LIBRARY_DIR}/libfftw3-3.lib"
-	"${FFTW_LIBRARY_DIR}/libfftw3f-3.lib"
-	"${FFTW_LIBRARY_DIR}/libfftw3l-3.lib"
+    # Bibliotecas encontradas por vcpkg
+    imgui::imgui
+    glfw
+    SndFile::sndfile
+    # FFTW3::fftw3        
+    FFTW3::fftw3f       
+    
+    # Bibliotecas del sistema
+    OpenGL::GL
+    
+    # Tu biblioteca manual
     "${LIBPYIN_LIBRARY_DIR}/LibPyin.lib"
-    "${GLFW3_LIBRARY_DIR}/glfw3dll.lib"
-    "${IMGUI_LIBRARY_DIR}/imgui.lib"
-    opengl32
 )
