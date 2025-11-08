@@ -86,6 +86,7 @@ set(FILE_FILES
 	${SOURCE_DIR}/file/SihatFile.h
 	${SOURCE_DIR}/file/SihatJson.cpp
 	${SOURCE_DIR}/file/SihatJson.h
+	${SOURCE_DIR}/file/JsonAdapters.h
 )
 
 # --- Create the executable ---
