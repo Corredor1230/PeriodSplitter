@@ -8,12 +8,21 @@
 int main()
 {
     bool bulkProcess = true;
+    bool useDefault = true;
 
     Sitrano::AnalysisConfig config;
     Sitrano::Settings settings;
     SihatFile::OutInfo info;
 
-    std::string jsonPath = SihatFile::openJsonDialog();
+    std::string jsonPath;
+
+    if (useDefault)
+    {
+        jsonPath = "C:/Users/usuario/Documents/Programming/CMake_Learning/PeriodicSplitter/source/configFiles/default.json";
+    }
+    else
+        jsonPath = SihatFile::openJsonDialog();
+
     SihatJson::loadSettings(config, settings, info, jsonPath);
     //SihatJson::saveSettings(config, settings, info, jsonPath);
 

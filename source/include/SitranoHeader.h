@@ -92,11 +92,11 @@ namespace Sitrano
         int hopSize = 1024;
         int startSample = 0;
         float tolerance = 100.f;
-        PitchSettings pConfig;
+        PitchSettings pSettings;
         TransientSettings tSettings;
         CorrelationSettings cSettings;
-        OvertoneSettings oConfig;
-        HarmonicSettings hConfig;
+        OvertoneSettings oSettings;
+        HarmonicSettings hSettings;
         bool verbose = true;
     };
 

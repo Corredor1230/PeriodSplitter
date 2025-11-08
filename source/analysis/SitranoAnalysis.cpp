@@ -35,7 +35,7 @@ Sitrano::Results Analyzer::analyze(
     if (settings.periodAnalysis)
     {
         float pitch = results.pitch;
-        if (!pitch > mConfig.pConfig.minFreq) pitch = unit.sampleRate / provisionalHop;
+        if (!pitch > mConfig.pSettings.minFreq) pitch = unit.sampleRate / provisionalHop;
 
         PeriodCutter cutter{ unit, mConfig.cSettings, results.pitch, results.tRange };
         results.sampleList = cutter.findPeriodSamples();
@@ -52,9 +52,9 @@ Sitrano::Results Analyzer::analyze(
     if (settings.overtoneAnalysis)
     {
         std::vector<double> checkSignal;
-        for (int i = 0; i < mConfig.oConfig.fftSize; ++i)
+        for (int i = 0; i < mConfig.oSettings.fftSize; ++i)
         {
-            checkSignal.push_back(unit.soundFile[i + mConfig.oConfig.overtoneFirstSample]);
+            checkSignal.push_back(unit.soundFile[i + mConfig.oSettings.overtoneFirstSample]);
         }
         OvertoneFinder finder{ unit, mConfig };
         results.topFreqs = finder.getRelevantOvertones(checkSignal, results.pitch);

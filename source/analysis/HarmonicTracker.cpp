@@ -13,7 +13,7 @@ HarmonicTracker::HarmonicTracker(
     config(conf),
     sList(sampleList),
     nfft(conf.nfft),
-    settings(conf.hConfig),
+    settings(conf.hSettings),
     tFreqs(top)
 {
     window.resize(nfft);

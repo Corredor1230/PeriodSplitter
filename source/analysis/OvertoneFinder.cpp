@@ -5,19 +5,19 @@ OvertoneFinder::OvertoneFinder(const Sitrano::AnalysisUnit& unit,
     const Sitrano::AnalysisConfig& conf) : 
     unit(unit),
     config(conf),
-    settings(conf.oConfig),
-    N(config.oConfig.fftSize),
+    settings(conf.oSettings),
+    N(config.oSettings.fftSize),
     Nout(N / 2 + 1),
-    absThreshold(conf.oConfig.setAbsoluteThreshold),
-    threshold(conf.oConfig.overtoneThreshold)
+    absThreshold(conf.oSettings.setAbsoluteThreshold),
+    threshold(conf.oSettings.overtoneThreshold)
 {
     initFFTW();
 }
 
 void OvertoneFinder::initFFTW() {
-    input = (float*)fftwf_malloc(sizeof(float) * config.oConfig.fftSize);
-    output = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex) * (config.oConfig.fftSize / 2 + 1));
-    plan = fftwf_plan_dft_r2c_1d(config.oConfig.fftSize, input, output, FFTW_MEASURE);
+    input = (float*)fftwf_malloc(sizeof(float) * N);
+    output = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex) * (N / 2 + 1));
+    plan = fftwf_plan_dft_r2c_1d(N, input, output, FFTW_MEASURE);
 }
 
 // This is now a member function of OvertoneFinder
@@ -26,7 +26,6 @@ std::vector<Sitrano::Peak> OvertoneFinder::getRelevantOvertones(
     float pitch)
 {
     const int outHarm = config.numHarmonics;
-    N = config.oConfig.fftSize;
     const int Nout = N / 2 + 1;
     size_t numToCopy = std::min(checkSignal.size(), (size_t)N);
 

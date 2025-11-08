@@ -88,17 +88,17 @@ namespace SihatJson {
     // ---- AnalysisConfig ----
     void to_json(json& j, const Sitrano::AnalysisConfig& c) {
 
-        json pConfig;
+        json pSettings;
         json tSettings;
         json cSettings;
-        json oConfig;
-        json hConfig;
+        json oSettings;
+        json hSettings;
 
-        to_json(pConfig, c.pConfig);
+        to_json(pSettings, c.pSettings);
         to_json(tSettings, c.tSettings);
         to_json(cSettings, c.cSettings);
-        to_json(oConfig, c.oConfig);
-        to_json(hConfig, c.hConfig);
+        to_json(oSettings, c.oSettings);
+        to_json(hSettings, c.hSettings);
 
 
         j = json{
@@ -107,11 +107,11 @@ namespace SihatJson {
             {"hopSize", c.hopSize},
             {"startSample", c.startSample},
             {"tolerance", c.tolerance},
-            {"pitchSettings", pConfig},
+            {"pitchSettings", pSettings},
             {"transientSettings", tSettings},
             {"correlationSettings", cSettings},
-            {"overtoneSettings", oConfig},
-            {"harmonicSettings", hConfig},
+            {"overtoneSettings", oSettings},
+            {"harmonicSettings", hSettings},
             {"verbose", c.verbose}
         };
     }
@@ -193,11 +193,11 @@ namespace SihatJson {
         j.at("tolerance").get_to(c.tolerance);
         j.at("verbose").get_to(c.verbose);
 
-        from_json(j.at("pitchSettings"), c.pConfig);
+        from_json(j.at("pitchSettings"), c.pSettings);
         from_json(j.at("transientSettings"), c.tSettings);
         from_json(j.at("correlationSettings"), c.cSettings);
-        from_json(j.at("overtoneSettings"), c.oConfig);
-        from_json(j.at("harmonicSettings"), c.hConfig);
+        from_json(j.at("overtoneSettings"), c.oSettings);
+        from_json(j.at("harmonicSettings"), c.hSettings);
     }
 
 

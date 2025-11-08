@@ -33,9 +33,9 @@ float PitchFinder::findPitch()
 
     // 5. Get parameters from the config, not hard-coded magic numbers.
     float foundPitch = findMode(std::move(pitches), // 6. Move pitches (avoids copy)
-        mConfig.pConfig.modeThreshold,
-        mConfig.pConfig.minFreq,
-        mConfig.pConfig.maxFreq);
+        mConfig.pSettings.modeThreshold,
+        mConfig.pSettings.minFreq,
+        mConfig.pSettings.maxFreq);
 
     if (std::isnan(foundPitch)) {
         std::cerr << "PitchFinder: Could not find a valid pitch mode." << std::endl;
@@ -51,7 +51,7 @@ float PitchFinder::findPitch()
     }
     else {
         // Use the config for tolerance
-        float tolerance = Sitrano::cents_to_hz(metaPitch, mConfig.pConfig.toleranceInCents);
+        float tolerance = Sitrano::cents_to_hz(metaPitch, mConfig.pSettings.toleranceInCents);
 
         // Adjudicate between analyzed pitch and metadata pitch
         if (foundPitch > metaPitch - tolerance && foundPitch < metaPitch + tolerance)
