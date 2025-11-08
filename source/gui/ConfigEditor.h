@@ -20,7 +20,7 @@ public:
      * @param info Reference to your file info struct.
      * @param p_open Pointer to a bool to control the window's visibility (optional).
      */
-    void Render(Sitrano::AnalysisConfig& config, Sitrano::Settings& settings, SihatFile::OutInfo& info, bool* p_open = nullptr)
+    static void Render(Sitrano::AnalysisConfig& config, Sitrano::Settings& settings, SihatFile::OutInfo& info, bool* p_open = nullptr)
     {
         // Begin the ImGui window
         if (!ImGui::Begin("Analysis Configuration Editor", p_open))
@@ -60,6 +60,7 @@ public:
             ImGui::InputInt("Max Harmonics", &config.numHarmonics);
             ImGui::InputFloat("Global Tolerance", &config.tolerance);
             ImGui::Checkbox("Verbose Logging", &config.verbose);
+            ImGui::Checkbox("Bulk Process", &config.bulkProcess);
 
             ImGui::Separator();
 
