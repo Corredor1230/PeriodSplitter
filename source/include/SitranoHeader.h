@@ -98,6 +98,7 @@ namespace Sitrano
         OvertoneSettings oSettings;
         HarmonicSettings hSettings;
         bool verbose = true;
+        bool bulkProcess = false;
     };
 
     struct ChangePoint {
