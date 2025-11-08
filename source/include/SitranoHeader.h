@@ -14,8 +14,8 @@ namespace Sitrano
     // Enum for different FFT window styles used for analysis
     enum WindowStyle {
         periodLoop = 0,
-        singlePeriod,
-        audioChunk
+        singlePeriod = 1,
+        audioChunk = 2
     };
 
     struct HarmonicResults {
