@@ -4,7 +4,7 @@
 #include <utility>
 #include <string>
 #include <memory>
-#include <glfw3.h>
+#include <GLFW/glfw3.h>
 
 class WaveformViewer {
 public:
