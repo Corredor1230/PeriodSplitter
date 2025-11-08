@@ -82,7 +82,10 @@ set(INCLUDE_FILES
 
 set(FILE_FILES
 	${SOURCE_DIR}/file/Sihatcsv.h
+	${SOURCE_DIR}/file/SihatFile.cpp
 	${SOURCE_DIR}/file/SihatFile.h
+	${SOURCE_DIR}/file/SihatJson.cpp
+	${SOURCE_DIR}/file/SihatJson.h
 )
 
 # --- Create the executable ---
