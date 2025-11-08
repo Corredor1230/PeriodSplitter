@@ -1,0 +1,60 @@
+{
+    "config": {
+        "N": 32768,
+        "correlationSettings": {
+            "c_offset": 50.0,
+            "c_threshold": 0.75
+        },
+        "harmonicSettings": {
+            "h_Tolerance": 25.0,
+            "h_enabled": true,
+            "h_windowStyle": 2
+        },
+        "hopSize": 1024,
+        "maxHarmonics": 32,
+        "overtoneSettings": {
+            "o_FirstSample": 2000,
+            "o_absThreshold": false,
+            "o_ignoreThreshold": -40.0,
+            "o_mfft": 65536,
+            "o_postTransientStart": true,
+            "o_sumAmplitudes": true,
+            "o_tolerance": 1.0,
+            "o_useCustomSignal": true,
+            "o_useTolerance": true
+        },
+        "pitchSettings": {
+            "p_inCents": 50.0,
+            "p_maxFreq": 1300.0,
+            "p_minFreq": 60.0,
+            "p_threshold": 3.0
+        },
+        "startSample": 0,
+        "tolerance": 100.0,
+        "transientSettings": {
+            "t_StartSample": 0,
+            "t_UseMs": false,
+            "t_factor": 3.0,
+            "t_preAttack": 20,
+            "t_rmsHopLength": 64,
+            "t_rmsHopRatio": 1.0,
+            "t_rmsSampleSize": 128,
+            "t_rmsSizeMs": 1.0,
+            "t_threshold": 0.10000000149011612
+        },
+        "verbose": true
+    },
+    "info": {
+        "extension": ".sihat",
+        "outDir": "sihat",
+        "prefix": "DATA_"
+    },
+    "settings": {
+        "harmonicAnalysis": true,
+        "noiseAnalysis": true,
+        "overtoneAnalysis": true,
+        "periodAnalysis": true,
+        "pitchAnalysis": true,
+        "transientSeparation": true
+    }
+}
