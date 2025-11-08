@@ -5,7 +5,6 @@
 #include<commdlg.h>
 #include<filesystem>
 #include<shlobj.h>
-#include"include/json.hpp"
 #include"include/SitranoHeader.h"
 #include"analysis/SitranoAnalysis.h"
 
