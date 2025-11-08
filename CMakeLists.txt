@@ -59,6 +59,7 @@ set(GUI_SOURCES
     ${SOURCE_DIR}/gui/GUI.cpp
     ${SOURCE_DIR}/gui/SpectrumView.cpp
     ${SOURCE_DIR}/gui/SpectrumView.h
+	${SOURCE_DIR}/gui/ConfigEditor.h
 )
 
 set(SUPPORT_SOURCES
@@ -87,6 +88,7 @@ set(FILE_FILES
 	${SOURCE_DIR}/file/SihatJson.cpp
 	${SOURCE_DIR}/file/SihatJson.h
 	${SOURCE_DIR}/file/JsonAdapters.h
+	
 )
 
 # --- Create the executable ---
