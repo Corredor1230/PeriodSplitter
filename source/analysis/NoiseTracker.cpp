@@ -1,16 +1,19 @@
 #include "NoiseTracker.h"
 
-NoiseTracker::NoiseTracker(const Sitrano::AnalysisConfig& conf,
+NoiseTracker::NoiseTracker(const Sitrano::NoiseSettings& settings,
     const Sitrano::AnalysisUnit& ana, 
 	Sitrano::Results& r,
 	float startFreq):
 	unit(ana),
-    config(conf),
+    N(settings.nfft),
+    hop(settings.hopSize),
+    sr(unit.sampleRate),
 	r(r),
+    useList(settings.useList),
 	startFreq(startFreq)
 {
 	float f0 = startFreq;
-	while (f0 < ana.sampleRate / 2.0 || f0 < 20000.0) {
+	while (f0 < sr / 2.0 || f0 < 20000.0) {
 		float f_low = f0 / pow(2.0, 1.0 / 6.0);
 		float f_high = f0 * pow(2.0, 1.0 / 6.0);
 		bands.push_back({ f_low, f_high, f0 });
@@ -18,7 +21,6 @@ NoiseTracker::NoiseTracker(const Sitrano::AnalysisConfig& conf,
 	}
 
 	// FFTW Initialization
-	N = config.nfft / 4;
 	fft_in = fftwf_alloc_real(N);
 	fft_out = fftwf_alloc_complex(N / 2 + 1);
 
@@ -35,17 +37,15 @@ NoiseTracker::~NoiseTracker()
 void NoiseTracker::applyFrameTable(std::vector<int> table)
 {
 	frameTable = table;
-	useFrameTable = true;
+    useList = true;
 }
 
 void NoiseTracker::analyze() {
     // --- Initialization (mostly unchanged) ---
-    const int N = config.nfft;
-    const int hop = config.hopSize;
     const std::vector<float>& signal = unit.soundFile;
     const float sampleRate = unit.sampleRate;
 
-    int numFrames = useFrameTable ? frameTable.size() : (signal.size() - N) / hop;
+    int numFrames = useList ? frameTable.size() : (signal.size() - N) / hop;
     if (numFrames <= 0) return;
     const float df = sampleRate / N;
 
@@ -55,7 +55,7 @@ void NoiseTracker::analyze() {
 
     // --- Main Analysis Loop (calculates power) ---
     for (int i = 0; i < numFrames; ++i) {
-        int startSample = useFrameTable ? frameTable[i] : i * hop;
+        int startSample = useList ? frameTable[i] : i * hop;
         if (startSample + N > signal.size()) {
             // Trim all band vectors if the signal ends unexpectedly
             for (auto& band_vec : r.noise) {

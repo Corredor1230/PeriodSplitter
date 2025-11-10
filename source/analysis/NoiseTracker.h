@@ -10,7 +10,7 @@
 
 class NoiseTracker {
 public:
-	NoiseTracker(const Sitrano::AnalysisConfig& config,
+	NoiseTracker(const Sitrano::NoiseSettings& settings,
 		const Sitrano::AnalysisUnit& ana, 
 		Sitrano::Results& r,
 		float startFreq);
@@ -27,7 +27,6 @@ public:
 private:
 
 	const Sitrano::AnalysisUnit& unit;
-	const Sitrano::AnalysisConfig& config;
 	Sitrano::Results& r;
 
 	bool useFrameTable = false;
@@ -35,6 +34,7 @@ private:
 	float startFreq{0.f};
 	float sr{ 96000.f };
 	int N;
+	int hop;
 
 	fftwf_plan plan;
 	float* fft_in;
