@@ -86,6 +86,13 @@ namespace Sitrano
         float correlationThreshold = 0.95f;
     };
 
+    struct NoiseSettings {
+        int nfft = 128;
+        int hopSize = 32;
+        int startSample = 0;
+        bool useList = false;
+    };
+
     struct AnalysisConfig {
         int numHarmonics = 32;
         int nfft = 16384 * 2;
