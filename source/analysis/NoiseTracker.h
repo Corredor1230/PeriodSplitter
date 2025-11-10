@@ -12,7 +12,7 @@ class NoiseTracker {
 public:
 	NoiseTracker(const Sitrano::NoiseSettings& settings,
 		const Sitrano::AnalysisUnit& ana, 
-		Sitrano::Results& r,
+		const Sitrano::Results& r,
 		float startFreq);
 	~NoiseTracker();
 
@@ -22,25 +22,25 @@ public:
 		double f_center;
 	};
 	void applyFrameTable(std::vector<int> table);
-	void analyze();
+	std::vector<std::vector<float>> analyze();
 
 private:
 
 	const Sitrano::AnalysisUnit& unit;
-	Sitrano::Results& r;
 
-	bool useFrameTable = false;
 
 	float startFreq{0.f};
 	float sr{ 96000.f };
-	int N;
-	int hop;
+	bool useList;
+	const int N;
+	const int hop;
 
 	fftwf_plan plan;
 	float* fft_in;
 	fftwf_complex* fft_out;
 
-	std::vector<float> sf;
+	const std::vector<float>& sf;
+	const std::vector<Sitrano::Peak>& topFreqs;
 	std::vector<Band> bands;
 	std::vector<int> frameTable;
 	std::vector<std::vector<float>> results;
