@@ -73,6 +73,15 @@ namespace SihatJson {
         };
     }
 
+    inline void to_json(json& j, const Sitrano::NoiseSettings& n) {
+        j = json{
+            {"n_nfft", n.nfft},
+            {"n_hopSize", n.hopSize},
+            {"n_startSample", n.startSample},
+            {"n_useList", n.useList}
+        };
+    }
+
     // ---- General Settings ----
     inline void to_json(json& j, const Sitrano::Settings& s) {
         j = json{
@@ -93,12 +102,14 @@ namespace SihatJson {
         json cSettings;
         json oSettings;
         json hSettings;
+        json nSettings;
 
         to_json(pSettings, c.pSettings);
         to_json(tSettings, c.tSettings);
         to_json(cSettings, c.cSettings);
         to_json(oSettings, c.oSettings);
         to_json(hSettings, c.hSettings);
+        to_json(nSettings, c.nSettings);
 
 
         j = json{
@@ -112,6 +123,7 @@ namespace SihatJson {
             {"correlationSettings", cSettings},
             {"overtoneSettings", oSettings},
             {"harmonicSettings", hSettings},
+            {"noiseSettings", nSettings},
             {"verbose", c.verbose},
             {"bulkProcess", c.bulkProcess}
         };
