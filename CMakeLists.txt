@@ -68,6 +68,8 @@ set(SUPPORT_SOURCES
     ${SOURCE_DIR}/support/SinglePeriodStrategy.cpp
     ${SOURCE_DIR}/support/SinglePeriodStrategy.h
     ${SOURCE_DIR}/support/IWindowStrategy.h
+    ${SOURCE_DIR}/support/SihatLogger.h
+    ${SOURCE_DIR}/support/SihatLogger.cpp
 )
 
 set(INCLUDE_FILES
@@ -86,12 +88,18 @@ set(FILE_FILES
     ${SOURCE_DIR}/file/JsonAdapters.h
 )
 
+set(APPLICATION_SOURCES
+    ${SOURCE_DIR}/SihatApplication.cpp
+    ${SOURCE_DIR}/SihatApplication.h
+)
+
 # --- Crear el ejecutable ---
 # ¡¡CAMBIO IMPORTANTE!!
 # Ponemos TODAS las fuentes en add_executable.
 # Esto es más robusto que target_sources.
 add_executable(${EXECUTABLE_NAME}
     ${SOURCE_DIR}/main.cpp
+    ${APPLICATION_SOURCES}
     ${ANALYSIS_SOURCES}
     ${DSP_SOURCES}
     ${GUI_SOURCES}
