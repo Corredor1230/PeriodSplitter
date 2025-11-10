@@ -33,12 +33,12 @@ public:
         // --- 1. Analysis Modules (Settings) ---
         if (ImGui::CollapsingHeader("Analysis Modules", ImGuiTreeNodeFlags_DefaultOpen))
         {
-            ImGui::Checkbox("Harmonic Analysis", &settings.harmonicAnalysis);
-            ImGui::Checkbox("Noise Analysis", &settings.noiseAnalysis);
-            ImGui::Checkbox("Overtone Analysis", &settings.overtoneAnalysis);
-            ImGui::Checkbox("Period Analysis", &settings.periodAnalysis);
             ImGui::Checkbox("Pitch Analysis", &settings.pitchAnalysis);
             ImGui::Checkbox("Transient Separation", &settings.transientSeparation);
+            ImGui::Checkbox("Period Analysis", &settings.periodAnalysis);
+            ImGui::Checkbox("Overtone Analysis", &settings.overtoneAnalysis);
+            ImGui::Checkbox("Harmonic Analysis", &settings.harmonicAnalysis);
+            ImGui::Checkbox("Noise Analysis", &settings.noiseAnalysis);
         }
 
         // --- 2. Output File Info (Info) ---
