@@ -1,9 +1,7 @@
 #include "SihatEditor.h"
-
-#include <string>
-#include <stdexcept>
-#include "file/SihatJson.h"
-
+#include "imgui.h"
+#include "imgui_impl_glfw.h"  
+#include "imgui_impl_opengl3.h" 
 #include "ConfigEditor.h"
 
 GLFWwindow* SihatEditor::initializeGlfw(const char* title, int width, int height)
@@ -50,116 +48,75 @@ void SihatEditor::initializeImgui(GLFWwindow* window)
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-    //io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;    
-    //io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  
 
     // Setup ImGui style
     ImGui::StyleColorsDark();
-
-    // When viewports are enabled, tweak WindowRounding/WindowBg so platform windows can look identical
-    /*ImGuiStyle& style = ImGui::GetStyle();
-    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-    {
-        style.WindowRounding = 0.0f;
-        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-    }*/
 
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
 }
 
-void SihatEditor::renderLoop(GLFWwindow* window,
-    Sitrano::AnalysisConfig& config,
-    Sitrano::Settings& settings,
-    SihatFile::OutInfo& info,
-    const std::string& jsonPath)
+void SihatEditor::Render(EditorViewModel& viewModel)
 {
-    bool bulkProcess = config.bulkProcess;
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+    // --- Main GUI Window ---
+    ImGui::SetNextWindowSize(ImVec2(600, 400), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Sitrano Analysis Configuration");
 
-    while (!glfwWindowShouldClose(window))
+    ImGui::Text("Settings loaded from: %s", viewModel.jsonPath.c_str());
+    ImGui::Separator();
+
+    // --- Control Panel ---
+    bool processing = viewModel.isProcessing.load();
+
+    // Disable buttons if processing
+    ImGui::BeginDisabled(processing);
+
+    if (ImGui::Button("Save Settings"))
     {
-        // Poll for and process events (mouse, keyboard)
-        glfwPollEvents();
-
-        // Start the ImGui frame
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-
-        // --- Main GUI Window ---
-        {
-            // We set a min size for the window
-            ImGui::SetNextWindowSize(ImVec2(600, 400), ImGuiCond_FirstUseEver);
-            ImGui::Begin("Sitrano Analysis Configuration");
-
-            // Display the path to the loaded JSON
-            ImGui::Text("Settings loaded from: %s", jsonPath.c_str());
-            ImGui::Separator();
-
-            // --- Control Panel Buttons ---
-            if (ImGui::Button("Save Settings"))
-            {
-                SihatJson::saveSettings(config, settings, info, jsonPath);
-                std::cout << "Settings saved to " << jsonPath << std::endl;
-            }
-            ImGui::SameLine();
-            ImGui::Checkbox("Bulk Process Folder", &bulkProcess);
-            ImGui::SameLine();
-
-            // --- THIS IS THE LOGIC FROM THE OLD MAIN ---
-            if (ImGui::Button("Run Analysis"))
-            {
-                std::cout << "Run Analysis Clicked..." << std::endl;
-                if (!bulkProcess)
-                {
-                    std::string filename = SihatFile::openFileDialog();
-                    if (!filename.empty())
-                    {
-                        std::cout << "Processing single file: " << filename << std::endl;
-                        SihatFile::processFile(filename, info, config, settings);
-                    }
-                }
-                else
-                {
-                    std::string inputDir = SihatFile::openFolderDialog();
-                    // Your old main had this, you can uncomment if needed
-                    if (!inputDir.empty())
-                    {
-                        std::cout << "Processing folder: " << inputDir << std::endl;
-                        SihatFile::processFolder(inputDir, info, config, settings);
-                    }
-                }
-            }
-            // --- END OF OLD MAIN LOGIC ---
-
-            ImGui::Separator();
-
-            // --- Settings Editor ---
-            // Create a child window to make the settings scrollable
-            ImGui::BeginChild("SettingsChildWindow", ImVec2(0, 0), true);
-
-            // Call our editor class to draw the contents!
-            ConfigEditor::Render(config, settings, info);
-
-            ImGui::EndChild();
-
-            ImGui::End();
-        }
-
-        // --- Rendering ---
-        ImGui::Render();
-        int display_w, display_h;
-        glfwGetFramebufferSize(window, &display_w, &display_h);
-        glViewport(0, 0, display_w, display_h);
-        glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
-        glClear(GL_COLOR_BUFFER_BIT);
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-        glfwSwapBuffers(window);
+        // 1. Just call the callback
+        if (viewModel.onSaveRequested)
+            viewModel.onSaveRequested();
     }
+
+    ImGui::SameLine();
+    // 2. Bind checkbox directly to the view model
+    ImGui::Checkbox("Bulk Process Folder", &viewModel.config.bulkProcess);
+
+    ImGui::SameLine();
+    if (ImGui::Button(processing ? "Processing..." : "Run Analysis"))
+    {
+        // 3. Call the correct callback based on state
+        if (viewModel.config.bulkProcess)
+        {
+            if (viewModel.onRunBulkRequested)
+                viewModel.onRunBulkRequested();
+        }
+        else
+        {
+            if (viewModel.onRunSingleRequested)
+                viewModel.onRunSingleRequested();
+        }
+    }
+    ImGui::EndDisabled(); // Re-enable GUI
+
+    ImGui::Separator();
+
+    if (processing)
+    {
+        ImGui::Text("Analysis in progress, please wait...");
+        // You could add an ImGui::Spinner or loading bar here
+    }
+
+    // --- Settings Editor ---
+    ImGui::BeginChild("SettingsChildWindow", ImVec2(0, 0), true);
+
+    // 4. Pass the view model's data to the sub-editor
+    ConfigEditor::Render(viewModel.config, viewModel.settings, viewModel.info);
+
+    ImGui::EndChild();
+    ImGui::End();
 }
 
 void SihatEditor::cleanup(GLFWwindow* window)
