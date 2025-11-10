@@ -73,6 +73,7 @@ namespace SihatJson {
         };
     }
 
+    // --- NoiseSettings ---
     inline void to_json(json& j, const Sitrano::NoiseSettings& n) {
         j = json{
             {"n_nfft", n.nfft},
@@ -129,7 +130,7 @@ namespace SihatJson {
         };
     }
 
-    // ---- PitchSettings ----
+    // --- PitchSettings ---
     inline void from_json(const json& j, Sitrano::PitchSettings& p) {
         j.at("p_threshold").get_to(p.modeThreshold);
         j.at("p_inCents").get_to(p.toleranceInCents);
@@ -148,6 +149,14 @@ namespace SihatJson {
         j.at("t_factor").get_to(t.transientFactor);
         j.at("t_threshold").get_to(t.transientThreshold);
         j.at("t_preAttack").get_to(t.preAttack);
+    }
+
+    // --- NoiseSettings ---
+    inline void from_json(const json& j, Sitrano::NoiseSettings& n) {
+        j.at("n_nfft").get_to(n.nfft);
+        j.at("n_hopSize").get_to(n.hopSize);
+        j.at("n_startSample").get_to(n.startSample);
+        j.at("n_useList").get_to(n.useList);
     }
 
     // ---- OutInfo ----
@@ -212,6 +221,7 @@ namespace SihatJson {
         from_json(j.at("correlationSettings"), c.cSettings);
         from_json(j.at("overtoneSettings"), c.oSettings);
         from_json(j.at("harmonicSettings"), c.hSettings);
+        from_json(j.at("noiseSettings"), c.nSettings);
     }
 
 
