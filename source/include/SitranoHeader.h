@@ -104,6 +104,7 @@ namespace Sitrano
         CorrelationSettings cSettings;
         OvertoneSettings oSettings;
         HarmonicSettings hSettings;
+        NoiseSettings nSettings;
         bool verbose = true;
         bool bulkProcess = false;
     };
