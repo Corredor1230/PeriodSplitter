@@ -45,12 +45,12 @@ std::vector<std::vector<float>> NoiseTracker::analyze() {
     // --- Initialization (mostly unchanged) ---
     const std::vector<float>& signal = unit.soundFile;
     const float sampleRate = unit.sampleRate;
+    std::vector<std::vector<float>> noise;
 
     int numFrames = useList ? frameTable.size() : (signal.size() - N) / hop;
-    if (numFrames <= 0) return;
+    if (numFrames <= 0) return noise;
     const float df = sampleRate / N;
 
-    std::vector<std::vector<float>> noise;
 
     // --- 1. Restructure Data Format ---
     // The outer vector now represents BANDS, the inner vector represents FRAMES (time).
