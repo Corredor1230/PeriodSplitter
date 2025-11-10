@@ -51,7 +51,7 @@ int main()
 {
     // --- 1. Setup ---
     EditorViewModel viewModel; // The one and only "bridge" object
-    viewModel.jsonPath = "config/default.json"; // Or get from argv
+    viewModel.jsonPath = "../source/configFiles/default.json"; // Or get from argv
 
     // Load initial settings into the view model
     try
