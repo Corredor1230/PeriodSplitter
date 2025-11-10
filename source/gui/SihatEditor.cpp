@@ -3,6 +3,44 @@
 #include "imgui_impl_glfw.h"  
 #include "imgui_impl_opengl3.h" 
 #include "ConfigEditor.h"
+#include "imgui_internal.h"
+
+static void renderLogger(SihatLogger& logger)
+{
+    {
+        std::lock_guard<std::mutex> lock(logger.getMutex());
+        ImGui::Text("Status: %s", logger.getTemporaryMessage().c_str());
+    }
+
+    ImGui::Separator();
+
+    if (ImGui::CollapsingHeader("Analysis log"))
+    {
+        float logHeight = 200.f;
+        ImGui::BeginChild("Permanent log", ImVec2(0, logHeight), true, ImGuiWindowFlags_HorizontalScrollbar);
+
+        std::lock_guard<std::mutex> lock(logger.getMutex());
+        const auto& messages = logger.getPermanentMessages();
+
+        ImGuiListClipper clipper;
+        clipper.Begin(messages.size());
+        while (clipper.Step())
+        {
+            for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
+            {
+                ImGui::TextUnformatted(messages[i].c_str());
+            }
+            clipper.End();
+
+            if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+            {
+                ImGui::SetScrollHereY(1.0f);
+            }
+
+            ImGui::EndChild();
+        }
+    }
+}
 
 GLFWwindow* SihatEditor::initializeGlfw(const char* title, int width, int height)
 {

@@ -2,6 +2,7 @@
 
 #include "include/SitranoHeader.h" 
 #include "file/SihatFile.h"   
+#include "support/SihatLogger.h"
 #include <string>
 #include <atomic>     // For the isProcessing flag
 #include <functional> // For the callbacks
@@ -22,4 +23,6 @@ struct EditorViewModel
     std::function<void(void)> onSaveRequested;
     std::function<void(void)> onRunSingleRequested;
     std::function<void(void)> onRunBulkRequested;
+
+    SihatLogger logger;
 };

@@ -143,6 +143,7 @@ public:
                 ImGui::InputInt("Hop Length", &config.nSettings.hopSize);
                 ImGui::InputInt("Start sample", &config.nSettings.startSample);
                 ImGui::Checkbox("Use previous lists", &config.nSettings.useList);
+                ImGui::TreePop();
             }
         }
 
