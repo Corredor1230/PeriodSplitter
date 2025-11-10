@@ -54,6 +54,7 @@ set(GUI_SOURCES
     ${SOURCE_DIR}/gui/ConfigEditor.h
     ${SOURCE_DIR}/gui/SihatEditor.cpp
     ${SOURCE_DIR}/gui/SihatEditor.h
+	${SOURCE_DIR}/gui/EditorViewModel.h
     ${SOURCE_DIR}/gui/glad.c
 )
 
