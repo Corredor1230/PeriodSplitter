@@ -80,5 +80,10 @@ Sitrano::Results Analyzer::analyze(
         results.hResults = tracker.analyze();
     }
 
+    if (settings.noiseAnalysis)
+    {
+        NoiseTracker tracker(mConfig.nSettings, unit, results, 20.f);
+    }
+
     return results;
 }
