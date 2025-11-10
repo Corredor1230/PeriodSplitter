@@ -136,6 +136,14 @@ public:
                 ImGui::Checkbox("Use MS", &config.tSettings.useMs);
                 ImGui::TreePop();
             }
+
+            if (ImGui::TreeNode("Noise Settings"))
+            {
+                ImGui::InputInt("FFT Size", &config.nSettings.nfft);
+                ImGui::InputInt("Hop Length", &config.nSettings.hopSize);
+                ImGui::InputInt("Start sample", &config.nSettings.startSample);
+                ImGui::Checkbox("Use previous lists", &config.nSettings.useList);
+            }
         }
 
         // End the window
