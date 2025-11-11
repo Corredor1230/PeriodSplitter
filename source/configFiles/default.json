@@ -1,6 +1,7 @@
 {
     "config": {
         "N": 32768,
+        "bulkProcess": true,
         "correlationSettings": {
             "c_offset": 50.0,
             "c_threshold": 0.75
@@ -12,12 +13,13 @@
         },
         "hopSize": 1024,
         "maxHarmonics": 32,
-		"noiseSettings":{
-			"n_nfft": 128,
-			"n_hopSize": 64,
-			"n_startSample": 0,
-			"n_useList": false
-		},
+        "noiseSettings": {
+            "n_hopSize": 64,
+            "n_nfft": 128,
+            "n_numBins": 32,
+            "n_startSample": 0,
+            "n_useList": false
+        },
         "overtoneSettings": {
             "o_FirstSample": 2000,
             "o_absThreshold": false,
@@ -48,13 +50,12 @@
             "t_rmsSizeMs": 1.0,
             "t_threshold": 0.10000000149011612
         },
-        "verbose": true,
-		"bulkProcess": true
+        "verbose": true
     },
     "info": {
-        "extension": ".sihat",
+        "extension": "sihat",
         "outDir": "sihat",
-        "prefix": "DATA_"
+        "prefix": "DATA"
     },
     "settings": {
         "harmonicAnalysis": true,
