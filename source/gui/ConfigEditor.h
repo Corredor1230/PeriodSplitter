@@ -30,15 +30,38 @@ public:
             return;
         }
 
-        // --- 1. Analysis Modules (Settings) ---
         if (ImGui::CollapsingHeader("Analysis Modules", ImGuiTreeNodeFlags_DefaultOpen))
         {
-            ImGui::Checkbox("Pitch Analysis", &settings.pitchAnalysis);
-            ImGui::Checkbox("Transient Separation", &settings.transientSeparation);
-            ImGui::Checkbox("Period Analysis", &settings.periodAnalysis);
-            ImGui::Checkbox("Overtone Analysis", &settings.overtoneAnalysis);
-            ImGui::Checkbox("Harmonic Analysis", &settings.harmonicAnalysis);
-            ImGui::Checkbox("Noise Analysis", &settings.noiseAnalysis);
+            if (ImGui::Checkbox("Full Harmonic Analysis (toggle all)", &settings.fullHarmonicAnalysis))
+            {
+                bool newState = settings.fullHarmonicAnalysis;
+
+                settings.pitchAnalysis = newState;
+                settings.transientSeparation = newState;
+                settings.periodAnalysis = newState;
+                settings.overtoneAnalysis = newState;
+                settings.harmonicAnalysis = newState;
+                settings.noiseAnalysis = newState;
+            }
+
+            bool aChildWasClicked = false;
+            aChildWasClicked |= ImGui::Checkbox("Pitch Analysis", &settings.pitchAnalysis);
+            aChildWasClicked |= ImGui::Checkbox("Transient Separation", &settings.transientSeparation);
+            aChildWasClicked |= ImGui::Checkbox("Period Analysis", &settings.periodAnalysis);
+            aChildWasClicked |= ImGui::Checkbox("Overtone Analysis", &settings.overtoneAnalysis);
+            aChildWasClicked |= ImGui::Checkbox("Harmonic Analysis", &settings.harmonicAnalysis);
+            aChildWasClicked |= ImGui::Checkbox("Noise Analysis", &settings.noiseAnalysis);
+
+            if (aChildWasClicked)
+            {
+                bool allChildrenAreOn = settings.pitchAnalysis &&
+                    settings.transientSeparation &&
+                    settings.periodAnalysis &&
+                    settings.overtoneAnalysis &&
+                    settings.harmonicAnalysis &&
+                    settings.noiseAnalysis;
+                settings.fullHarmonicAnalysis = allChildrenAreOn;
+            }
         }
 
         // --- 2. Output File Info (Info) ---
