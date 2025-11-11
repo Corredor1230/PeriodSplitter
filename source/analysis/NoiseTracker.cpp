@@ -79,15 +79,20 @@ std::vector<std::vector<float>> NoiseTracker::analyze() {
             float power = real * real + imag * imag;
 
             for (int b = 0; b < bands.size(); ++b) {
+                bool isTopFreq = false;
                 if (freq >= bands[b].f_low && freq < bands[b].f_high) {
                     // Assign to transposed matrix: results[band][frame]
-                    bool isTopFreq = false;
-
-                    
-
-                    if(isTopFreq)
-                    noise[b][i] += power;
-                    break;
+                    isTopFreq = isInVector(freq, topFreqs);
+                    if (isTopFreq)
+                    {
+                        noise[b][i] = 0.0;
+                        break;
+                    }
+                    else
+                    {
+                        noise[b][i] += power;
+                        break;
+                    }
                 }
             }
         }
@@ -117,8 +122,13 @@ std::vector<std::vector<float>> NoiseTracker::analyze() {
 
 bool NoiseTracker::isInVector(float freq, const std::vector<Sitrano::Peak>& topFreqs)
 {
+    bool isInVector = false;
+    int freqBin = Sitrano::freqToBin(freq, N, sr);
     for (int i = 0; i < topFreqs.size(); i++)
     {
-
+        int topFreqBin = Sitrano::freqToBin(topFreqs[i].freq, N, sr);
+        if (topFreqBin == freqBin) isInVector = true;
     }
+
+    return isInVector;
 }
