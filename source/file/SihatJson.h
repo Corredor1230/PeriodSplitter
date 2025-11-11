@@ -87,6 +87,7 @@ namespace SihatJson {
     // ---- General Settings ----
     inline void to_json(json& j, const Sitrano::Settings& s) {
         j = json{
+            {"fullHarmonicAnalysis", s.fullHarmonicAnalysis},
             {"pitchAnalysis", s.pitchAnalysis},
             {"transientSeparation", s.transientSeparation},
             {"periodAnalysis", s.periodAnalysis},
@@ -200,6 +201,7 @@ namespace SihatJson {
 
     // ---- General Settings ----
     inline void from_json(const json& j, Sitrano::Settings& s) {
+        j.at("fullHarmonicAnalysis").get_to(s.fullHarmonicAnalysis);
         j.at("pitchAnalysis").get_to(s.pitchAnalysis);
         j.at("transientSeparation").get_to(s.transientSeparation);
         j.at("periodAnalysis").get_to(s.periodAnalysis);

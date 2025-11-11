@@ -163,6 +163,7 @@ namespace Sitrano
     // Main settings for the Analyzer. 
     // This structure decides which processing steps will be completed.
     struct Settings {
+        bool fullHarmonicAnalysis = true;
         bool pitchAnalysis = true;
         bool transientSeparation = true;
         bool periodAnalysis = true;
