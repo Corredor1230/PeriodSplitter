@@ -53,7 +53,7 @@ SihatApplication::SihatApplication(const std::string& jsonPath)
             viewModel.info, viewModel.jsonPath);
     }
     catch (const std::exception& e) {
-        std::cerr << "Failed to load settings: " << e.what() << ". Using defualts." << std::endl;
+        //std::cerr << "Failed to load settings: " << e.what() << ". Using defualts." << std::endl;
         viewModel.logger.log("[ERROR] Failed to load settings: " + std::string(e.what()));
     }
 
