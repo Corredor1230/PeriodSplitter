@@ -30,15 +30,15 @@ static void renderLogger(SihatLogger& logger)
             {
                 ImGui::TextUnformatted(messages[i].c_str());
             }
-            clipper.End();
-
-            if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
-            {
-                ImGui::SetScrollHereY(1.0f);
-            }
-
-            ImGui::EndChild();
         }
+        clipper.End();
+
+        if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+        {
+            ImGui::SetScrollHereY(1.0f);
+        }
+
+        ImGui::EndChild();
     }
 }
 
