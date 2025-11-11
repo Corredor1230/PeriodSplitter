@@ -19,7 +19,7 @@ struct EditorViewModel
     std::atomic<bool> isProcessing{ false };
 
     // The GUI will call these functions when buttons are clicked.
-    // Our 'main.cpp' will provide the definitions for these.
+    // Our 'SihatApplication.cpp' will provide the definitions for these.
     std::function<void(void)> onSaveRequested;
     std::function<void(void)> onRunSingleRequested;
     std::function<void(void)> onRunBulkRequested;
