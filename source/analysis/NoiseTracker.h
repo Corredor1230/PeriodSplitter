@@ -28,6 +28,8 @@ private:
 
 	const Sitrano::AnalysisUnit& unit;
 
+	bool isInVector(float freq, const std::vector<Sitrano::Peak>& topFreqs);
+
 
 	float startFreq{0.f};
 	float sr{ 96000.f };
