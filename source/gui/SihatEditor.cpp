@@ -100,60 +100,65 @@ void SihatEditor::Render(EditorViewModel& viewModel)
 {
     // --- Main GUI Window ---
     ImGui::SetNextWindowSize(ImVec2(600, 400), ImGuiCond_FirstUseEver);
-    ImGui::Begin("Sitrano Analysis Configuration");
-
-    ImGui::Text("Settings loaded from: %s", viewModel.jsonPath.c_str());
-    ImGui::Separator();
-
-    // --- Control Panel ---
-    bool processing = viewModel.isProcessing.load();
-
-    // Disable buttons if processing
-    ImGui::BeginDisabled(processing);
-
-    if (ImGui::Button("Save Settings"))
+    ImGui::Begin("Sihat Analysis Configuration");
     {
-        // 1. Just call the callback
-        if (viewModel.onSaveRequested)
-            viewModel.onSaveRequested();
-    }
+        ImGui::Text("Settings loaded from: %s", viewModel.jsonPath.c_str());
+        ImGui::Separator();
 
-    ImGui::SameLine();
-    // 2. Bind checkbox directly to the view model
-    ImGui::Checkbox("Bulk Process Folder", &viewModel.config.bulkProcess);
+        // --- Control Panel ---
+        bool processing = viewModel.isProcessing.load();
 
-    ImGui::SameLine();
-    if (ImGui::Button(processing ? "Processing..." : "Run Analysis"))
-    {
-        // 3. Call the correct callback based on state
-        if (viewModel.config.bulkProcess)
+        // Disable buttons if processing
+        ImGui::BeginDisabled(processing);
+
+        if (ImGui::Button("Save Settings"))
         {
-            if (viewModel.onRunBulkRequested)
-                viewModel.onRunBulkRequested();
+            // 1. Just call the callback
+            if (viewModel.onSaveRequested)
+                viewModel.onSaveRequested();
         }
-        else
+
+        ImGui::SameLine();
+        // 2. Bind checkbox directly to the view model
+        ImGui::Checkbox("Bulk Process Folder", &viewModel.config.bulkProcess);
+
+        ImGui::SameLine();
+        if (ImGui::Button(processing ? "Processing..." : "Run Analysis"))
         {
-            if (viewModel.onRunSingleRequested)
-                viewModel.onRunSingleRequested();
+            // 3. Call the correct callback based on state
+            if (viewModel.config.bulkProcess)
+            {
+                if (viewModel.onRunBulkRequested)
+                    viewModel.onRunBulkRequested();
+            }
+            else
+            {
+                if (viewModel.onRunSingleRequested)
+                    viewModel.onRunSingleRequested();
+            }
         }
+        ImGui::EndDisabled(); // Re-enable GUI
+
+        ImGui::Separator();
+
+        if (processing)
+        {
+            ImGui::Text("Analysis in progress, please wait...");
+            // You could add an ImGui::Spinner or loading bar here
+        }
+
+        // --- Settings Editor ---
+        ImGui::BeginChild("SettingsChildWindow", ImVec2(0, 0), true);
+        {
+            renderLogger(viewModel.logger);
+            ImGui::Separator();
+
+            // 4. Pass the view model's data to the sub-editor
+            ConfigEditor::Render(viewModel.config, viewModel.settings, viewModel.info);
+        }
+
+        ImGui::EndChild();
     }
-    ImGui::EndDisabled(); // Re-enable GUI
-
-    ImGui::Separator();
-
-    if (processing)
-    {
-        ImGui::Text("Analysis in progress, please wait...");
-        // You could add an ImGui::Spinner or loading bar here
-    }
-
-    // --- Settings Editor ---
-    ImGui::BeginChild("SettingsChildWindow", ImVec2(0, 0), true);
-
-    // 4. Pass the view model's data to the sub-editor
-    ConfigEditor::Render(viewModel.config, viewModel.settings, viewModel.info);
-
-    ImGui::EndChild();
     ImGui::End();
 }
 
