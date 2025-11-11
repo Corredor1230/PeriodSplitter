@@ -78,6 +78,7 @@ namespace SihatJson {
         j = json{
             {"n_nfft", n.nfft},
             {"n_hopSize", n.hopSize},
+            {"n_numBins", n.numBins},
             {"n_startSample", n.startSample},
             {"n_useList", n.useList}
         };
@@ -155,6 +156,7 @@ namespace SihatJson {
     inline void from_json(const json& j, Sitrano::NoiseSettings& n) {
         j.at("n_nfft").get_to(n.nfft);
         j.at("n_hopSize").get_to(n.hopSize);
+        j.at("n_numBins").get_to(n.numBins);
         j.at("n_startSample").get_to(n.startSample);
         j.at("n_useList").get_to(n.useList);
     }
