@@ -51,12 +51,10 @@ std::vector<std::vector<float>> NoiseTracker::analyze() {
     if (numFrames <= 0) return noise;
     const float df = sampleRate / N;
 
-
-    // --- 1. Restructure Data Format ---
     // The outer vector now represents BANDS, the inner vector represents FRAMES (time).
     noise.assign(bands.size(), std::vector<float>(numFrames, 0.0f));
 
-    // --- Main Analysis Loop (calculates power) ---
+    // Main Analysis Loop (calculates power)
     for (int i = 0; i < numFrames; ++i) {
         int startSample = useList ? frameTable[i] : i * hop;
         if (startSample + N > signal.size()) {
