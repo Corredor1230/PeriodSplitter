@@ -89,6 +89,7 @@ namespace Sitrano
     struct NoiseSettings {
         int nfft = 128;
         int hopSize = 32;
+        int numBins = 32;
         int startSample = 0;
         bool useList = false;
     };
