@@ -14,7 +14,7 @@ NoiseTracker::NoiseTracker(const Sitrano::NoiseSettings& settings,
 	startFreq(startFreq)
 {
 	float f0 = startFreq;
-	while (f0 < sr / 2.0 || f0 < 20000.0) {
+	while (f0 < sr / 2.0 && f0 < 20000.0) {
 		float f_low = f0 / pow(2.0, 1.0 / 6.0);
 		float f_high = f0 * pow(2.0, 1.0 / 6.0);
 		bands.push_back({ f_low, f_high, f0 });
@@ -86,12 +86,12 @@ std::vector<std::vector<float>> NoiseTracker::analyze() {
                     if (isTopFreq)
                     {
                         noise[b][i] = 0.0;
-                        break;
+                        continue;
                     }
                     else
                     {
                         noise[b][i] += power;
-                        break;
+                        continue;
                     }
                 }
             }
