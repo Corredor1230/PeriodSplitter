@@ -76,7 +76,7 @@ std::vector<std::vector<float>> NoiseTracker::analyze() {
             float freq = k * df;
             float real = fft_out[k][0];
             float imag = fft_out[k][1];
-            float power = real * real + imag * imag;
+            float mag = real * real + imag * imag;
 
             for (int b = 0; b < bands.size(); ++b) {
                 bool isTopFreq = false;
@@ -90,7 +90,7 @@ std::vector<std::vector<float>> NoiseTracker::analyze() {
                     }
                     else
                     {
-                        noise[b][i] += power;
+                        noise[b][i] += mag;
                         continue;
                     }
                 }
