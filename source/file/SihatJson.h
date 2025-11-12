@@ -81,6 +81,8 @@ namespace SihatJson {
             {"n_numBins", n.numBins},
             {"n_minFreq", n.minFreq},
             {"n_maxFreq", n.maxFreq},
+            {"n_useOctaveDiv", n.useOctaveDiv},
+            {"n_octaveDiv", n.octaveDiv},
             {"n_startSample", n.startSample},
             {"n_useList", n.useList}
         };
@@ -162,6 +164,8 @@ namespace SihatJson {
         j.at("n_numBins").get_to(n.numBins);
         j.at("n_minFreq").get_to(n.minFreq);
         j.at("n_maxfreq").get_to(n.maxFreq);
+        j.at("n_useOctaveDiv").get_to(n.useOctaveDiv);
+        j.at("n_octaveDiv").get_to(n.octaveDiv);
         j.at("n_startSample").get_to(n.startSample);
         j.at("n_useList").get_to(n.useList);
     }

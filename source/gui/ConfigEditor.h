@@ -168,6 +168,8 @@ public:
                 ImGui::InputInt("Num Bins", &config.nSettings.numBins);
                 ImGui::InputFloat("Min Freq", &config.nSettings.minFreq);
                 ImGui::InputFloat("Max Freq", &config.nSettings.maxFreq);
+                ImGui::Checkbox("Use octave division", &config.nSettings.useOctaveDiv);
+                ImGui::InputFloat("Octave division", &config.nSettings.octaveDiv);
                 ImGui::InputInt("Start sample", &config.nSettings.startSample);
                 ImGui::Checkbox("Use previous lists", &config.nSettings.useList);
                 ImGui::TreePop();

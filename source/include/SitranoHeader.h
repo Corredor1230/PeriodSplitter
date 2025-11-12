@@ -92,6 +92,8 @@ namespace Sitrano
         int numBins = 32;
         float minFreq = 60.f;
         float maxFreq = 20000.f;
+        bool useOctaveDiv = true;
+        float octaveDiv = 3.0;
         int startSample = 0;
         bool useList = false;
     };

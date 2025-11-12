@@ -19,6 +19,8 @@
             "n_numBins": 32,
 			"n_minFreq": 60.0,
 			"n_maxFreq": 20000.0,
+			"n_useOctaveDiv": true,
+			"n_octaveDiv": 3.0,
             "n_startSample": 0,
             "n_useList": false
         },
