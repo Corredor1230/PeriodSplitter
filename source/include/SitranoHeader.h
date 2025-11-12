@@ -90,6 +90,8 @@ namespace Sitrano
         int nfft = 128;
         int hopSize = 32;
         int numBins = 32;
+        float minFreq = 60.f;
+        float maxFreq = 20000.f;
         int startSample = 0;
         bool useList = false;
     };

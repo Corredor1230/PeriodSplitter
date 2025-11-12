@@ -166,6 +166,8 @@ public:
                 ImGui::InputInt("FFT Size", &config.nSettings.nfft);
                 ImGui::InputInt("Hop Length", &config.nSettings.hopSize);
                 ImGui::InputInt("Num Bins", &config.nSettings.numBins);
+                ImGui::InputFloat("Min Freq", &config.nSettings.minFreq);
+                ImGui::InputFloat("Max Freq", &config.nSettings.maxFreq);
                 ImGui::InputInt("Start sample", &config.nSettings.startSample);
                 ImGui::Checkbox("Use previous lists", &config.nSettings.useList);
                 ImGui::TreePop();
