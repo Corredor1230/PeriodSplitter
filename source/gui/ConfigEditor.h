@@ -110,17 +110,16 @@ public:
                     config.hSettings.style = static_cast<Sitrano::WindowStyle>(styleAsInt);
                 }
 
-                // I'm adding a small tooltip to remind you to change the names
-                ImGui::SameLine();
-                ImGui::TextDisabled("(?)");
-                if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort))
-                {
-                    ImGui::BeginTooltip();
-                    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-                    ImGui::TextUnformatted("NOTE: I've assumed the names and order for the 'Window Style' enum (e.g., 0=Rectangular, 1=Hann, ...).\n\nYou'll need to update the 'windowStyles' array in ConfigEditor.h to match your actual enum definition!");
-                    ImGui::PopTextWrapPos();
-                    ImGui::EndTooltip();
-                }
+                //ImGui::SameLine();
+                //ImGui::TextDisabled("(?)");
+                //if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort))
+                //{
+                //    ImGui::BeginTooltip();
+                //    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+                //    ImGui::TextUnformatted("NOTE: I've assumed the names and order for the 'Window Style' enum (e.g., 0=Rectangular, 1=Hann, ...).\n\nYou'll need to update the 'windowStyles' array in ConfigEditor.h to match your actual enum definition!");
+                //    ImGui::PopTextWrapPos();
+                //    ImGui::EndTooltip();
+                //}
                 ImGui::TreePop();
             }
 
