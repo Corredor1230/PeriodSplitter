@@ -1,33 +1,33 @@
 {
     "config": {
         "N": 32768,
-        "bulkProcess": true,
+        "bulkProcess": false,
         "correlationSettings": {
             "c_offset": 50.0,
-            "c_threshold": 0.75
+            "c_threshold": 0.949999988079071
         },
         "harmonicSettings": {
-            "h_Tolerance": 25.0,
+            "h_Tolerance": -107374176.0,
             "h_enabled": true,
-            "h_windowStyle": 2
+            "h_windowStyle": -858993460
         },
         "hopSize": 1024,
         "maxHarmonics": 32,
         "noiseSettings": {
-            "n_hopSize": 64,
-            "n_nfft": 128,
+            "n_hopSize": 2048,
+            "n_nfft": 4096,
             "n_numBins": 32,
             "n_startSample": 0,
             "n_useList": false
         },
         "overtoneSettings": {
-            "o_FirstSample": 2000,
-            "o_absThreshold": false,
-            "o_ignoreThreshold": -40.0,
+            "o_FirstSample": 0,
+            "o_absThreshold": true,
+            "o_ignoreThreshold": -60.0,
             "o_mfft": 65536,
             "o_postTransientStart": true,
             "o_sumAmplitudes": true,
-            "o_tolerance": 1.0,
+            "o_tolerance": 100.0,
             "o_useCustomSignal": true,
             "o_useTolerance": true
         },
@@ -58,6 +58,7 @@
         "prefix": "DATA"
     },
     "settings": {
+        "fullHarmonicAnalysis": true,
         "harmonicAnalysis": true,
         "noiseAnalysis": true,
         "overtoneAnalysis": true,
