@@ -16,8 +16,12 @@ NoiseTracker::NoiseTracker(const Sitrano::NoiseSettings& settings,
 {
 	float f0 = settings.minFreq;
     float m0 = Sitrano::freqToMidi(f0);
-    float step = (Sitrano::freqToMidi(settings.maxFreq) - Sitrano::freqToMidi(f0)) / (float)num;
-    float half = step / 2.0;
+    float step;
+    float half;
+    if (settings.useOctaveDiv) step = 12.0 / settings.octaveDiv;
+    else step = (Sitrano::freqToMidi(settings.maxFreq) - Sitrano::freqToMidi(f0)) / 
+        (float)num;
+    half = step / 2.0;
 	while (m0 < Sitrano::freqToMidi(sr / 2.0) && 
         m0 < Sitrano::freqToMidi(settings.maxFreq)) 
     {
