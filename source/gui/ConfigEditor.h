@@ -50,7 +50,6 @@ public:
             aChildWasClicked |= ImGui::Checkbox("Period Analysis", &settings.periodAnalysis);
             aChildWasClicked |= ImGui::Checkbox("Overtone Analysis", &settings.overtoneAnalysis);
             aChildWasClicked |= ImGui::Checkbox("Harmonic Analysis", &settings.harmonicAnalysis);
-            aChildWasClicked |= ImGui::Checkbox("Noise Analysis", &settings.noiseAnalysis);
 
             if (aChildWasClicked)
             {
@@ -58,10 +57,12 @@ public:
                     settings.transientSeparation &&
                     settings.periodAnalysis &&
                     settings.overtoneAnalysis &&
-                    settings.harmonicAnalysis &&
-                    settings.noiseAnalysis;
+                    settings.harmonicAnalysis;
                 settings.fullHarmonicAnalysis = allChildrenAreOn;
             }
+
+            ImGui::Checkbox("Noise Analysis", &settings.noiseAnalysis);
+
         }
 
         // --- 2. Output File Info (Info) ---
