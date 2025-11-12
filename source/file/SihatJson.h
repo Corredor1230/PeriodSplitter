@@ -163,7 +163,7 @@ namespace SihatJson {
         j.at("n_hopSize").get_to(n.hopSize);
         j.at("n_numBins").get_to(n.numBins);
         j.at("n_minFreq").get_to(n.minFreq);
-        j.at("n_maxfreq").get_to(n.maxFreq);
+        j.at("n_maxFreq").get_to(n.maxFreq);
         j.at("n_useOctaveDiv").get_to(n.useOctaveDiv);
         j.at("n_octaveDiv").get_to(n.octaveDiv);
         j.at("n_startSample").get_to(n.startSample);
