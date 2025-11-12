@@ -14,11 +14,13 @@ NoiseTracker::NoiseTracker(const Sitrano::NoiseSettings& settings,
 	startFreq(startFreq)
 {
 	float f0 = startFreq;
-	while (f0 < sr / 2.0 && f0 < 20000.0) {
-		float f_low = f0 / pow(2.0, 1.0 / 6.0);
-		float f_high = f0 * pow(2.0, 1.0 / 6.0);
+    float m0 = Sitrano::freqToMidi(f0);
+	while (m0 < Sitrano::freqToMidi(sr / 2.0) && m0 < Sitrano::freqToMidi(20000.0)) {
+		float f_low = Sitrano::midiToFreq(m0 - 2.0);
+        float f_high = Sitrano::midiToFreq(m0 + 2.0);
 		bands.push_back({ f_low, f_high, f0 });
-		f0 *= pow(2.0, 1.0 / 3.0);
+        m0 += 4.0;
+		f0 = Sitrano::midiToFreq(m0);
 	}
 
 	// FFTW Initialization
@@ -77,24 +79,10 @@ std::vector<std::vector<float>> NoiseTracker::analyze() {
             float real = fft_out[k][0];
             float imag = fft_out[k][1];
             float mag = real * real + imag * imag;
+            float amp = Sitrano::mag_to_amp(mag, N);
+            int bin = findLargeBin(freq, bands);
 
-            for (int b = 0; b < bands.size(); ++b) {
-                bool isTopFreq = false;
-                if (freq >= bands[b].f_low && freq < bands[b].f_high) {
-                    // Assign to transposed matrix: results[band][frame]
-                    isTopFreq = isInVector(freq, topFreqs);
-                    if (isTopFreq)
-                    {
-                        noise[b][i] = 0.0;
-                        continue;
-                    }
-                    else
-                    {
-                        noise[b][i] += mag;
-                        continue;
-                    }
-                }
-            }
+            noise[bin][i] += amp;
         }
     }
 
@@ -131,4 +119,18 @@ bool NoiseTracker::isInVector(float freq, const std::vector<Sitrano::Peak>& topF
     }
 
     return isInVector;
+}
+
+int NoiseTracker::findLargeBin(float freq, std::vector<Band> bands)
+{
+    int largeBin = 0;
+    for (int i = 0; i < bands.size(); i++)
+    {
+        if (freq > bands[i].f_low && freq <= bands[i].f_high)
+        {
+            largeBin = i;
+            return largeBin;
+        }
+    }
+    return largeBin;
 }

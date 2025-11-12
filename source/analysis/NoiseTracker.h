@@ -29,11 +29,10 @@ private:
 	const Sitrano::AnalysisUnit& unit;
 
 	bool isInVector(float freq, const std::vector<Sitrano::Peak>& topFreqs);
-
-
-	float startFreq{0.f};
+	int findLargeBin(float freq, std::vector<Band> bands);
 	float sr{ 96000.f };
 	bool useList;
+	float startFreq{ 20.f };
 	const int N;
 	const int hop;
 
