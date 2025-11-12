@@ -10,6 +10,8 @@ NoiseTracker::NoiseTracker(const Sitrano::NoiseSettings& settings,
     topFreqs(r.topFreqs),
     hop(settings.hopSize),
     num(settings.numBins),
+    minFreq(settings.minFreq),
+    maxFreq(settings.maxFreq),
     sr(unit.sampleRate),
     useList(settings.useList),
 	startFreq(startFreq)
@@ -85,6 +87,7 @@ std::vector<std::vector<float>> NoiseTracker::analyze() {
         // Sum power into the correct bands
         for (int k = 0; k < N / 2 + 1; ++k) {
             float freq = k * df;
+            if (freq < minFreq) continue;
             float real = fft_out[k][0];
             float imag = fft_out[k][1];
             float mag = real * real + imag * imag;

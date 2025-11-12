@@ -35,6 +35,8 @@ private:
 	float startFreq{ 20.f };
 	const int N;
 	const int num;
+	const float minFreq;
+	const float maxFreq;
 	const int hop;
 
 	fftwf_plan plan;
