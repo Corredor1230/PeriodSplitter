@@ -9,17 +9,22 @@ NoiseTracker::NoiseTracker(const Sitrano::NoiseSettings& settings,
     N(settings.nfft),
     topFreqs(r.topFreqs),
     hop(settings.hopSize),
+    num(settings.numBins),
     sr(unit.sampleRate),
     useList(settings.useList),
 	startFreq(startFreq)
 {
-	float f0 = startFreq;
+	float f0 = settings.minFreq;
     float m0 = Sitrano::freqToMidi(f0);
-	while (m0 < Sitrano::freqToMidi(sr / 2.0) && m0 < Sitrano::freqToMidi(20000.0)) {
-		float f_low = Sitrano::midiToFreq(m0 - 2.0);
-        float f_high = Sitrano::midiToFreq(m0 + 2.0);
+    float step = (Sitrano::freqToMidi(settings.maxFreq) - Sitrano::freqToMidi(f0)) / (float)num;
+    float half = step / 2.0;
+	while (m0 < Sitrano::freqToMidi(sr / 2.0) && 
+        m0 < Sitrano::freqToMidi(settings.maxFreq)) 
+    {
+		float f_low = Sitrano::midiToFreq(m0 - half);
+        float f_high = Sitrano::midiToFreq(m0 + half);
 		bands.push_back({ f_low, f_high, f0 });
-        m0 += 4.0;
+        m0 += step;
 		f0 = Sitrano::midiToFreq(m0);
 	}
 

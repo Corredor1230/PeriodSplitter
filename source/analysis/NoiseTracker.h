@@ -34,6 +34,7 @@ private:
 	bool useList;
 	float startFreq{ 20.f };
 	const int N;
+	const int num;
 	const int hop;
 
 	fftwf_plan plan;
