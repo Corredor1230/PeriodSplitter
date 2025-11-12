@@ -28,7 +28,8 @@ private:
 
 	const Sitrano::AnalysisUnit& unit;
 
-	bool isInVector(float freq, const std::vector<Sitrano::Peak>& topFreqs);
+	bool isInTop(float freq, const std::vector<Sitrano::Peak>& topFreqs,
+		const std::vector<Band>& bands);
 	int findLargeBin(float freq, std::vector<Band> bands);
 	float sr{ 96000.f };
 	bool useList;

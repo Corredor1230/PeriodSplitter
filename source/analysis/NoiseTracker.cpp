@@ -94,7 +94,8 @@ std::vector<std::vector<float>> NoiseTracker::analyze() {
             float amp = Sitrano::mag_to_amp(mag, N);
             int bin = findLargeBin(freq, bands);
 
-            noise[bin][i] += amp;
+            if (isInTop(freq, topFreqs, bands)) noise[bin][i] = 0.0;
+            else noise[bin][i] += amp;
         }
     }
 
@@ -120,13 +121,14 @@ std::vector<std::vector<float>> NoiseTracker::analyze() {
     return noise;
 }
 
-bool NoiseTracker::isInVector(float freq, const std::vector<Sitrano::Peak>& topFreqs)
+bool NoiseTracker::isInTop(float freq, const std::vector<Sitrano::Peak>& topFreqs,
+    const std::vector<Band>& b)
 {
     bool isInVector = false;
     int freqBin = Sitrano::freqToBin(freq, N, sr);
     for (int i = 0; i < topFreqs.size(); i++)
     {
-        int topFreqBin = Sitrano::freqToBin(topFreqs[i].freq, N, sr);
+        int topFreqBin = findLargeBin(topFreqs[i].freq, b);
         if (topFreqBin == freqBin) isInVector = true;
     }
 
