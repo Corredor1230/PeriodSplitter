@@ -6,44 +6,42 @@ import os
 import pathlib  # Added for easier path handling
 import sys      # Added for exit codes
 
-# =============================
 # Binary Loader for .sihat
-# =============================
-
 def load_sihat_data(path):
     """
     Loads all data from a single consolidated .sihat file.
     
     The file structure is expected to be:
     1. Indices data
-    2. Fast RMS data
-    3. Slow Frequency data
+    2. Amplitude data
+    3. Frequency data
     """
     with open(path, "rb") as f:
-        # --- Block 1: Load Indices ---
-        # Read n (number of indices)
+        #Block 1: Load Indices
+        #Read n (number of indices)
         n = np.frombuffer(f.read(4), dtype=np.uint32)[0]
-        # Read n * uint32_t
+        #Read n * uint32_t
         indices = np.frombuffer(f.read(n * 4), dtype=np.uint32)
 
-        # --- Block 2: Load Fast RMS Data ---
+        #Block 2: Load RMS Data
         # Read number of harmonics
         num_harmonics_fast = np.frombuffer(f.read(4), dtype=np.uint32)[0]
-        fastData = []
+        ampData = []
         for _ in range(num_harmonics_fast):
             # Read length of this harmonic's data
             length = np.frombuffer(f.read(4), dtype=np.uint32)[0]
             # Read length * float
             data = np.frombuffer(f.read(length * 4), dtype=np.float32)
-            fastData.append(data)
+            ampData.append(data)
 
-        # --- Block 3: Load Slow Frequency Data ---
-        # Read number of harmonics (should be same as fast)
+        #Block 3: Load Frequency Data
+        #Read number of harmonics (should be same as fast)
         num_harmonics_slow = np.frombuffer(f.read(4), dtype=np.uint32)[0]
-        slowData = []
+        freqData = []
+        ratioData = []
         
-        # Define the C-style struct: { uint32_t index, float value, float ratio }
-        # 4 bytes + 4 bytes + 4 bytes = 12 bytes
+        #Define the C-style struct: { uint32_t index, float value, float ratio }
+        #4 bytes + 4 bytes + 4 bytes = 12 bytes
         cp_dtype = np.dtype([("index", np.uint32), ("value", np.float32), ("ratio", np.float32)])
         
         for _ in range(num_harmonics_slow):
@@ -51,15 +49,12 @@ def load_sihat_data(path):
             length = np.frombuffer(f.read(4), dtype=np.uint32)[0]
             # Read length * 12 bytes
             entries = np.frombuffer(f.read(length * cp_dtype.itemsize), dtype=cp_dtype)
-            slowData.append(entries)
+            freqData.append(entries)
 
-    print(f"Loaded {len(indices)} indices, {len(fastData)} fast harmonics, and {len(slowData)} slow harmonics.")
-    return indices, fastData, slowData
+    print(f"Loaded {len(indices)} indices, {len(ampData)} fast harmonics, and {len(freqData)} slow harmonics.")
+    return indices, ampData, freqData
 
-# =============================
-# Plotting (Unchanged)
-# =============================
-
+# Plotting
 def plot_data(indices, fastData, slowData):
     """
     Visualizes:
@@ -70,9 +65,7 @@ def plot_data(indices, fastData, slowData):
 
     fig, axes = plt.subplots(3, 1, figsize=(12, 8), sharex=True)
 
-    # ---------------------------
-    # 1️⃣ RMS per harmonic
-    # ---------------------------
+    # RMS per harmonic
     for i, rms in enumerate(fastData):
         # Ensure we don't plot more data than we have index labels for
         plot_len = min(len(indices), len(rms))
@@ -82,9 +75,7 @@ def plot_data(indices, fastData, slowData):
     axes[0].legend(loc="upper right", ncol=4, fontsize=8)
     axes[0].grid(True, alpha=0.3)
 
-    # ---------------------------
-    # 2️⃣ Frequency per harmonic
-    # ---------------------------
+    # Frequency per harmonic
     for i, freqPoints in enumerate(slowData):
         if len(freqPoints) == 0: continue
         freq = np.zeros_like(indices, dtype=float)
@@ -108,9 +99,7 @@ def plot_data(indices, fastData, slowData):
     axes[1].legend(loc="upper right", ncol=4, fontsize=8)
     axes[1].grid(True, alpha=0.3)
 
-    # ---------------------------
-    # 3️⃣ Harmonic Ratio (f / f₀)
-    # ---------------------------
+    # Harmonic Ratio (f / f₀)
     for i, freqPoints in enumerate(slowData):
         if len(freqPoints) == 0: continue
         ratio = np.zeros_like(indices, dtype=float)
@@ -136,6 +125,22 @@ def plot_data(indices, fastData, slowData):
     plt.tight_layout()
     plt.show()
 
+def getFreqRatios(indices, freqData):
+    ratio = np.zeros_like(freqData.size,)
+
+    for i, freqPoints in enumerate(freqData):
+        if len(freqPoints) == 0: continue
+        ratio = np.zeros_like(indices, dtype=float)
+        
+        for j, point in enumerate(freqPoints):
+            idx = point["index"]
+            r = point["ratio"]
+            
+            is_last_point = (j == len(freqPoints) - 1)
+            next_idx = indices[-1] + 1 if is_last_point else freqPoints[j+1]["index"]
+
+            mask = (indices >= idx) & (indices < next_idx)
+            ratio[mask] = r
 
 # =============================
 # Synth mode (Signature Updated)
@@ -236,8 +241,8 @@ if __name__ == "__main__":
     dyn = "F"
     inExt = ".sihat"
     outExt = ".wav"
-    outputDir = "gen/"
-    inputDir = "sihat/"
+    outputDir = "gen/periodLoop"
+    inputDir = "../build/sihat/audioChunk"
     outPrefix = "GEN_"
     sampleRate = 96000
 
