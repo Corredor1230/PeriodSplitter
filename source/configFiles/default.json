@@ -1,15 +1,15 @@
 {
     "config": {
         "N": 32768,
-        "bulkProcess": false,
+        "bulkProcess": true,
         "correlationSettings": {
             "c_offset": 50.0,
             "c_threshold": 0.949999988079071
         },
         "harmonicSettings": {
-            "h_Tolerance": -107374176.0,
+            "h_Tolerance": 25.0,
             "h_enabled": true,
-            "h_windowStyle": -858993460
+            "h_windowStyle": 2
         },
         "hopSize": 1024,
         "maxHarmonics": 32,
@@ -58,13 +58,13 @@
     },
     "info": {
         "extension": "sihat",
-        "outDir": "sihat",
+        "outDir": "sihat/audioChunk",
         "prefix": "DATA"
     },
     "settings": {
         "fullHarmonicAnalysis": true,
         "harmonicAnalysis": true,
-        "noiseAnalysis": true,
+        "noiseAnalysis": false,
         "overtoneAnalysis": true,
         "periodAnalysis": true,
         "pitchAnalysis": true,
