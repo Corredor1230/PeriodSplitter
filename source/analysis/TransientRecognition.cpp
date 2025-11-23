@@ -152,8 +152,17 @@ Sitrano::SampleRange Transient::findFromRMS()
 Sitrano::SampleRange Transient::findFromFFT(bool transientFailed, Sitrano::SampleRange rmsRange)
 {
     Sitrano::SampleRange range;
-    for (int i = 0; i < (int)sampleRate + rmsRange.initSample; i++)
+    int startSamp = rmsRange.initSample;
+    if (transientFailed) startSamp = 0;
+
+    for (int i = startSamp; i < (int)sampleRate + startSamp; i+=hop)
     {
-        size_t numToCopy = std::min(aud.size(), (size_t)nfft);
+        if ((i + nfft) > aud.size()) break;
+        for (int j = 0; j < nfft; j++)
+        {
+            input[j] = aud[i + j];
+        }
+
+        fftwf_execute(plan);
     }
 }
