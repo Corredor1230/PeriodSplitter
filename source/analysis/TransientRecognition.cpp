@@ -1,15 +1,20 @@
 #include"TransientRecognition.h"
 
 Transient::Transient(
-	const Sitrano::AnalysisUnit& unit,
-    const Sitrano::TransientSettings& conf
+    const Sitrano::AnalysisUnit& unit,
+    const Sitrano::TransientSettings& conf,
+    const Sitrano::TransientFFTSettings& ffts
 ) :
     tSettings(conf),
-	sampleRate(unit.sampleRate),
-	aud(unit.soundFile),
+    sampleRate(unit.sampleRate),
+    aud(unit.soundFile),
     factor(conf.transientFactor),
     threshold(conf.transientThreshold),
-    preAttack(conf.preAttack)
+    preAttack(conf.preAttack),
+    sr(unit.sampleRate),
+    nfft(ffts.nfft),
+    hop(ffts.hopSize),
+    flatnessThresh(ffts.flatnessThreshold)
 {
     if (!conf.useMs)
     {
@@ -21,9 +26,29 @@ Transient::Transient(
         rmsSize = (tSettings.transientRmsSizeMs / 1000.f) * sampleRate;
         rmsHopLength = std::max(1, (int)((float)rmsSize * tSettings.transientRmsHopRatio));
     }
+
+    initFFTW();
+}
+
+void Transient::initFFTW()
+{
+    input = (float*)fftwf_malloc(sizeof(float) * nfft);
+    output = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex) * (nfft / 2 + 1));
+    plan = fftwf_plan_dft_r2c_1d(nfft, input, output, FFTW_MEASURE);
 }
 
 Sitrano::SampleRange Transient::findStartTransient()
+{
+    Sitrano::SampleRange rmsRange = findFromRMS();
+    bool transientFailed = false;
+    if (rmsRange.initSample == 0 || rmsRange.endSample == 0) transientFailed = true;
+
+    Sitrano::SampleRange range = findFromFFT(transientFailed, rmsRange);
+
+    return range;
+}
+
+Sitrano::SampleRange Transient::findFromRMS()
 {
     Sitrano::SampleRange range;
     range.initSample = tSettings.tStartSample;
@@ -122,4 +147,13 @@ Sitrano::SampleRange Transient::findStartTransient()
     range.initSample = Sitrano::findNearestZero(aud, offset);
     range.endSample = Sitrano::findNextZero(aud, peakSample);
     return range;
+}
+
+Sitrano::SampleRange Transient::findFromFFT(bool transientFailed, Sitrano::SampleRange rmsRange)
+{
+    Sitrano::SampleRange range;
+    for (int i = 0; i < (int)sampleRate + rmsRange.initSample; i++)
+    {
+        size_t numToCopy = std::min(aud.size(), (size_t)nfft);
+    }
 }
