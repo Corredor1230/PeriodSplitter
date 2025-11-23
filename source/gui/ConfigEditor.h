@@ -157,6 +157,10 @@ public:
                 ImGui::InputFloat("RMS Hop Ratio", &config.tSettings.transientRmsHopRatio);
                 ImGui::InputFloat("RMS Size (ms)", &config.tSettings.transientRmsSizeMs);
                 ImGui::Checkbox("Use MS", &config.tSettings.useMs);
+                ImGui::InputInt("Transient FFT Size", &config.tfftSettings.nfft);
+                ImGui::InputInt("Transient Hop Size", &config.tfftSettings.hopSize);
+                ImGui::Checkbox("Use FFT", &config.tfftSettings.useFFT);
+                ImGui::InputFloat("Transient Flatness Threshold", &config.tfftSettings.flatnessThreshold);
                 ImGui::TreePop();
             }
 

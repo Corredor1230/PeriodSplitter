@@ -33,6 +33,15 @@ namespace SihatJson {
         };
     }
 
+    inline void to_json(json& j, const Sitrano::TransientFFTSettings& tfft){
+        j = json{
+            {"tfft_nfft", tfft.nfft},
+            {"tfft_hopSize", tfft.hopSize},
+            {"tfft_useFFT", tfft.useFFT},
+            {"tfft_flatnessThreshold", tfft.flatnessThreshold}
+        };
+    }
+
     inline void to_json(json& j, const SihatFile::OutInfo& i) {
         j = json{
             {"outDir", i.outDir},
@@ -106,6 +115,7 @@ namespace SihatJson {
 
         json pSettings;
         json tSettings;
+        json tfftSettings;
         json cSettings;
         json oSettings;
         json hSettings;
@@ -113,6 +123,7 @@ namespace SihatJson {
 
         to_json(pSettings, c.pSettings);
         to_json(tSettings, c.tSettings);
+        to_json(tfftSettings, c.tfftSettings);
         to_json(cSettings, c.cSettings);
         to_json(oSettings, c.oSettings);
         to_json(hSettings, c.hSettings);
@@ -127,6 +138,7 @@ namespace SihatJson {
             {"tolerance", c.tolerance},
             {"pitchSettings", pSettings},
             {"transientSettings", tSettings},
+            {"transientFFTSettings", tfftSettings},
             {"correlationSettings", cSettings},
             {"overtoneSettings", oSettings},
             {"harmonicSettings", hSettings},
@@ -155,6 +167,13 @@ namespace SihatJson {
         j.at("t_factor").get_to(t.transientFactor);
         j.at("t_threshold").get_to(t.transientThreshold);
         j.at("t_preAttack").get_to(t.preAttack);
+    }
+
+    inline void from_json(const json& j, Sitrano::TransientFFTSettings& tfft){
+        j.at("tfft_nfft").get_to(tfft.nfft);
+        j.at("tfft_hopSize").get_to(tfft.hopSize);
+        j.at("tfft_useFFT").get_to(tfft.useFFT);
+        j.at("tfft_flatnessThreshold").get_to(tfft.flatnessThreshold);
     }
 
     // --- NoiseSettings ---
@@ -230,6 +249,7 @@ namespace SihatJson {
 
         from_json(j.at("pitchSettings"), c.pSettings);
         from_json(j.at("transientSettings"), c.tSettings);
+        from_json(j.at("transientFFTSettings"), c.tfftSettings);
         from_json(j.at("correlationSettings"), c.cSettings);
         from_json(j.at("overtoneSettings"), c.oSettings);
         from_json(j.at("harmonicSettings"), c.hSettings);

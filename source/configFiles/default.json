@@ -54,6 +54,12 @@
             "t_rmsSizeMs": 1.0,
             "t_threshold": 0.10000000149011612
         },
+        "transientFFTSettings":{
+            "tfft_nfft": 2048,
+            "tfft_hopSize": 256,
+            "tfft_useFFT": true,
+            "tfft_flatnessThreshold": 0.6
+        },
         "verbose": true
     },
     "info": {

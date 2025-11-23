@@ -113,6 +113,7 @@ namespace Sitrano
         float tolerance = 100.f;
         PitchSettings pSettings;
         TransientSettings tSettings;
+        TransientFFTSettings tfftSettings;
         CorrelationSettings cSettings;
         OvertoneSettings oSettings;
         HarmonicSettings hSettings;
