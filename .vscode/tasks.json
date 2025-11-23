@@ -1,0 +1,15 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "CMake: build",
+            "type": "cmake",
+            "command": "build", // This triggers the CMake extension's "Build" button
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$msCompile"
+        }
+    ]
+}

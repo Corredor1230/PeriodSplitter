@@ -1,0 +1,26 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug PeriodicSplitter",
+            "type": "cppvsdbg",
+            "request": "launch",
+            // This asks the CMake Tools extension "Where is the executable defined in CMakeLists.txt?"
+            "program": "${command:cmake.launchTargetPath}",
+            "args": [], 
+            "stopAtEntry": false,
+            // Sets the working directory to your project root. 
+            // Crucial if your code tries to load "source/assets/audio.wav" or similar relative paths.
+            "cwd": "${workspaceFolder}", 
+            "preLaunchTask": "CMake: build",
+            "environment": [
+                {
+                    // This ensures the debugger can find the DLLs (glfw, sndfile) if they are in the build folder
+                    "name": "PATH",
+                    "value": "${env:PATH};${command:cmake.getLaunchTargetDirectory}" 
+                }
+            ],
+            "console": "externalTerminal"
+        }
+    ]
+}
