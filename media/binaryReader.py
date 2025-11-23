@@ -12,11 +12,15 @@ def load_sihat_data(path):
     Loads all data from a single consolidated .sihat file.
     
     The file structure is expected to be:
+    0. Fundamental frequency (f0)
     1. Indices data
     2. Amplitude data
     3. Frequency data
     """
     with open(path, "rb") as f:
+        #Block 0: Load f0
+        f0 = np.frombuffer(f.read(4), dtype=np.float32)[0]
+
         #Block 1: Load Indices
         #Read n (number of indices)
         n = np.frombuffer(f.read(4), dtype=np.uint32)[0]
@@ -38,7 +42,7 @@ def load_sihat_data(path):
         #Read number of harmonics (should be same as fast)
         num_harmonics_slow = np.frombuffer(f.read(4), dtype=np.uint32)[0]
         freqData = []
-        ratioData = []
+        ratios = []
         
         #Define the C-style struct: { uint32_t index, float value, float ratio }
         #4 bytes + 4 bytes + 4 bytes = 12 bytes
@@ -47,12 +51,17 @@ def load_sihat_data(path):
         for _ in range(num_harmonics_slow):
             # Read number of change points for this harmonic
             length = np.frombuffer(f.read(4), dtype=np.uint32)[0]
-            # Read length * 12 bytes
-            entries = np.frombuffer(f.read(length * cp_dtype.itemsize), dtype=cp_dtype)
-            freqData.append(entries)
+            if length > 0:
+                # Read length * 12 bytes
+                entries = np.frombuffer(f.read(length * cp_dtype.itemsize), dtype=cp_dtype)
+                freqData.append(entries)
+                ratios.append(entries['ratio'])
+            else:
+                # Handle empty harmonics
+                freqData.append(np.array([], dtype=cp_dtype))
 
     print(f"Loaded {len(indices)} indices, {len(ampData)} fast harmonics, and {len(freqData)} slow harmonics.")
-    return indices, ampData, freqData
+    return indices, ampData, freqData, f0, ratios
 
 # Plotting
 def plot_data(indices, fastData, slowData):
@@ -125,34 +134,34 @@ def plot_data(indices, fastData, slowData):
     plt.tight_layout()
     plt.show()
 
-def getFreqRatios(indices, freqData):
-    ratio = np.zeros_like(freqData.size,)
+# def getFreqRatios(indices, freqData):
+#     ratio = np.zeros_like(freqData.size,)
 
-    for i, freqPoints in enumerate(freqData):
-        if len(freqPoints) == 0: continue
-        ratio = np.zeros_like(indices, dtype=float)
+#     for i, freqPoints in enumerate(freqData):
+#         if len(freqPoints) == 0: continue
+#         ratio = np.zeros_like(indices, dtype=float)
         
-        for j, point in enumerate(freqPoints):
-            idx = point["index"]
-            r = point["ratio"]
+#         for j, point in enumerate(freqPoints):
+#             idx = point["index"]
+#             r = point["ratio"]
             
-            is_last_point = (j == len(freqPoints) - 1)
-            next_idx = indices[-1] + 1 if is_last_point else freqPoints[j+1]["index"]
+#             is_last_point = (j == len(freqPoints) - 1)
+#             next_idx = indices[-1] + 1 if is_last_point else freqPoints[j+1]["index"]
 
-            mask = (indices >= idx) & (indices < next_idx)
-            ratio[mask] = r
+#             mask = (indices >= idx) & (indices < next_idx)
+#             ratio[mask] = r
 
 # =============================
 # Synth mode (Signature Updated)
 # =============================
-def synthesize(indices, fastData, slowData, sr=48000, filepath="gen/output.wav"):
+def synthesize(f0, ratios, indices, fastData, slowData, sr=48000, filepath="gen/output.wav"):
     """
     Synthesizes the harmonic data into a WAV file.
     
     Args:
         indices (np.array): Array of sample indices.
-        fastData (list): List of np.arrays (RMS amplitude envelopes).
-        slowData (list): List of structured np.arrays (frequency change points).
+        rmsData (list): List of np.arrays (RMS amplitude envelopes).
+        freqData (list): List of structured np.arrays (frequency change points).
         sr (int): The sample rate for the output audio.
         filepath (str): The full path (including directory) to save the .wav file.
     """
@@ -192,14 +201,14 @@ def synthesize(indices, fastData, slowData, sr=48000, filepath="gen/output.wav")
         freq_at_indices = np.zeros_like(indices, dtype=float)
         for j, point in enumerate(freq_points):
             idx = point["index"]
-            val = point["value"]
+            val = point["ratio"] * f0
             
             is_last_point = (j == len(freq_points)-1)
             next_idx = indices[-1] + 1 if is_last_point else freq_points[j+1]["index"]
             
             # Interpolate frequency between change points
             start_val = val
-            end_val = val if is_last_point else freq_points[j+1]["value"]
+            end_val = val if is_last_point else freq_points[j+1]["ratio"] * f0
             
             mask = (indices >= idx) & (indices < next_idx)
             if mask.any():
@@ -235,18 +244,20 @@ def synthesize(indices, fastData, slowData, sr=48000, filepath="gen/output.wav")
 # =============================
 if __name__ == "__main__":
     inPrefix = "DATA_"
-    instr = "EGuit"
-    string = "6"
-    freq = "124"
+    instr = "AGuit"
+    string = "1"
+    freq = "329"
+    newF0 = 329.0
     dyn = "F"
     inExt = ".sihat"
     outExt = ".wav"
-    outputDir = "gen/periodLoop"
-    inputDir = "../build/sihat/audioChunk"
-    outPrefix = "GEN_"
+    outputDir = "tests/audioChunk/"
+    inputDir = "../build/sihat/audioChunk/"
+    outPrefix = "GENto" + str(int(newF0)) + "_"
     sampleRate = 96000
+    replaceF0 = True
 
-    runMode = "synthesize_all"
+    runMode = "synth"
 
     fileName = instr + string + "_" + freq + "_" + dyn
     inName = inPrefix + fileName + inExt
@@ -324,7 +335,7 @@ if __name__ == "__main__":
             for file_path in sihat_files:
                 print(f"--- Processing: {file_path.name} ---")
                 try:
-                    indices, fastData, slowData = load_sihat_data(file_path)
+                    indices, fastData, slowData, f0, ratios = load_sihat_data(file_path)
                     
                     # Create unique output filename based on input
                     rawName = file_path.stem + ".wav"
@@ -334,7 +345,10 @@ if __name__ == "__main__":
                         output_filename = rawName
                     output_filepath = output_dir / output_filename
                     
-                    synthesize(indices, fastData, slowData, sr=args.sr, filepath=str(output_filepath))
+                    if replaceF0:
+                        synthesize(newF0, ratios, indices, fastData, slowData, sr=args.sr, filepath=str(output_filepath))
+                    else:
+                        synthesize(f0, ratios, indices, fastData, slowData, sr=args.sr, filepath=str(output_filepath))
                 except Exception as e:
                     # Log error for this file and continue with the next
                     print(f"Failed to process {file_path.name}: {e}")
@@ -347,14 +361,17 @@ if __name__ == "__main__":
                 sys.exit(1)
                 
             print(f"Loading data from: {input_path}")
-            indices, fastData, slowData = load_sihat_data(input_path)
+            indices, fastData, slowData, f0, ratios = load_sihat_data(input_path)
             print("Data loaded successfully.")
 
             if args.mode == "plot":
                 plot_data(indices, fastData, slowData)
             else: # mode == "synth"
                 # For single synth, args.out is the full filepath
-                synthesize(indices, fastData, slowData, sr=args.sr, filepath=args.out)
+                if replaceF0:
+                    synthesize(newF0, ratios, indices, fastData, slowData, sr=args.sr, filepath=str(args.out))
+                else:
+                    synthesize(f0, ratios, indices, fastData, slowData, sr=args.sr, filepath=str(args.out))
         
         else:
              print(f"Error: Unknown mode '{args.mode}'")
