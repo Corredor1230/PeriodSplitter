@@ -1,3 +1,8 @@
+#To-do 11/24
+Add geometric mean to Sitrano Header
+Add algebraic mean too
+Use those to find the flatness of each window
+
 #To-do 11/04
 Start noise research and development.
 
