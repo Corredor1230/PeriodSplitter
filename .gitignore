@@ -11,6 +11,7 @@ media/sihat
 media/gen
 media/oldGen
 media/peaks
+media/audioSession
 source/include/json.hpp
 glad/
 fast-cpp-csv-parser/
