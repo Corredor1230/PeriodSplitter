@@ -287,6 +287,10 @@ void Sitrano::saveHarmonicDataSihat(
             throw std::runtime_error("Failed to open file for writing: " + fullPath.string());
         }
 
+        {
+            f.write(reinterpret_cast<const char*>(&fundamentalFreq), sizeof(float));
+        }
+
         // Block 1: Write indices
         {
             uint32_t n = static_cast<uint32_t>(indices.size());
