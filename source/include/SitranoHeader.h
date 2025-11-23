@@ -37,6 +37,13 @@ namespace Sitrano
         int preAttack = 20; // number of samples before transient detection
     };
 
+    struct TransientFFTSettings {
+        bool useFFT = true;
+        int nfft = 1024;
+        int hopSize = 256;
+        float flatnessThreshold = 0.6;
+    };
+
     /** 
     * @brief This structure contains the main settings for the HarmonicTracker class
     * @param applyHanning: Defines whether a hanning window is applied to each FFT window.
