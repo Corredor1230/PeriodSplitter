@@ -49,8 +49,6 @@ set(DSP_SOURCES
 set(GUI_SOURCES
     ${SOURCE_DIR}/gui/GUI.h
     ${SOURCE_DIR}/gui/GUI.cpp
-    ${SOURCE_DIR}/gui/SpectrumView.cpp
-    ${SOURCE_DIR}/gui/SpectrumView.h
     ${SOURCE_DIR}/gui/ConfigEditor.h
     ${SOURCE_DIR}/gui/SihatEditor.cpp
     ${SOURCE_DIR}/gui/SihatEditor.h
@@ -81,9 +79,7 @@ set(INCLUDE_FILES
 
 set(FILE_FILES
     ${SOURCE_DIR}/file/Sihatcsv.h
-    ${SOURCE_DIR}/file/SihatFile.cpp
     ${SOURCE_DIR}/file/SihatFile.h
-    ${SOURCE_DIR}/file/SihatJson.cpp
     ${SOURCE_DIR}/file/SihatJson.h
     ${SOURCE_DIR}/file/JsonAdapters.h
 )
@@ -134,3 +130,17 @@ target_link_libraries(${EXECUTABLE_NAME} PRIVATE
     # Tu biblioteca manual
     "${LIBPYIN_LIBRARY_DIR}/LibPyin.lib"
 )
+
+add_custom_command(TARGET ${EXECUTABLE_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${SOURCE_DIR}/configFiles/default.json"
+    $<TARGET_FILE_DIR:${EXECUTABLE_NAME}>/default.json
+)
+
+if(WIN32)
+    add_custom_command(TARGET ${EXECUTABLE_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${LIBPYIN_LIBRARY_DIR}/LibPyin.dll"  # <--- Make sure this filename matches exactly!
+        $<TARGET_FILE_DIR:${EXECUTABLE_NAME}>
+    )
+endif()
