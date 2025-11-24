@@ -11,7 +11,7 @@
             "stopAtEntry": false,
             // Sets the working directory to your project root. 
             // Crucial if your code tries to load "source/assets/audio.wav" or similar relative paths.
-            "cwd": "${workspaceFolder}", 
+            "cwd": "${command:cmake.getLaunchTargetDirectory}", 
             "preLaunchTask": "CMake: build",
             "environment": [
                 {
