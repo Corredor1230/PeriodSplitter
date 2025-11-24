@@ -70,6 +70,10 @@ public:
         {
             // Uses imgui_stdlib.h to allow ImGui::InputText to work with std::string
             ImGui::InputText("Output Directory", &info.outDir);
+            if (ImGui::Button("Choose directory"))
+            {
+                info.outDir = SihatFile::openFolderDialog();
+            }
             ImGui::InputText("File Prefix", &info.prefix);
             ImGui::InputText("File Extension", &info.extension);
         }
