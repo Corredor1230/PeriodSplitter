@@ -132,14 +132,16 @@ The program saves the analysis data to one binary file with extension .sihat:
 
 * **`GEN_FILENAME.sihat`**: 
 
-1. A `std::vector<int>` containing the sample index for the start of each analysis frame. The size of this vector defines the time dimension of the other files.
+1. F0 (fundamental frequency) `float` containing the floating point value found for the input signal.
 
-2. A `std::vector<std::vector<float>>` (Harmonic x Time) containing the tracked amplitude for each partial in each frame.
+2. A `std::vector<int>` containing the sample index for the start of each analysis frame. The size of this vector defines the time dimension of the other files.
 
-3. A `std::vector<std::vector<float>>` (Harmonic x Time) containing the tracked frequency for each partial in each frame.
+3. A `std::vector<std::vector<float>>` (Harmonic x Time) containing the tracked amplitude for each partial in each frame.
+
+4. A `std::vector<std::vector<float>>` (Harmonic x Time) containing the tracked frequency for each partial in each frame.
 
 This file can be loaded by other C++ applications or read in scripting languages like Python (using `numpy.fromfile`) for plotting and further modeling.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+This project is licensed under the GPL v3 License - see the [LICENSE.md](LICENSE.md) file for details.
