@@ -120,6 +120,7 @@ namespace SihatFile {
 			CoUninitialize();
 			return folderPath;
 		}
+		return folderPath;
 	}
 
 	inline DirAndFiles getFileListFromExtension(const std::string& inDirectory,
