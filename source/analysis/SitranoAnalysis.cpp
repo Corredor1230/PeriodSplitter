@@ -23,7 +23,7 @@ Sitrano::Results Analyzer::analyze(
 
     if (settings.transientSeparation)
     {
-        Transient t(unit, mConfig.tSettings);
+        Transient t(unit, mConfig.tSettings, mConfig.tfftSettings);
         results.tRange = t.findStartTransient();
     }
     else
