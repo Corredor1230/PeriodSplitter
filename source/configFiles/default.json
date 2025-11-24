@@ -43,6 +43,12 @@
         },
         "startSample": 0,
         "tolerance": 100.0,
+        "transientFFTSettings": {
+            "tfft_flatnessThreshold": 0.6000000238418579,
+            "tfft_hopSize": 256,
+            "tfft_nfft": 2048,
+            "tfft_useFFT": true
+        },
         "transientSettings": {
             "t_StartSample": 0,
             "t_UseMs": false,
@@ -53,12 +59,6 @@
             "t_rmsSampleSize": 128,
             "t_rmsSizeMs": 1.0,
             "t_threshold": 0.10000000149011612
-        },
-        "transientFFTSettings":{
-            "tfft_nfft": 2048,
-            "tfft_hopSize": 256,
-            "tfft_useFFT": true,
-            "tfft_flatnessThreshold": 0.6
         },
         "verbose": true
     },
