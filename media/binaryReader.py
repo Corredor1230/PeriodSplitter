@@ -64,73 +64,90 @@ def load_sihat_data(path):
     return indices, ampData, freqData, f0, ratios
 
 # Plotting
-def plot_data(indices, fastData, slowData):
+def plot_data(indices, fastData, slowData, plots=["rms", "freq", "ratio"]):
     """
-    Visualizes:
-      - RMS (amplitude) evolution per harmonic
-      - Frequency (absolute) evolution per harmonic
-      - Frequency ratio (to fundamental) per harmonic
+    Visualizes data based on the 'plots' argument.
+    
+    Args:
+        indices: The x-axis data (sample indices).
+        fastData: List of RMS values per harmonic.
+        slowData: List of dictionaries containing frequency/ratio points.
+        plots: List of strings specifying which plots to stack. 
+               Options: "rms", "freq", "ratio".
+               Default is ["rms", "freq", "ratio"].
     """
+    
+    # 1. Handle empty request
+    if not plots:
+        print("No plots requested.")
+        return
 
-    fig, axes = plt.subplots(3, 1, figsize=(12, 8), sharex=True)
+    # 2. Dynamic Figure Creation
+    # We calculate height based on how many plots are requested (e.g., 3 inches per plot)
+    num_plots = len(plots)
+    fig, axes = plt.subplots(num_plots, 1, figsize=(12, 3 * num_plots), sharex=True)
 
-    # RMS per harmonic
-    for i, rms in enumerate(fastData):
-        # Ensure we don't plot more data than we have index labels for
-        plot_len = min(len(indices), len(rms))
-        axes[0].plot(indices[:plot_len], rms[:plot_len], label=f"H{i+1}")
-    axes[0].set_title("Fast RMS (per harmonic)")
-    axes[0].set_ylabel("Amplitude (RMS)")
-    axes[0].legend(loc="upper right", ncol=4, fontsize=8)
-    axes[0].grid(True, alpha=0.3)
+    # Ensure axes is always iterable (if only 1 plot, plt.subplots returns an object, not an array)
+    if num_plots == 1:
+        axes = [axes]
 
-    # Frequency per harmonic
-    for i, freqPoints in enumerate(slowData):
-        if len(freqPoints) == 0: continue
-        freq = np.zeros_like(indices, dtype=float)
+    # 3. Iterate through the requested plots and fill the axes
+    for ax, plot_type in zip(axes, plots):
         
-        for j, point in enumerate(freqPoints):
-            idx = point["index"]
-            val = point["value"]
+        # --- RMS PLOT ---
+        if plot_type == "rms":
+            for i, rms in enumerate(fastData):
+                plot_len = min(len(indices), len(rms))
+                ax.plot(indices[:plot_len], rms[:plot_len], label=f"H{i+1}")
             
-            # Find the end index for this segment
-            is_last_point = (j == len(freqPoints) - 1)
-            next_idx = indices[-1] + 1 if is_last_point else freqPoints[j+1]["index"]
-            
-            mask = (indices >= idx) & (indices < next_idx)
-            freq[mask] = val
-            
-        axes[1].plot(indices, freq, label=f"H{i+1}")
-        
-    axes[1].set_yscale('log')
-    axes[1].set_title("Slow Frequency (Hz)")
-    axes[1].set_ylabel("Frequency (Hz)")
-    axes[1].legend(loc="upper right", ncol=4, fontsize=8)
-    axes[1].grid(True, alpha=0.3)
+            ax.set_title("RMS (per harmonic)")
+            ax.set_ylabel("Amplitude (RMS)")
+            ax.grid(True, alpha=0.3)
+            ax.legend(loc="upper right", ncol=4, fontsize=8)
 
-    # Harmonic Ratio (f / f₀)
-    for i, freqPoints in enumerate(slowData):
-        if len(freqPoints) == 0: continue
-        ratio = np.zeros_like(indices, dtype=float)
-        
-        for j, point in enumerate(freqPoints):
-            idx = point["index"]
-            r = point["ratio"]
+        # --- FREQUENCY & RATIO PLOTS (Shared Logic) ---
+        elif plot_type in ["freq", "ratio"]:
+            # Determine which key to extract from the dictionary
+            data_key = "value" if plot_type == "freq" else "ratio"
             
-            is_last_point = (j == len(freqPoints) - 1)
-            next_idx = indices[-1] + 1 if is_last_point else freqPoints[j+1]["index"]
+            for i, freqPoints in enumerate(slowData):
+                if len(freqPoints) == 0: continue
+                
+                # Reconstruct the piecewise signal
+                y_values = np.zeros_like(indices, dtype=float)
+                
+                for j, point in enumerate(freqPoints):
+                    idx = point["index"]
+                    val = point[data_key] # dynamic key access
+                    
+                    is_last_point = (j == len(freqPoints) - 1)
+                    # Check bounds to ensure we don't look for an index that doesn't exist
+                    if is_last_point:
+                        next_idx = indices[-1] + 1 
+                    else:
+                        next_idx = freqPoints[j+1]["index"]
+                    
+                    mask = (indices >= idx) & (indices < next_idx)
+                    y_values[mask] = val
+                
+                ax.plot(indices, y_values, label=f"H{i+1}")
 
-            mask = (indices >= idx) & (indices < next_idx)
-            ratio[mask] = r
+            # Specific styling
+            if plot_type == "freq":
+                ax.set_yscale('log')
+                ax.set_title("Slow Frequency (Hz)")
+                ax.set_ylabel("Frequency (Hz)")
+            else:
+                ax.set_title("Harmonic Ratio (f / f₀)")
+                ax.set_ylabel("Ratio")
             
-        axes[2].plot(indices, ratio, label=f"H{i+1}")
-        
-    axes[2].set_title("Harmonic Ratio (f / f₀)")
-    axes[2].set_xlabel("Sample index (window start)")
-    axes[2].set_ylabel("Ratio")
-    axes[2].legend(loc="upper right", ncol=4, fontsize=8)
-    axes[2].grid(True, alpha=0.3)
+            ax.grid(True, alpha=0.3)
+            ax.legend(loc="upper right", ncol=4, fontsize=8)
 
+    # 4. Final Layout Adjustments
+    # Only set the X label on the very bottom plot
+    axes[-1].set_xlabel("Sample index (window start)")
+    
     plt.tight_layout()
     plt.show()
 
@@ -244,18 +261,19 @@ def synthesize(f0, ratios, indices, fastData, slowData, sr=48000, filepath="gen/
 # =============================
 if __name__ == "__main__":
     inPrefix = "DATA_"
-    instr = "AGuit"
-    string = "1"
-    freq = "329"
-    newF0 = 329.0
+    instr = "EGuit"
+    string = "6"
+    freq = "82"
+    newF0 = 82.0
     dyn = "F"
     inExt = ".sihat"
     outExt = ".wav"
-    outputDir = "tests/audioChunk/"
-    inputDir = "../build/sihat/audioChunk/"
+    outputDir = "tests/"
+    inputDir = "tests/"
     outPrefix = "GENto" + str(int(newF0)) + "_"
+    plotsStrings=["rms", "ratio"]
     sampleRate = 96000
-    replaceF0 = True
+    replaceF0 = False
 
     runMode = "synth"
 
@@ -365,7 +383,7 @@ if __name__ == "__main__":
             print("Data loaded successfully.")
 
             if args.mode == "plot":
-                plot_data(indices, fastData, slowData)
+                plot_data(indices, fastData, slowData, plotsStrings)
             else: # mode == "synth"
                 # For single synth, args.out is the full filepath
                 if replaceF0:
