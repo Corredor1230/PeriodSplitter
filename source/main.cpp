@@ -7,7 +7,7 @@ int main()
 {
     try
     {
-        SihatApplication app("default.json");
+        SihatApplication app("../../../source/configFiles/default.json");
         app.run();
     }
     catch (const std::exception& e){
