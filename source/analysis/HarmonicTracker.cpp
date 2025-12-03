@@ -99,6 +99,9 @@ Sitrano::HarmonicResults HarmonicTracker::analyze()
 
                 fUnit = Sitrano::findPeak(fUnit.bin, output, nfft, unit.sampleRate, binRange);
 
+                if (std::isnan(fUnit.amp)) 
+                break;
+
                 for (int step = 0; step < frameStep; step++)
                 {
                     if (fUnit.amp > 1.0)
