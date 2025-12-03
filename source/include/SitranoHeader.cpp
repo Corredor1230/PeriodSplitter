@@ -26,6 +26,7 @@ Sitrano::BinFreq Sitrano::findPeakWithinTolerance(float targetFreq, float tolera
     float peakAmp = 0.f;
     if (binNumber != 0)
     {
+        bool noAmp = true;
         for (int i = 0; i < binNumber; i++)
         {
             int currentBin = lowBin + i;
@@ -37,11 +38,16 @@ Sitrano::BinFreq Sitrano::findPeakWithinTolerance(float targetFreq, float tolera
 
             if (amp > peakAmp)
             {
+                noAmp = false;
                 outBF.bin = currentBin;
                 outBF.freq = binToFreq(currentBin, n, sr);
                 peakAmp = amp;
             }
-
+        }
+        if (noAmp)
+        {
+            outBF.bin = targetBin;
+            outBF.freq = binToFreq(targetBin, n, sr);
         }
     }
     else
@@ -160,7 +166,7 @@ void Sitrano::normalizeByMaxAbs(std::vector<float>& vec)
     }
 
     if (maxAbs == 0.0f) {
-        // Avoid division by zero — all elements are zero
+        // Avoid division by zero ï¿½ all elements are zero
         return;
     }
 
