@@ -44,6 +44,7 @@ set(DSP_SOURCES
     ${SOURCE_DIR}/dsp/FIRFilter.h
     ${SOURCE_DIR}/dsp/PitchFinder.h
     ${SOURCE_DIR}/dsp/PitchFinder.cpp
+    ${SOURCE_DIR}/dsp/ZPFilter.h
 )
 
 set(GUI_SOURCES
