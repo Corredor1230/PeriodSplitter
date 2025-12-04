@@ -261,15 +261,15 @@ def synthesize(f0, ratios, indices, fastData, slowData, sr=48000, filepath="gen/
 # =============================
 if __name__ == "__main__":
     inPrefix = "DATA_"
-    instr = "EGuit"
-    string = "6"
-    freq = "82"
-    newF0 = 82.0
+    instr = "AGuit"
+    string = "1"
+    freq = "1046"
+    newF0 = 1046.0
     dyn = "F"
     inExt = ".sihat"
     outExt = ".wav"
     outputDir = "tests/"
-    inputDir = "tests/"
+    inputDir = "sihat/"
     outPrefix = "GENto" + str(int(newF0)) + "_"
     plotsStrings=["rms", "ratio"]
     sampleRate = 96000
