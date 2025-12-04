@@ -12,7 +12,8 @@ public:
 	Transient(
 		const Sitrano::AnalysisUnit& unit,
 		const Sitrano::TransientSettings& conf,
-		const Sitrano::TransientFFTSettings& ffts
+		const Sitrano::TransientFFTSettings& ffts,
+		const float pitch
 	);
 
 	/**
@@ -25,6 +26,8 @@ private:
 	/*
 	* These are used to find the RMS transient
 	*/
+	const float pitch;
+	const int correlationOffset;
 	int rmsSize;
 	int rmsHopLength;
 	int preAttack;
@@ -34,6 +37,7 @@ private:
 	const Sitrano::TransientSettings& tSettings;
 	const std::vector<float>& aud;
 	Sitrano::SampleRange findFromRMS();
+	int findFirstAboveThreshold(int startSample, float thresh);
 
 
 	/*
@@ -47,5 +51,7 @@ private:
 	const float sr;
 	const int hop;
 	const float flatnessThresh;
-	Sitrano::SampleRange findFromFFT(bool transientFailed, Sitrano::SampleRange range);
+	const bool useFFT;
+	Sitrano::SampleRange findFromFFT();
+	Sitrano::SampleRange findWithCrossCorrelation(int offset, int firstSample);
 };
