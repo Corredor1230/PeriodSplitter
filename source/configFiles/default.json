@@ -1,7 +1,7 @@
 {
     "config": {
         "N": 32768,
-        "bulkProcess": true,
+        "bulkProcess": false,
         "correlationSettings": {
             "c_offset": 50.0,
             "c_threshold": 0.949999988079071
@@ -26,7 +26,7 @@
         },
         "overtoneSettings": {
             "o_FirstSample": 0,
-            "o_absThreshold": true,
+            "o_absThreshold": false,
             "o_ignoreThreshold": -60.0,
             "o_mfft": 65536,
             "o_postTransientStart": true,
@@ -47,7 +47,7 @@
             "tfft_flatnessThreshold": 0.6000000238418579,
             "tfft_hopSize": 256,
             "tfft_nfft": 2048,
-            "tfft_useFFT": true
+            "tfft_useFFT": false
         },
         "transientSettings": {
             "t_StartSample": 0,
@@ -68,12 +68,12 @@
         "prefix": "DATA"
     },
     "settings": {
-        "fullHarmonicAnalysis": true,
+        "fullHarmonicAnalysis": false,
         "harmonicAnalysis": true,
         "noiseAnalysis": false,
         "overtoneAnalysis": true,
         "periodAnalysis": true,
-        "pitchAnalysis": true,
+        "pitchAnalysis": false,
         "transientSeparation": true
     }
 }
