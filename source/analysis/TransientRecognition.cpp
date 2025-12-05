@@ -407,5 +407,6 @@ Sitrano::SampleRange Transient::findWithCrossCorrelation(int offset, int firstSa
 
     Sitrano::SampleRange out{firstSample, earliestCorrelation};
 
+    //Maybe we can consider a Haar Wavelet transform for this.
     return out;
 }
