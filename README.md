@@ -13,12 +13,12 @@ It can output highly detailed and low-dimensional data while retaining the disti
 ## Features
 
 * **Pitch Detection:** Robust fundamental frequency ($f_0$) estimation.
-* **Transient Detection:** Detects the closest zero-crossings surrounding the initial burst of energy of the signal: the transient.
-* **Period Segmentation:** Intelligently segments the audio by pitch periods from as close to the initial transient as possible to the point where all overtones' amplitudes fall below the specified threshold.
+* **Transient Detection:** Uses a sliding RMS window to detect the initial onset of the signal, and an autocorrelation algorithm to detect the end of the transient as the point where signal periodicity begins. 
+* **Period Segmentation:** Intelligently segments the audio by pitch periods from the end of the initial transient to the point where all overtones' amplitudes fall below the specified threshold in decibels.
 * **Overtone Analysis:** Identifies the most representative partials in the signal using a long FFT analysis.
 * **Harmonic Tracking:** Tracks the precise frequency and amplitude of each partial over the entire duration of the audio file.
 * **Highly Configurable:** Provides detailed control over every stage of the analysis pipeline.
-* **Binary Output:** Saves analysis data in efficient binary formats for easy loading into other environments (e.g., Python, MATLAB, or back into C++).
+* **Binary Output:** Saves analysis data in binary formats for easy loading into other environments (e.g., Python, MATLAB, or back into C++).
 
 ---
 
@@ -47,6 +47,14 @@ The `Analyzer` class processes an audio file in a sequential, multi-stage pipeli
 
 ---
 
+## Integrated GUI
+
+Using the [Dear ImGui](https://github.com/ocornut/imgui) library, you can edit the analysis parameters flexibly without having to alter the application's code. 
+
+SIHAT's code follows the model-view-controller (MVC) paradigm, which means you can easily replace the GUI library for other common alternatives such as JUCE or QT and have the same DSP performance. The main DSP functions can be found within the EditorViewModel.h file. These are the only actions that need to be triggered from the GUI directly.
+
+---
+
 ## Building from Source
 
 This project is built using CMake.
@@ -57,6 +65,7 @@ This project is built using CMake.
 * [**libsndfile**](http://www.mega-nerd.com/libsndfile/): For loading audio files.
 * [**FFTW3**](https://www.fftw.org/): For high-performance Fast Fourier Transforms.
 * [**PYin**](https://code.soundsoftware.ac.uk/projects/pyin): For pitch recognition.
+* [**Dear ImGui**](https://github.com/ocornut/imgui): For the GUI
 
 ### Build Steps
 
@@ -94,6 +103,7 @@ Analysis parameters are set in `main.cpp` within the `Sitrano::AnalysisConfig` s
 | `verbose` | `AnalysisConfig` | Print detailed analysis progress to the console. |
 | | | |
 | `modeThreshold` | `PitchSettings` | Threshold for finding the mode of the pitch array. |
+| `toleranceInCents` | `PitchSettings` | Tolerance value in cents to allow for differences between the detected pitch and the metadata embedded pitch value.
 | `minFreq` / `maxFreq` | `PitchSettings` | The valid frequency range for the initial pitch search. |
 | | | |
 | `transientRms` | `CorrelationSettings` | The window size (in ms) for RMS-based transient detection. |
@@ -111,18 +121,17 @@ Analysis parameters are set in `main.cpp` within the `Sitrano::AnalysisConfig` s
 
 ## Usage
 
-Currently, the analysis is configured, compiled, and run from the `main()` function.
+Currently, the analysis is configured from the GUI, and then compiled, and run from the `SihatApplication()` class.
 
-1.  **Modify `main.cpp`:**
-    * Set the `filename` variable by uncommenting `std::string filename = openFileDialog();` or hard-coding a path.
-    * Adjust the parameters in the `AnalysisConfig` and its sub-structs to suit your audio source.
-
-2.  **Compile and Run:**
+1.  **Compile and run:**
     ```bash
     cd build
     make
     ./Sitrano
     ```
+
+2.  **Configure your analysis:**
+    Edit the values and variables in the GUI to produce .sihat files that contain the main information extracted from your audio file. You can process single audio files or batch process entire directories.
 
 ---
 
@@ -139,6 +148,8 @@ The program saves the analysis data to one binary file with extension .sihat:
 3. A `std::vector<std::vector<float>>` (Harmonic x Time) containing the tracked amplitude for each partial in each frame.
 
 4. A `std::vector<std::vector<float>>` (Harmonic x Time) containing the tracked frequency for each partial in each frame.
+
+5. A `std::vector<std::vector<float>>` (Harmonic x Time) containing the tracked ratio of overtone frequency to fundamental frequency ($f_0$) for each partial in each frame.
 
 This file can be loaded by other C++ applications or read in scripting languages like Python (using `numpy.fromfile`) for plotting and further modeling.
 
