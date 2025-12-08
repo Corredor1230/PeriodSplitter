@@ -126,8 +126,7 @@ Currently, the analysis is configured from the GUI, and then compiled, and run f
 1.  **Compile and run:**
     ```bash
     cd build
-    make
-    ./Sitrano
+    cmake ..
     ```
 
 2.  **Configure your analysis:**
