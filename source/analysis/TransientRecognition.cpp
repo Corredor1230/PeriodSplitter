@@ -23,6 +23,11 @@ Transient::Transient(
     flatnessThresh(ffts.flatnessThreshold),
     correlationOffset(2500)
 {
+
+    plan = nullptr;
+    input = nullptr;
+    output = nullptr;
+
     if (!conf.useMs)
     {
         rmsSize = conf.rmsSampleSize;
@@ -35,6 +40,21 @@ Transient::Transient(
     }
 
     initFFTW();
+}
+
+Transient::~Transient()
+{
+    if (plan != nullptr) {
+        fftwf_destroy_plan(plan);
+    }
+
+    if (input != nullptr) {
+        fftwf_free(input); 
+    }
+
+    if (output != nullptr) {
+        fftwf_free(output);
+    }
 }
 
 void Transient::initFFTW()

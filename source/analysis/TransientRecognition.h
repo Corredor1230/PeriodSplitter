@@ -16,6 +16,8 @@ public:
 		const float pitch
 	);
 
+	~Transient();
+
 	/**
 	 * @brief Finds the first major transient in the signal based on RMS.
 	 * @return The sample index of the nearest zero-crossing *before* the transient.
