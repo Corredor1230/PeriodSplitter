@@ -24,9 +24,7 @@ Transient::Transient(
     correlationOffset(2500)
 {
 
-    plan = nullptr;
-    input = nullptr;
-    output = nullptr;
+    plan, input, output = nullptr;
 
     if (!conf.useMs)
     {
