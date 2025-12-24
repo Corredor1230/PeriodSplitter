@@ -52,13 +52,13 @@
         "transientSettings": {
             "t_StartSample": 0,
             "t_UseMs": false,
-            "t_factor": 3.0,
+            "t_factor": 2.0,
             "t_preAttack": 20,
-            "t_rmsHopLength": 64,
+            "t_rmsHopLength": 128,
             "t_rmsHopRatio": 1.0,
             "t_rmsSampleSize": 128,
             "t_rmsSizeMs": 1.0,
-            "t_threshold": 0.10000000149011612
+            "t_threshold": 0.15000000596046448
         },
         "verbose": true
     },
