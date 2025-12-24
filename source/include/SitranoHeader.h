@@ -5,10 +5,12 @@
 #include<cmath>
 #include<cstdint>
 #include<type_traits>
+#include<iostream>
 
 namespace Sitrano
 {
     constexpr double PI = 3.14159265358979323846;
+    constexpr double M_E = 2.718281828459045;
     constexpr double TWO_PI = 2.0 * PI;
 	//Structures
     // Enum for different FFT window styles used for analysis
@@ -18,11 +20,25 @@ namespace Sitrano
         audioChunk = 2
     };
 
+    enum class WaveletType {
+        morlet = 0,
+        meyer = 1,
+        haar = 2,
+        hat = 3
+    };
+
     struct HarmonicResults {
         std::vector<std::vector<float>> amps;
         std::vector<std::vector<float>> phases;
         std::vector<std::vector<float>> freqs;
         std::vector<uint32_t> finalSamples;
+    };
+
+    struct VariableRatePartial
+    {
+        float frequency;
+        int hopSize;
+        std::vector<float> data; // The envelope, decimated
     };
 
     struct TransientSettings {
@@ -42,6 +58,12 @@ namespace Sitrano
         int nfft = 1024;
         int hopSize = 256;
         float flatnessThreshold = 0.6;
+    };
+
+    struct TWaveletSettings {
+        WaveletType wtype = WaveletType::morlet;
+        bool forceFFTSize = false;
+        int fftSize = 4096;
     };
 
     /** 
@@ -265,6 +287,23 @@ namespace Sitrano
         bool result = false;
         if (std::abs(source - comp) < tolerance) result = true;
         return result;
+    }
+    inline int findNextPowerOfTwo(int size)
+    {
+        if (size < 0)
+        {
+            std::cerr << "Error: Non-positive size" << '\n';
+        }
+        for (int i = 1; i < 32; i++)
+        {
+            int prevPow = static_cast<int>(std::pow(2.0, static_cast<float>(i) - 1));
+            int currPow = static_cast<int>(std::pow(2.0, static_cast<float>(i)));
+
+            if (size > prevPow && size < currPow) return currPow;
+        }
+
+        std::cerr << "Error: Transient size too big" << '\n';
+        return 0;
     }
 
     //Functions with a definition in .cpp file
