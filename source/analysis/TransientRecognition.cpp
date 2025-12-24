@@ -2,6 +2,7 @@
 #include"dsp/ZPFilter.h"
 #include<deque>
 #include<numeric>
+#include"dsp/MorletWavelet.h"
 
 Transient::Transient(
     const Sitrano::AnalysisUnit& unit,
@@ -82,6 +83,30 @@ Sitrano::SampleRange Transient::findStartTransient()
 
     range = findWithCrossCorrelation(correlationOffset, range.initSample);
 
+    std::vector<float> transient(range.endSample - range.initSample);
+
+    for (int i = 0; i < transient.size(); ++i)
+    {
+        transient[i] = aud[range.initSample + i];
+    }
+
+    MorletWavelet wavelet(transient, sr);
+
+    std::vector<float> wTransform(transient.size());
+
+    for (int i = 0; i < wTransform.size(); ++i)
+    {
+        float midiLow = Sitrano::freqToMidi(pitch / 2.f);
+        float midiHigh = Sitrano::freqToMidi(20000.f);
+
+        float midiRange = midiHigh - midiLow;
+        float midiStep = midiRange / static_cast<float>(transient.size());
+
+        wTransform[i] = Sitrano::midiToFreq(midiLow + midiStep * i);
+    }
+
+    std::vector<Sitrano::VariableRatePartial> scalogram = wavelet.analyze(2048, 64, pitch / 2.0, 20000.f);
+
     return range;
 }
 
@@ -119,7 +144,7 @@ Sitrano::SampleRange Transient::findFromRMS()
 
         if (rmsRatio > factor && rms > threshold) {
             transientFound = true;
-            rmsWindow = tempRms; // Save the window that triggered
+            rmsWindow = tempRms;
             tInitSample = samp;
             break;
         }
@@ -157,7 +182,7 @@ Sitrano::SampleRange Transient::findFromRMS()
             }
 
             if (currentWindowNumSamples == 0) {
-                break; // Reached the end of the audio. The last peak we found stands.
+                break;
             }
 
             int nextPeakIndexInWindow = Sitrano::findAbsPeakIndex(nextRmsWindow);
@@ -417,6 +442,8 @@ Sitrano::SampleRange Transient::findWithCrossCorrelation(int offset, int firstSa
                 window[i] = aud[earliestCorrelation + i];
             }
             filter.filtfilt(window, sr, pitch * maxPitchRatio);
+            squareA = 0.f;
+            for (float k : window) squareA += k * k;
 
             w -= slidingSize;
         }
