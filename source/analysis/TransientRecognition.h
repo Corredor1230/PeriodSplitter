@@ -52,6 +52,7 @@ private:
 	const int nfft;
 	const float sr;
 	const int hop;
+	const int waveletNumber = 64;
 	const float flatnessThresh;
 	const bool useFFT;
 	Sitrano::SampleRange findFromFFT();
