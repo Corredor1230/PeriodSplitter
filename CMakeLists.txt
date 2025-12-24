@@ -47,6 +47,7 @@ set(DSP_SOURCES
     ${SOURCE_DIR}/dsp/ZPFilter.h
     ${SOURCE_DIR}/dsp/WTransform.h
     ${SOURCE_DIR}/dsp/WTransform.cpp
+    ${SOURCE_DIR}/dsp/MorletWavelet.h
 )
 
 set(GUI_SOURCES
