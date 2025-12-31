@@ -95,6 +95,7 @@ namespace Sitrano
         bool useTolerance = true;
         double toleranceValue = 100.0;
         bool postTransientStart = true;
+        bool chooseFirstSample = false;
         int overtoneFirstSample = 0;
         bool useCustomSignal = true;
         bool sumAmplitudes = true;
@@ -193,6 +194,11 @@ namespace Sitrano
         float pha;
     };
 
+    struct TransientResults {
+        SampleRange range;
+        std::vector<VariableRatePartial> scalogram;
+    };
+
 
     // Main settings for the Analyzer. 
     // This structure decides which processing steps will be completed.
@@ -208,7 +214,7 @@ namespace Sitrano
 
 	//Larger structure containing all results of the analysis
 	struct Results {
-        SampleRange tRange;
+        TransientResults tResults;
         std::vector<uint32_t> sampleList;
 		std::vector<Peak> topFreqs;
         float pitch;
