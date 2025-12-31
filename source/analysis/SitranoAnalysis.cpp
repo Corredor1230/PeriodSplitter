@@ -24,11 +24,11 @@ Sitrano::Results Analyzer::analyze(
     if (settings.transientSeparation)
     {
         Transient t(unit, mConfig.tSettings, mConfig.tfftSettings, results.pitch);
-        results.tRange = t.findStartTransient();
+        results.tResults = t.findStartTransient();
     }
     else
     {
-        results.tRange = { 0, 0 };
+        results.tResults = { 0, 0 };
     }
 
     //Use the pitch to find the periods' zero crossings
@@ -37,7 +37,7 @@ Sitrano::Results Analyzer::analyze(
         float pitch = results.pitch;
         if (!pitch > mConfig.pSettings.minFreq) pitch = unit.sampleRate / provisionalHop;
 
-        PeriodCutter cutter{ unit, mConfig.cSettings, results.pitch, results.tRange };
+        PeriodCutter cutter{ unit, mConfig.cSettings, results.pitch, results.tResults.range };
         results.sampleList = cutter.findPeriodSamples();
     }
     else
@@ -52,9 +52,14 @@ Sitrano::Results Analyzer::analyze(
     if (settings.overtoneAnalysis)
     {
         std::vector<double> checkSignal;
+        int firstSample = 0;
+
+        if (!mConfig.oSettings.chooseFirstSample) firstSample = results.tResults.range.endSample;
+        else firstSample = mConfig.oSettings.overtoneFirstSample;
+
         for (int i = 0; i < mConfig.oSettings.fftSize; ++i)
         {
-            checkSignal.push_back(unit.soundFile[i + mConfig.oSettings.overtoneFirstSample]);
+            checkSignal.push_back(unit.soundFile[i + firstSample]);
         }
         OvertoneFinder finder{ unit, mConfig };
         results.topFreqs = finder.getRelevantOvertones(checkSignal, results.pitch);
