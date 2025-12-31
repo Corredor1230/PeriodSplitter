@@ -129,6 +129,7 @@ public:
 
             if (ImGui::TreeNode("Overtone Settings"))
             {
+                ImGui::Checkbox("Choose first sample: ", &config.oSettings.chooseFirstSample);
                 ImGui::InputInt("First Sample", &config.oSettings.overtoneFirstSample);
                 ImGui::InputInt("MFFT", &config.oSettings.fftSize);
                 ImGui::InputFloat("Ignore Threshold", &config.oSettings.overtoneThreshold);
