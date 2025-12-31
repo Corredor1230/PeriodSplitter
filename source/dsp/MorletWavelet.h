@@ -1,75 +1,3 @@
-// #include "dsp/WTransform.h"
-
-// class MorletWavelet : public WTransform
-// {
-// public:
-//     using WTransform::WTransform;
-
-//     std::vector<float> process(const std::vector<float>& frequencies) override{
-//         std::copy(signal.begin(), signal.end(), inBuffer);
-//         fftwf_execute(fwdPlan);
-
-//         std::vector<float> scalogram;
-//         scalogram.reserve(frequencies.size() * nfft);
-
-//         for(float freq : frequencies)
-//         {
-//             std::vector<float> wave = wavelet(freq);
-
-//             for (int k = 0; k < nfft; ++k)
-//             {
-//                 if (k < (nfft / 2 + 1))
-//                 {
-//                     float w = wave[k];
-//                     invBuffer[k][0] = fDomainBuffer[k][0] * w; //real
-//                     invBuffer[k][1] = fDomainBuffer[k][1] * w; //imaginaty
-//                 }
-//                 else
-//                 {
-//                     invBuffer[k][0] = 0.0f;
-//                     invBuffer[k][1] = 0.0f;
-//                 }
-//             }
-
-//             fftwf_execute(invPlan);
-
-//             for (int i = 0; i < nfft; ++i)
-//             {
-//                 float re = invBuffer[i][0];
-//                 float im = invBuffer[i][1];
-//                 float mag = std::sqrt(re*re + im*im);
-
-//                 scalogram.emplace_back(mag);
-//             }
-
-//             return scalogram;
-
-//         }
-//     }
-// private:
-
-//     const float omega0 = 6.0f;
-//     std::vector<float> wavelet(float freq) override
-//     {
-//         std::vector<float> wave;
-//         wave.reserve(nfft / 2 + 1);
-
-//         float fc = omega0 / (Sitrano::PI * 2.0f);
-//         float scale = (fc * fs) / freq;
-
-//         for (int i = 0; i < (nfft / 2 + 1); ++i)
-//         {
-//             float omegak = (Sitrano::PI * 2.0f * i) / static_cast<float>(nfft);
-
-//             float exp = scale * omegak - omega0;
-//             float weight = 2.0f * std::exp(-0.5f * exp * exp);
-
-//             wave.emplace_back(weight);
-//         }
-//         return wave;
-//     }
-// };
-
 #include "dsp/WTransform.h"
 #include <algorithm>
 #include <vector>
@@ -162,8 +90,9 @@ public:
                 float re = invBuffer[i][0];
                 float im = invBuffer[i][1];
                 float mag = std::sqrt(re*re + im*im);
+                float amp = Sitrano::mag_to_amp(mag, nfft);
 
-                scalogram.emplace_back(mag);
+                scalogram.emplace_back(amp);
             }
 
             return scalogram;
