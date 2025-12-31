@@ -63,8 +63,9 @@ void Transient::initFFTW()
     plan = fftwf_plan_dft_r2c_1d(nfft, input, output, FFTW_MEASURE);
 }
 
-Sitrano::SampleRange Transient::findStartTransient()
+Sitrano::TransientResults Transient::findStartTransient()
 {
+    Sitrano::TransientResults results;
     Sitrano::SampleRange range{0, 0};
     if (!useFFT)
     {
@@ -107,7 +108,9 @@ Sitrano::SampleRange Transient::findStartTransient()
 
     std::vector<Sitrano::VariableRatePartial> scalogram = wavelet.analyze(2048, 64, pitch / 2.0, 20000.f);
 
-    return range;
+    results.range = range;
+    results.scalogram = scalogram;
+    return results;
 }
 
 Sitrano::SampleRange Transient::findFromRMS()
