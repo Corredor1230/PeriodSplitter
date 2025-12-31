@@ -62,6 +62,7 @@ namespace SihatJson {
     inline void to_json(json& j, const Sitrano::OvertoneSettings& o) {
         j = json{
             {"o_useTolerance", o.useTolerance},
+            {"o_chooseFirstSample", o.chooseFirstSample},
             {"o_tolerance", o.toleranceValue},
             {"o_postTransientStart", o.postTransientStart},
             {"o_FirstSample", o.overtoneFirstSample},
@@ -205,6 +206,7 @@ namespace SihatJson {
     // ---- OvertoneSettings ----
     inline void from_json(const json& j, Sitrano::OvertoneSettings& o) {
         j.at("o_useTolerance").get_to(o.useTolerance);
+        j.at("o_chooseFirstSample").get_to(o.chooseFirstSample);
         j.at("o_tolerance").get_to(o.toleranceValue);
         j.at("o_postTransientStart").get_to(o.postTransientStart);
         j.at("o_FirstSample").get_to(o.overtoneFirstSample);
