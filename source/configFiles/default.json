@@ -7,26 +7,27 @@
             "c_threshold": 0.949999988079071
         },
         "harmonicSettings": {
-            "h_Tolerance": 25.0,
+            "h_Tolerance": -107374176.0,
             "h_enabled": true,
-            "h_windowStyle": 2
+            "h_windowStyle": -858993460
         },
         "hopSize": 1024,
         "maxHarmonics": 32,
         "noiseSettings": {
-            "n_hopSize": 4096,
+            "n_hopSize": 32,
             "n_maxFreq": 20000.0,
             "n_minFreq": 60.0,
-            "n_nfft": 8192,
+            "n_nfft": 128,
             "n_numBins": 32,
-            "n_octaveDiv": 4.0,
+            "n_octaveDiv": 3.0,
             "n_startSample": 0,
             "n_useList": false,
             "n_useOctaveDiv": true
         },
         "overtoneSettings": {
             "o_FirstSample": 0,
-            "o_absThreshold": false,
+            "o_absThreshold": true,
+            "o_chooseFirstSample": false,
             "o_ignoreThreshold": -60.0,
             "o_mfft": 65536,
             "o_postTransientStart": true,
