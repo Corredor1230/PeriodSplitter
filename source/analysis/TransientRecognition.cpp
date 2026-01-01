@@ -155,62 +155,64 @@ Sitrano::SampleRange Transient::findFromRMS()
 
     if (!transientFound) {
         // No transient, just find the first peak in a small window
-        int peakSample = Sitrano::findPeakSample(aud, 0, std::min((int)aud.size(), 4096), true);
+        int peakSample = Sitrano::findPeakSample(aud, 0, std::min((int)aud.size(), 8192), true);
         range.endSample = Sitrano::findPreviousZero(aud, peakSample);
         return range;
     }
 
-    int peakIndexInWindow = Sitrano::findAbsPeakIndex(rmsWindow);
-    int peakSample = tInitSample + peakIndexInWindow;
-    float peakValue = std::abs(aud[peakSample]);
+    // int peakIndexInWindow = Sitrano::findAbsPeakIndex(rmsWindow);
+    // int peakSample = tInitSample + peakIndexInWindow;
+    // float peakValue = std::abs(aud[peakSample]);
 
-    // Find the *actual* number of samples in that first window
-    int foundWindowNumSamples = 0;
-    for (int rmsSamp = 0; rmsSamp < rmsSize && (rmsSamp + tInitSample) < aud.size(); rmsSamp++) {
-        foundWindowNumSamples++;
-    }
+    // // Find the *actual* number of samples in that first window
+    // int foundWindowNumSamples = 0;
+    // for (int rmsSamp = 0; rmsSamp < rmsSize && (rmsSamp + tInitSample) < aud.size(); rmsSamp++) {
+    //     foundWindowNumSamples++;
+    // }
 
-    // Check if the peak is the last sample of that window
-    if (foundWindowNumSamples > 0 && peakIndexInWindow == (foundWindowNumSamples - 1))
-    {
-        // The peak is at the end. We must search subsequent windows.
-        for (int samp = tInitSample + rmsHopLength; samp < aud.size(); samp += rmsHopLength)
-        {
-            std::vector<float> nextRmsWindow(rmsSize, 0.f);
-            int currentWindowNumSamples = 0;
-            for (int rmsSamp = 0; rmsSamp < rmsSize && (rmsSamp + samp) < aud.size(); rmsSamp++)
-            {
-                nextRmsWindow[rmsSamp] = aud[samp + rmsSamp];
-                currentWindowNumSamples++;
-            }
+    // // Check if the peak is the last sample of that window
+    // if (foundWindowNumSamples > 0 && peakIndexInWindow == (foundWindowNumSamples - 1))
+    // {
+    //     // The peak is at the end. We must search subsequent windows.
+    //     for (int samp = tInitSample + rmsHopLength; samp < aud.size(); samp += rmsHopLength)
+    //     {
+    //         std::vector<float> nextRmsWindow(rmsSize, 0.f);
+    //         int currentWindowNumSamples = 0;
+    //         for (int rmsSamp = 0; rmsSamp < rmsSize && (rmsSamp + samp) < aud.size(); rmsSamp++)
+    //         {
+    //             nextRmsWindow[rmsSamp] = aud[samp + rmsSamp];
+    //             currentWindowNumSamples++;
+    //         }
 
-            if (currentWindowNumSamples == 0) {
-                break;
-            }
+    //         if (currentWindowNumSamples == 0) {
+    //             break;
+    //         }
 
-            int nextPeakIndexInWindow = Sitrano::findAbsPeakIndex(nextRmsWindow);
+    //         int nextPeakIndexInWindow = Sitrano::findAbsPeakIndex(nextRmsWindow);
 
-            if (nextPeakIndexInWindow >= currentWindowNumSamples) {
-                continue;
-            }
+    //         if (nextPeakIndexInWindow >= currentWindowNumSamples) {
+    //             continue;
+    //         }
 
-            float nextPeakValue = std::abs(nextRmsWindow[nextPeakIndexInWindow]);
+    //         float nextPeakValue = std::abs(nextRmsWindow[nextPeakIndexInWindow]);
 
-            if (nextPeakValue > peakValue)
-            {
-                peakValue = nextPeakValue;
-                peakSample = samp + nextPeakIndexInWindow;
-                if (nextPeakIndexInWindow != (currentWindowNumSamples - 1)) break;
-            }
-            else break;
-        }
-    }
+    //         if (nextPeakValue > peakValue)
+    //         {
+    //             peakValue = nextPeakValue;
+    //             peakSample = samp + nextPeakIndexInWindow;
+    //             if (nextPeakIndexInWindow != (currentWindowNumSamples - 1)) break;
+    //         }
+    //         else break;
+    //     }
+    // }
 
-    int prevZero = Sitrano::findPreviousZero(aud, peakSample);
-    int offset = prevZero - preAttack;
+    // int prevZero = Sitrano::findPreviousZero(aud, peakSample);
+    // int offset = prevZero - preAttack;
 
-    range.initSample = Sitrano::findNearestZero(aud, offset);
-    range.endSample = Sitrano::findNextZero(aud, peakSample);
+    // range.initSample = Sitrano::findNearestZero(aud, offset);
+    // range.endSample = Sitrano::findNextZero(aud, peakSample);
+    range.initSample = Sitrano::findPreviousZero(aud, tInitSample);
+    range.endSample = Sitrano::findNextZero(aud, tInitSample + rmsSize);
     return range;
 }
 
@@ -453,7 +455,7 @@ Sitrano::SampleRange Transient::findWithCrossCorrelation(int offset, int firstSa
 
     }
 
-    Sitrano::SampleRange out{firstSample, earliestCorrelation};
+    Sitrano::SampleRange out{firstSample, earliestCorrelation + 1};
 
     //Maybe we can consider a Haar Wavelet transform for this.
     return out;
