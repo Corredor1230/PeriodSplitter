@@ -202,7 +202,7 @@ private:
             float re = invBuffer[i][0];
             float im = invBuffer[i][1];
             // Normalize by nfft if needed, but relative mag is fine usually
-            envelope.push_back(std::sqrt(re*re + im*im));
+            envelope.push_back(Sitrano::mag_to_amp(std::sqrt(re*re + im*im), nfft));
         }
         return envelope;
     }
