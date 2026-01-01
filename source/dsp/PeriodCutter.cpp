@@ -40,7 +40,8 @@ std::vector<uint32_t> PeriodCutter::findPeriodSamples()
     }
 
     // Find the initial period start
-    int initialSample = startSample + static_cast<int>(mSampleRate * (mConfig.periodStartOffsetMs / 1000.0));
+    // int initialSample = startSample + static_cast<int>(mSampleRate * (mConfig.periodStartOffsetMs / 1000.0));
+    int initialSample = startSample;
     int peakSample = Sitrano::findPeakSample(mUnit.soundFile, initialSample, initialSample + windowSize, true);
     int periodStart = Sitrano::findNearestCachedZero(zeroCrossings, peakSample);
     int margin = std::max<int>(4, std::ceil<int>((float)expectedPeriodLength * 0.02));
