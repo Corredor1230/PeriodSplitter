@@ -7,9 +7,9 @@
             "c_threshold": 0.949999988079071
         },
         "harmonicSettings": {
-            "h_Tolerance": -107374176.0,
+            "h_Tolerance": 0.25,
             "h_enabled": true,
-            "h_windowStyle": -858993460
+            "h_windowStyle": 2
         },
         "hopSize": 1024,
         "maxHarmonics": 32,
