@@ -7,8 +7,10 @@ HarmonicTracker::HarmonicTracker(
     const Sitrano::AnalysisUnit& a,
     const Sitrano::AnalysisConfig& conf,
     const std::vector<Sitrano::Peak>& top,
-    const std::vector<uint32_t>& sampleList) :
+    const std::vector<uint32_t>& sampleList,
+    const int startSample) :
     unit(a),
+    start(startSample),
     sr(unit.sampleRate),
     config(conf),
     sList(sampleList),

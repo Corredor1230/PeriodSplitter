@@ -6,7 +6,7 @@ class AudioChunkStrategy : public IWindowStrategy {
 public:
 	LoopParameters getLoopParameters(const std::vector<uint32_t>& sampleList,
 		const Sitrano::AnalysisUnit& unit,
-		const Sitrano::AnalysisConfig& config) const override {
+		const Sitrano::AnalysisConfig& config, const int startSample = 0) const override {
 		int chunkSize = unit.soundFile.size() - sampleList[0];
 		size_t numFrames = chunkSize / config.hopSize;
 		return { numFrames, 1 };
