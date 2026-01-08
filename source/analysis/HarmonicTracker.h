@@ -15,7 +15,8 @@ public:
     HarmonicTracker(const Sitrano::AnalysisUnit& a,
         const Sitrano::AnalysisConfig& conf,
         const std::vector<Sitrano::Peak>& top,
-        const std::vector<uint32_t>& sampleList);
+        const std::vector<uint32_t>& sampleList,
+        const int startSample);
 
     ~HarmonicTracker() {
         fftwf_destroy_plan(plan);
@@ -48,6 +49,7 @@ private:
     const Sitrano::AnalysisConfig& config;
     const std::vector<uint32_t>& sList;
     const float sr;
+    const int start;
     Sitrano::HarmonicResults hResults;
 
     void initFFTW();

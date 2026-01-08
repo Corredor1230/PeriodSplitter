@@ -65,7 +65,7 @@ double HarmonicTracker::interpolatePeak(int k, const std::vector<double>& mags)
 
 Sitrano::HarmonicResults HarmonicTracker::analyze()
 {
-    LoopParameters params = mWindowStrategy->getLoopParameters(sList, unit, config);
+    LoopParameters params = mWindowStrategy->getLoopParameters(sList, unit, config, start);
 
     hResults.amps.resize(config.numHarmonics);
     hResults.freqs.resize(config.numHarmonics);
@@ -81,7 +81,7 @@ Sitrano::HarmonicResults HarmonicTracker::analyze()
         int periodLength{ 0 };
 
         bool success = mWindowStrategy->processFrame(
-            i, frameStep, config, unit, sList, hResults, input, periodLength
+            i, frameStep, config, unit, sList, hResults, input, periodLength, start
         );
 
         if (!success) continue;
@@ -127,5 +127,12 @@ Sitrano::HarmonicResults HarmonicTracker::analyze()
         }
     }
 
+    //Extract RMS of first second of audio
+    float sum = 0.0;
+    for (int i = start; i < start + sr; ++i)
+    {
+        sum += unit.soundFile[i] * unit.soundFile[i];
+    }
+    hResults.rms = std::sqrt(sum / sr);
     return hResults;
 }
