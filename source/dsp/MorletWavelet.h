@@ -8,8 +8,6 @@ class MorletWavelet : public WTransform
 public:
     using WTransform::WTransform;
 
-    // --- MAIN ENTRY POINT ---
-    // Scans 'scanRes' scales, picks 'numPartials' winners, and extracts their envelopes.
     std::vector<Sitrano::VariableRatePartial> analyze(int numPartials, int scanRes, float minFreq, float maxFreq)
     {
         // 1. Run the Scanner (Fast Energy Calculation)
@@ -53,51 +51,6 @@ public:
         }
 
         return results;
-    }
-
-    // Standard Process (Overload if you still need raw output)
-    std::vector<float> process(const std::vector<float>& frequencies) override
-    {
-        std::copy(signal.begin(), signal.end(), inBuffer);
-        fftwf_execute(fwdPlan);
-
-        std::vector<float> scalogram;
-        scalogram.reserve(frequencies.size() * nfft);
-
-        for(float freq : frequencies)
-        {
-            std::vector<float> wave = wavelet(freq);
-
-            for (int k = 0; k < nfft; ++k)
-            {
-                if (k < (nfft / 2 + 1))
-                {
-                    float w = wave[k];
-                    invBuffer[k][0] = fDomainBuffer[k][0] * w; //real
-                    invBuffer[k][1] = fDomainBuffer[k][1] * w; //imaginaty
-                }
-                else
-                {
-                    invBuffer[k][0] = 0.0f;
-                    invBuffer[k][1] = 0.0f;
-                }
-            }
-
-            fftwf_execute(invPlan);
-
-            for (int i = 0; i < nfft; ++i)
-            {
-                float re = invBuffer[i][0];
-                float im = invBuffer[i][1];
-                float mag = std::sqrt(re*re + im*im);
-                float amp = Sitrano::mag_to_amp(mag, nfft);
-
-                scalogram.emplace_back(amp);
-            }
-
-            return scalogram;
-
-        }
     }
 
 private:
