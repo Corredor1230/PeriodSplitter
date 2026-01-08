@@ -35,7 +35,7 @@ Sitrano::Results Analyzer::analyze(
     if (settings.periodAnalysis)
     {
         float pitch = results.pitch;
-        if (!pitch > mConfig.pSettings.minFreq) pitch = unit.sampleRate / provisionalHop;
+        if (!(pitch > mConfig.pSettings.minFreq)) pitch = unit.sampleRate / provisionalHop;
 
         PeriodCutter cutter{ unit, mConfig.cSettings, results.pitch, results.tResults.range };
         results.sampleList = cutter.findPeriodSamples();
@@ -81,7 +81,7 @@ Sitrano::Results Analyzer::analyze(
     //Check the amplitude envelope for each harmonic
     if (settings.harmonicAnalysis)
     {
-        HarmonicTracker tracker(unit, mConfig, results.topFreqs, results.sampleList);
+        HarmonicTracker tracker(unit, mConfig, results.topFreqs, results.sampleList, results.tResults.range.endSample);
         results.hResults = tracker.analyze();
     }
 
@@ -90,6 +90,8 @@ Sitrano::Results Analyzer::analyze(
         NoiseTracker tracker(mConfig.nSettings, unit, results, 20.f);
         results.noise = tracker.analyze();
     }
+
+
 
     return results;
 }
