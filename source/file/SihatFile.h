@@ -192,9 +192,12 @@ namespace SihatFile {
 		std::string csvName = Sitrano::getRawFilename(filename);
 		std::string dir = info.outDir.empty() ? "sihat" : info.outDir;
 
+		std::string fName = info.prefix + "_" + csvName;
+		std::string ext = "." + info.extension;
+
 		Sitrano::saveHarmonicDataSihat(
-			r.hResults.finalSamples, r.hResults.amps, r.hResults.freqs,
-			r.pitch, dir, info.prefix + "_" + csvName, "." + info.extension);
+			r.hResults, r.tResults,
+			r.pitch, dir, fName, ext);
 	}
 
 	inline void processFolder(const std::string& inputDir,
