@@ -12,7 +12,7 @@ public:
 	virtual ~IWindowStrategy() = default;
 	virtual LoopParameters getLoopParameters(const std::vector<uint32_t>& sampleList,
 		const Sitrano::AnalysisUnit& unit, 
-		const Sitrano::AnalysisConfig& config, const int startSample) const = 0;
+		const Sitrano::AnalysisConfig& config, const int firstSample) const = 0;
 	virtual bool processFrame(size_t i,
 		int frameStep,
 		const Sitrano::AnalysisConfig& config,
@@ -20,5 +20,6 @@ public:
 		const std::vector<uint32_t>& sampleList, 
 		Sitrano::HarmonicResults& results,
 		float* inputBuffer,
-		int& outPeriodLength) = 0;
+		int& outPeriodLength,
+		int firstSample) = 0;
 };

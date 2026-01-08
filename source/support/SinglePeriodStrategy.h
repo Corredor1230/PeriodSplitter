@@ -4,7 +4,7 @@ class SinglePeriodStrategy : public IWindowStrategy {
 public:
     LoopParameters getLoopParameters(const std::vector<uint32_t>& sampleList,
         const Sitrano::AnalysisUnit& unit,
-        const Sitrano::AnalysisConfig& config, const int startSample = 0) const override {
+        const Sitrano::AnalysisConfig& config, const int firstSample = 0) const override {
         size_t numFrames = (sampleList.size() - 1) / 2;
         return { numFrames, 2 }; // {numFrames, frameStep}
     }
@@ -16,8 +16,9 @@ public:
         const std::vector<uint32_t>& sampleList,
         Sitrano::HarmonicResults& results,
         float* inputBuffer, 
-        int& outPeriodLength) override {
-
+        int& outPeriodLength,
+        int firstSample) override 
+    {
         int start = sampleList[i];
         int end = sampleList[i + frameStep];
         outPeriodLength = end - start;
