@@ -59,13 +59,14 @@
             "t_rmsHopRatio": 1.0,
             "t_rmsSampleSize": 128,
             "t_rmsSizeMs": 1.0,
-            "t_threshold": 0.15000000596046448
+            "t_threshold": 0.10000000149011612,
+            "t_correlationThreshold": 0.85
         },
         "verbose": true
     },
     "info": {
         "extension": "sihat",
-        "outDir": "sihat/audioChunk",
+        "outDir": "sihat/withTransient",
         "prefix": "DATA"
     },
     "settings": {
@@ -73,7 +74,7 @@
         "harmonicAnalysis": true,
         "noiseAnalysis": false,
         "overtoneAnalysis": true,
-        "periodAnalysis": true,
+        "periodAnalysis": false,
         "pitchAnalysis": false,
         "transientSeparation": true
     }
