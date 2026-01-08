@@ -1,3 +1,9 @@
+#To-do 01/08
+Transients are kind of working, but it seems like the values don't allow for progressive increases. Probably due to low frequencies not getting enough updates. Therefore, frequencies below the actual window size (perhaps even twice the window size) should get filtered out. Maybe also consider extending the scalogram to cover beyond the transient end.
+
+#To-do 2026/01/02
+Add RMS information to metadata in order to match transient amplitude with harmonics.
+
 #To-do 11/24
 Add geometric mean to Sitrano Header
 Add algebraic mean too
