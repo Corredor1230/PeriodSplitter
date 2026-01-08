@@ -16,6 +16,7 @@ Transient::Transient(
     aud(unit.soundFile),
     factor(conf.transientFactor),
     threshold(conf.transientThreshold),
+    corrThreshold(conf.tCorrelationThreshold),
     preAttack(conf.preAttack),
     sr(unit.sampleRate),
     nfft(ffts.nfft),
@@ -108,8 +109,71 @@ Sitrano::TransientResults Transient::findStartTransient()
 
     std::vector<Sitrano::VariableRatePartial> scalogram = wavelet.analyze(2048, 64, pitch / 2.0, 20000.f);
 
+    double sourceSumSq = 0.0;
+    int rangeLen = range.endSample - range.initSample;
+    if (rangeLen > 0) {
+        for (int i = 0; i < rangeLen; ++i) {
+            float sample = aud[range.initSample + i];
+            sourceSumSq += sample * sample;
+        }
+    }
+    double sourceRMS = (rangeLen > 0) ? std::sqrt(sourceSumSq / rangeLen) : 0.0;
+
+    // 2. Calculate the estimated RMS of your SCALOGRAM (The Model)
+    // We assume the partials are mostly incoherent (energies sum up).
+    // Power of a sine wave = (Amplitude^2) / 2.
+    
+    double modelTotalPower = 0.0;
+    
+    for (const auto& partial : scalogram) {
+        if (partial.data.empty()) continue;
+
+        double partialSumSq = 0.0;
+        for (float val : partial.data) {
+            partialSumSq += val * val;
+        }
+        
+        // Average squared amplitude for this partial
+        double partialMeanSq = partialSumSq / partial.data.size();
+        
+        // Convert Peak Amplitude to Power (RMS^2) -> A^2 / 2
+        double partialPower = partialMeanSq / 2.0; 
+        
+        modelTotalPower += partialPower;
+    }
+    
+    double modelRMS = std::sqrt(modelTotalPower);
+
+    // 3. Determine the Gain Factor
+    // Prevent division by zero
+    float gain = 1.0f;
+    if (modelRMS > 0.00001) {
+        gain = static_cast<float>(sourceRMS / modelRMS);
+    }
+    
+    // 4. Apply Gain to the Scalogram
+    // This forces the "Synthesized Transient" to have the exact same energy as the "Recorded Transient"
+    for (auto& partial : scalogram) {
+        for (float& val : partial.data) {
+            val *= gain;
+        }
+    }
+
+    std::cout << "Transient Calibration | Source RMS: " << sourceRMS 
+              << " | Model RMS: " << modelRMS 
+              << " | Applied Gain: " << gain << std::endl;
+
     results.range = range;
     results.scalogram = scalogram;
+
+    //Extract original audio transient RMS for resynthesis
+    float sum = 0.0;
+    for (int i = results.range.initSample; i < results.range.endSample; ++i)
+    {
+        sum += aud[i] * aud[i];
+    }
+    results.rms = std::sqrt(sum / (results.range.endSample - results.range.initSample));
+
     return results;
 }
 
@@ -124,7 +188,7 @@ Sitrano::SampleRange Transient::findFromRMS()
 
     std::vector<float> rmsWindow(rmsSize); // This will hold the transient
 
-    for (int samp = tSettings.tStartSample; samp < aud.size(); samp += rmsHopLength)
+    for (int samp = tSettings.tStartSample; samp < (aud.size() / 4); samp += rmsHopLength)
     {
         float windowSum = 0.f;
         std::vector<float> tempRms(rmsSize);
@@ -160,57 +224,6 @@ Sitrano::SampleRange Transient::findFromRMS()
         return range;
     }
 
-    // int peakIndexInWindow = Sitrano::findAbsPeakIndex(rmsWindow);
-    // int peakSample = tInitSample + peakIndexInWindow;
-    // float peakValue = std::abs(aud[peakSample]);
-
-    // // Find the *actual* number of samples in that first window
-    // int foundWindowNumSamples = 0;
-    // for (int rmsSamp = 0; rmsSamp < rmsSize && (rmsSamp + tInitSample) < aud.size(); rmsSamp++) {
-    //     foundWindowNumSamples++;
-    // }
-
-    // // Check if the peak is the last sample of that window
-    // if (foundWindowNumSamples > 0 && peakIndexInWindow == (foundWindowNumSamples - 1))
-    // {
-    //     // The peak is at the end. We must search subsequent windows.
-    //     for (int samp = tInitSample + rmsHopLength; samp < aud.size(); samp += rmsHopLength)
-    //     {
-    //         std::vector<float> nextRmsWindow(rmsSize, 0.f);
-    //         int currentWindowNumSamples = 0;
-    //         for (int rmsSamp = 0; rmsSamp < rmsSize && (rmsSamp + samp) < aud.size(); rmsSamp++)
-    //         {
-    //             nextRmsWindow[rmsSamp] = aud[samp + rmsSamp];
-    //             currentWindowNumSamples++;
-    //         }
-
-    //         if (currentWindowNumSamples == 0) {
-    //             break;
-    //         }
-
-    //         int nextPeakIndexInWindow = Sitrano::findAbsPeakIndex(nextRmsWindow);
-
-    //         if (nextPeakIndexInWindow >= currentWindowNumSamples) {
-    //             continue;
-    //         }
-
-    //         float nextPeakValue = std::abs(nextRmsWindow[nextPeakIndexInWindow]);
-
-    //         if (nextPeakValue > peakValue)
-    //         {
-    //             peakValue = nextPeakValue;
-    //             peakSample = samp + nextPeakIndexInWindow;
-    //             if (nextPeakIndexInWindow != (currentWindowNumSamples - 1)) break;
-    //         }
-    //         else break;
-    //     }
-    // }
-
-    // int prevZero = Sitrano::findPreviousZero(aud, peakSample);
-    // int offset = prevZero - preAttack;
-
-    // range.initSample = Sitrano::findNearestZero(aud, offset);
-    // range.endSample = Sitrano::findNextZero(aud, peakSample);
     range.initSample = Sitrano::findPreviousZero(aud, tInitSample);
     range.endSample = Sitrano::findNextZero(aud, tInitSample + rmsSize);
     return range;
@@ -409,7 +422,6 @@ Sitrano::SampleRange Transient::findWithCrossCorrelation(int offset, int firstSa
         comparative = filter.filtfilt(comparative, sr, pitch * maxPitchRatio);
 
         float correlationValue = 0.f;
-        float corrThreshold = 0.5;
 
         float numerator = 0.f;
         float squareB = 0.f;
