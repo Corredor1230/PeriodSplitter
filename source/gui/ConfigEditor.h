@@ -166,6 +166,7 @@ public:
                 ImGui::InputInt("Transient Hop Size", &config.tfftSettings.hopSize);
                 ImGui::Checkbox("Use FFT", &config.tfftSettings.useFFT);
                 ImGui::InputFloat("Transient Flatness Threshold", &config.tfftSettings.flatnessThreshold);
+                ImGui::InputFloat("Transient Correlation Threshold", &config.tSettings.tCorrelationThreshold);
                 ImGui::TreePop();
             }
 

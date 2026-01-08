@@ -29,7 +29,8 @@ namespace SihatJson {
             {"t_rmsHopRatio", t.transientRmsHopRatio},
             {"t_factor", t.transientFactor},
             {"t_threshold", t.transientThreshold},
-            {"t_preAttack", t.preAttack}
+            {"t_preAttack", t.preAttack},
+            {"t_correlationThreshold", t.tCorrelationThreshold}
         };
     }
 
@@ -168,6 +169,7 @@ namespace SihatJson {
         j.at("t_factor").get_to(t.transientFactor);
         j.at("t_threshold").get_to(t.transientThreshold);
         j.at("t_preAttack").get_to(t.preAttack);
+        j.at("t_correlationThreshold").get_to(t.tCorrelationThreshold);
     }
 
     inline void from_json(const json& j, Sitrano::TransientFFTSettings& tfft){
