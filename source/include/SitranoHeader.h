@@ -32,6 +32,7 @@ namespace Sitrano
         std::vector<std::vector<float>> phases;
         std::vector<std::vector<float>> freqs;
         std::vector<uint32_t> finalSamples;
+        float rms = 0.0;
     };
 
     struct VariableRatePartial
@@ -51,6 +52,7 @@ namespace Sitrano
         float transientFactor = 3.0f;
         float transientThreshold = 0.1f;
         int preAttack = 20; // number of samples before transient detection
+        float tCorrelationThreshold = 0.85;
     };
 
     struct TransientFFTSettings {
@@ -197,6 +199,7 @@ namespace Sitrano
     struct TransientResults {
         SampleRange range;
         std::vector<VariableRatePartial> scalogram;
+        float rms = 0.0;
     };
 
 
@@ -330,9 +333,8 @@ namespace Sitrano
         const std::string& pathSlow
     );
     void saveHarmonicDataSihat(
-        const std::vector<uint32_t>& indices,
-        const std::vector<std::vector<float>>& amp,
-        const std::vector<std::vector<float>>& freq,
+        const HarmonicResults& hResults,
+        const TransientResults& tResults,
         float f0,
         const std::string& outputDirectory,
         const std::string& baseFilename,

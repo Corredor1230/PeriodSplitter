@@ -272,14 +272,20 @@ void Sitrano::saveHarmonicData(
 }
 
 void Sitrano::saveHarmonicDataSihat(
-    const std::vector<uint32_t>& indices,
-    const std::vector<std::vector<float>>& fastData,
-    const std::vector<std::vector<float>>& slowData,
+    const HarmonicResults& hResults,
+    const Sitrano::TransientResults& tResults, // <--- NEW ARGUMENT
     float fundamentalFreq,
     const std::string& outputDirectory,
     const std::string& baseFilename,
     const std::string& extension
 ) {
+
+    const std::vector<uint32_t>& hInd = hResults.finalSamples;
+    const std::vector<std::vector<float>>& hAmps = hResults.amps;
+    const std::vector<std::vector<float>>& hFreqs = hResults.freqs;
+    const float& hRms = hResults.rms;
+    const float& tRms = tResults.rms;
+
     try {
         std::filesystem::create_directories(outputDirectory);
 
@@ -287,49 +293,54 @@ void Sitrano::saveHarmonicDataSihat(
         fullPath /= baseFilename;
         fullPath.replace_extension(extension);
 
-        // write all three data blocks to this one file.
         std::ofstream f(fullPath, std::ios::binary);
         if (!f) {
             throw std::runtime_error("Failed to open file for writing: " + fullPath.string());
         }
 
+        // Header: Fundamental Frequency
         {
             f.write(reinterpret_cast<const char*>(&fundamentalFreq), sizeof(float));
         }
 
         // Block 1: Write indices
         {
-            uint32_t n = static_cast<uint32_t>(indices.size());
+            uint32_t n = static_cast<uint32_t>(hInd.size());
             f.write(reinterpret_cast<const char*>(&n), sizeof(uint32_t));
-            f.write(reinterpret_cast<const char*>(indices.data()), n * sizeof(uint32_t));
+            if (n > 0) {
+                f.write(reinterpret_cast<const char*>(hInd.data()), n * sizeof(uint32_t));
+            }
         }
 
         // Block 2: Write fast amp data
         {
-            uint32_t numHarmonics = static_cast<uint32_t>(fastData.size());
+            uint32_t numHarmonics = static_cast<uint32_t>(hAmps.size());
             f.write(reinterpret_cast<const char*>(&numHarmonics), sizeof(uint32_t));
-            for (const auto& harmonic : fastData) {
+            for (const auto& harmonic : hAmps) {
                 uint32_t len = static_cast<uint32_t>(harmonic.size());
                 f.write(reinterpret_cast<const char*>(&len), sizeof(uint32_t));
-                f.write(reinterpret_cast<const char*>(harmonic.data()), len * sizeof(float));
+                if (len > 0) {
+                    f.write(reinterpret_cast<const char*>(harmonic.data()), len * sizeof(float));
+                }
             }
         }
 
         // Block 3: Write slow frequency data
         {
-            uint32_t numHarmonics = static_cast<uint32_t>(slowData.size());
+            uint32_t numHarmonics = static_cast<uint32_t>(hFreqs.size());
             f.write(reinterpret_cast<const char*>(&numHarmonics), sizeof(uint32_t));
 
-            for (const auto& freqVec : slowData) {
+            for (const auto& freqVec : hFreqs) {
                 std::vector<ChangePoint> cps;
 
-                if (!freqVec.empty() && !indices.empty()) {
+                // (Your existing change point detection logic)
+                if (!freqVec.empty() && !hInd.empty()) {
                     float prev = freqVec.front();
-                    cps.push_back({ indices.front(), prev, prev / fundamentalFreq });
+                    cps.push_back({ hInd.front(), prev, prev / fundamentalFreq });
 
-                    for (size_t i = 1; i < freqVec.size() && i < indices.size(); ++i) {
-                        if (std::fabs(freqVec[i] - prev) > 1e-6f) { // detect change
-                            cps.push_back({ indices[i], freqVec[i], freqVec[i] / fundamentalFreq });
+                    for (size_t i = 1; i < freqVec.size() && i < hInd.size(); ++i) {
+                        if (std::fabs(freqVec[i] - prev) > 1e-6f) { 
+                            cps.push_back({ hInd[i], freqVec[i], freqVec[i] / fundamentalFreq });
                             prev = freqVec[i];
                         }
                     }
@@ -338,25 +349,54 @@ void Sitrano::saveHarmonicDataSihat(
                 uint32_t len = static_cast<uint32_t>(cps.size());
                 f.write(reinterpret_cast<const char*>(&len), sizeof(uint32_t));
 
-                // This is safe ONLY if ChangePoint is a POD (Plain Old Data) struct
-                // with no pointers, virtual functions, etc., which it is here.
                 if (len > 0) {
                     f.write(reinterpret_cast<const char*>(cps.data()), len * sizeof(ChangePoint));
                 }
-
-                /*
-                // Original, safer, but slightly slower loop-based write:
-                for (const auto& cp : cps) {
-                    f.write(reinterpret_cast<const char*>(&cp.index), sizeof(uint32_t));
-                    f.write(reinterpret_cast<const char*>(&cp.value), sizeof(float));
-                    f.write(reinterpret_cast<const char*>(&cp.ratio), sizeof(float));
-                }
-                */
             }
         }
 
-        std::cout << "Successfully saved data to: " << fullPath.string() << std::endl;
+        // Block 4: Write Transient Scalogram Data (NEW)
+        {
+            // A. Write the Range (Start/End Sample)
+            // Assuming initSample/endSample are ints or uint32_t. 
+            // We cast to uint32_t to ensure binary consistency.
+            uint32_t tStart = static_cast<uint32_t>(tResults.range.initSample);
+            uint32_t tEnd   = static_cast<uint32_t>(tResults.range.endSample);
+            
+            f.write(reinterpret_cast<const char*>(&tStart), sizeof(uint32_t));
+            f.write(reinterpret_cast<const char*>(&tEnd), sizeof(uint32_t));
 
+            // B. Write the Scalogram Partials
+            uint32_t numPartials = static_cast<uint32_t>(tResults.scalogram.size());
+            f.write(reinterpret_cast<const char*>(&numPartials), sizeof(uint32_t));
+
+            for (const auto& partial : tResults.scalogram) {
+                // 1. Frequency
+                f.write(reinterpret_cast<const char*>(&partial.frequency), sizeof(float));
+
+                // 2. Hop Size 
+                // Essential for reconstruction so we know the time delta between envelope points
+                uint32_t hop = static_cast<uint32_t>(partial.hopSize);
+                f.write(reinterpret_cast<const char*>(&hop), sizeof(uint32_t));
+
+                // 3. Envelope Data Length
+                uint32_t dataLen = static_cast<uint32_t>(partial.data.size());
+                f.write(reinterpret_cast<const char*>(&dataLen), sizeof(uint32_t));
+
+                // 4. Envelope Data Points
+                if (dataLen > 0) {
+                    f.write(reinterpret_cast<const char*>(partial.data.data()), dataLen * sizeof(float));
+                }
+            }
+        }
+
+        //Write the RMS values for each section
+        {
+            f.write(reinterpret_cast<const char*>(&hRms), sizeof(float));
+            f.write(reinterpret_cast<const char*>(&tRms), sizeof(float));
+        }
+
+        std::cout << "Successfully saved data to: " << fullPath.string() << std::endl;
     }
     catch (const std::exception& e) {
         std::cerr << "Error saving harmonic data: " << e.what() << std::endl;
