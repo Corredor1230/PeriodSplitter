@@ -63,15 +63,11 @@ set(GUI_SOURCES
 set(SUPPORT_SOURCES
     ${SOURCE_DIR}/support/Splitter.cpp 
     ${SOURCE_DIR}/support/Splitter.h
-    ${SOURCE_DIR}/support/AudioChunkStrategy.cpp
     ${SOURCE_DIR}/support/AudioChunkStrategy.h
-    ${SOURCE_DIR}/support/PeriodLoopStrategy.cpp
     ${SOURCE_DIR}/support/PeriodLoopStrategy.h
-    ${SOURCE_DIR}/support/SinglePeriodStrategy.cpp
     ${SOURCE_DIR}/support/SinglePeriodStrategy.h
     ${SOURCE_DIR}/support/IWindowStrategy.h
     ${SOURCE_DIR}/support/SihatLogger.h
-    ${SOURCE_DIR}/support/SihatLogger.cpp
 )
 
 set(INCLUDE_FILES
