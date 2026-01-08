@@ -10,8 +10,7 @@ public:
     WTransform(std::vector<float> input, float sampleRate)
     : signal(input), fs(sampleRate)
     {
-        nfft = Sitrano::findNextPowerOfTwo(signal.size());
-        signal.resize(nfft, 0.f);
+        nfft = signal.size();
         initFFTW();
     }
 
@@ -23,8 +22,6 @@ public:
         fftwf_free(fDomainBuffer);
         fftwf_free(invBuffer);
     };
-
-    virtual std::vector<float> process(const std::vector<float>& frequencies) = 0;
 
 protected:
     float* inBuffer;
