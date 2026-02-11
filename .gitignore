@@ -1,5 +1,5 @@
 build/
-include/
+/include/
 *.wav
 *.ini
 *.xlsx
