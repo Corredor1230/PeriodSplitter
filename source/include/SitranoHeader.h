@@ -52,6 +52,7 @@ namespace Sitrano
         float transientFactor = 3.0f;
         float transientThreshold = 0.1f;
         int preAttack = 20; // number of samples before transient detection
+        int tailOff = 500;
         float tCorrelationThreshold = 0.85;
     };
 

@@ -90,11 +90,11 @@ Sitrano::FreqUnit Sitrano::findPeak(Sitrano::BinFreq inTarget, void* fftwfOut,
         }
         target.bin += Sitrano::findPeakIndexVector(inputvector) + iStart;
 
-        float log_km1 = logf(hypotf(out[target.bin - 1][0],
+        log_km1 = logf(hypotf(out[target.bin - 1][0],
             out[target.bin - 1][1]));
-        float log_k = logf(hypotf(out[target.bin][0],
+        log_k = logf(hypotf(out[target.bin][0],
             out[target.bin][1]));
-        float log_kp1 = logf(hypotf(out[target.bin + 1][0],
+        log_kp1 = logf(hypotf(out[target.bin + 1][0],
             out[target.bin + 1][1]));
     }
 
@@ -312,7 +312,7 @@ void Sitrano::saveHarmonicDataSihat(
             }
         }
 
-        // Block 2: Write fast amp data
+        // Block 2: Write amp data
         {
             uint32_t numHarmonics = static_cast<uint32_t>(hAmps.size());
             f.write(reinterpret_cast<const char*>(&numHarmonics), sizeof(uint32_t));
@@ -325,7 +325,7 @@ void Sitrano::saveHarmonicDataSihat(
             }
         }
 
-        // Block 3: Write slow frequency data
+        // Block 3: Write frequency data
         {
             uint32_t numHarmonics = static_cast<uint32_t>(hFreqs.size());
             f.write(reinterpret_cast<const char*>(&numHarmonics), sizeof(uint32_t));
@@ -333,7 +333,6 @@ void Sitrano::saveHarmonicDataSihat(
             for (const auto& freqVec : hFreqs) {
                 std::vector<ChangePoint> cps;
 
-                // (Your existing change point detection logic)
                 if (!freqVec.empty() && !hInd.empty()) {
                     float prev = freqVec.front();
                     cps.push_back({ hInd.front(), prev, prev / fundamentalFreq });
@@ -357,9 +356,6 @@ void Sitrano::saveHarmonicDataSihat(
 
         // Block 4: Write Transient Scalogram Data (NEW)
         {
-            // A. Write the Range (Start/End Sample)
-            // Assuming initSample/endSample are ints or uint32_t. 
-            // We cast to uint32_t to ensure binary consistency.
             uint32_t tStart = static_cast<uint32_t>(tResults.range.initSample);
             uint32_t tEnd   = static_cast<uint32_t>(tResults.range.endSample);
             
