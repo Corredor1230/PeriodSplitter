@@ -107,7 +107,7 @@ Sitrano::TransientResults Transient::findStartTransient()
         wTransform[i] = Sitrano::midiToFreq(midiLow + midiStep * i);
     }
 
-    std::vector<Sitrano::VariableRatePartial> scalogram = wavelet.analyze(2048, 64, pitch / 2.0, 20000.f);
+    std::vector<Sitrano::VariableRatePartial> scalogram = wavelet.analyze(64, 2048, pitch * 1.0, 20000.f);
 
     double sourceSumSq = 0.0;
     int rangeLen = range.endSample - range.initSample;

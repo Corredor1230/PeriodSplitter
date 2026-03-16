@@ -54,7 +54,7 @@ Sitrano::Results Analyzer::analyze(
         std::vector<double> checkSignal;
         int firstSample = 0;
 
-        if (!mConfig.oSettings.chooseFirstSample) firstSample = results.tResults.range.endSample;
+        if (!mConfig.oSettings.chooseFirstSample) firstSample = results.tResults.range.initSample;
         else firstSample = mConfig.oSettings.overtoneFirstSample;
 
         for (int i = 0; i < mConfig.oSettings.fftSize; ++i)
@@ -63,6 +63,11 @@ Sitrano::Results Analyzer::analyze(
         }
         OvertoneFinder finder{ unit, mConfig };
         results.topFreqs = finder.getRelevantOvertones(checkSignal, results.pitch);
+        std::vector<float> freqs;
+        for (int i = 0; i < results.topFreqs.size(); i++)
+        {
+            freqs.push_back(results.topFreqs[i].freq);
+        }
     }
     else
     {
