@@ -92,8 +92,8 @@ Sitrano::HarmonicResults HarmonicTracker::analyze()
         for (int h = 1; h <= tFreqs.size(); ++h) {
             if (tFreqs[h - 1].freq <= 20.0) continue;
             float targetFreq = tFreqs[h - 1].freq;
-            Sitrano::BinFreq binFreq = Sitrano::findPeakWithinTolerance(targetFreq, settings.toleranceValue, nfft,
-                sr, output);
+            Sitrano::BinFreq binFreq = settings.tolInHz ? Sitrano::findPeakWithinTolerance(targetFreq, settings.tolInHz, nfft,
+                sr, output, true) : Sitrano::findPeakWithinTolerance(targetFreq, settings.toleranceValue, nfft, sr, output, false);
 
             if (binFreq.bin < nfft / 2 + 1) {
                 Sitrano::FreqUnit fUnit{ binFreq, 0.0, 0.0, 0.0 };

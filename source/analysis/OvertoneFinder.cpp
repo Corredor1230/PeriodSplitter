@@ -51,8 +51,6 @@ std::vector<Sitrano::Peak> OvertoneFinder::getRelevantOvertones(
         // Find local maxima (basic peak-picking)
         if (mags[k] > mags[k - 1] && mags[k] > mags[k + 1])
         {
-            // Note: Your Sitrano::interp_delta probably does quadratic interpolation,
-            // which is a great approach.
             double delta = Sitrano::interp_delta(k, mags);
             double f = (k + delta) * unit.sampleRate / double(N);
             double amp = Sitrano::mag_to_amp(mags[k], N);
@@ -68,7 +66,6 @@ std::vector<Sitrano::Peak> OvertoneFinder::getRelevantOvertones(
     std::vector<Sitrano::Peak> merged;
     merged.reserve(outHarm);
 
-    // This is a much safer way to track processed peaks
     std::vector<bool> peak_processed(peaks.size(), false);
 
     float ampThresh = 0.5;
@@ -87,9 +84,9 @@ std::vector<Sitrano::Peak> OvertoneFinder::getRelevantOvertones(
             continue; // This peak was already added to a cluster
         }
 
-        // This is our new "seed" peak
+        // This is the  new "seed" peak
         const auto& seedPeak = peaks[i];
-        float tolInHz = Sitrano::cents_to_hz(seedPeak.freq, settings.toleranceValue);
+        float tolInHz = settings.useTolInHz ? settings.tolInHz : Sitrano::cents_to_hz(seedPeak.freq, settings.toleranceValue);
         peak_processed[i] = true;
         bool withinTolerance = false;
 
@@ -113,22 +110,20 @@ std::vector<Sitrano::Peak> OvertoneFinder::getRelevantOvertones(
         if (!withinTolerance) merged.push_back(cluster);
     }
 
-    // --- 6. FINAL SORTING & CLEANUP ---
-
     // If we summed amplitudes, the list is no longer sorted by amp.
-    // We must re-sort to get the Top N.
+    //re-sort to get the Top N.
     if (settings.sumAmplitudes) {
         std::sort(merged.begin(), merged.end(), [](const Sitrano::Peak& a, const Sitrano::Peak& b) {
             return a.amp > b.amp;
             });
     }
 
-    // Now, resize to the desired number of harmonics
+    // resize to the desired number of harmonics
     if (merged.size() > outHarm) {
         merged.resize(outHarm);
     }
 
-    // Finally, sort by frequency for a clean output
+    // sort by frequency for a clean output
     std::sort(merged.begin(), merged.end(), [](const Sitrano::Peak& a, const Sitrano::Peak& b) {
         return a.freq < b.freq;
         });
