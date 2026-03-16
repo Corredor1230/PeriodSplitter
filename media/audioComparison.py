@@ -14,9 +14,8 @@ ANALYSIS_MODE = "linear"      # Options: "mel" or "linear"
 
 # 2. Files to Analyze
 FILE_PATHS = [
-    "audio/guitar_recording.wav",
-    "audio/guitar_synthesized.wav",
-    "audio/piano.wav",
+    "AGuit3_195_F.wav",
+    "sihat/newTests/GEN_Aguit3_195_F.wav",
     # ... add more files here
 ]
 

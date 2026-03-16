@@ -6,15 +6,28 @@
 #include<iomanip>
 #include<complex>
 
-Sitrano::BinFreq Sitrano::findPeakWithinTolerance(float targetFreq, float tolerance, int n, float sr, void* generic_out)
+Sitrano::BinFreq Sitrano::findPeakWithinTolerance(float targetFreq, float tolerance, int n, float sr, void* generic_out, bool isTolInHz = true)
 {
     fftwf_complex* out = reinterpret_cast<fftwf_complex*>(generic_out);
-    float midiTolerance = tolerance / 100.0;
-    float lowMidi = freqToMidi(targetFreq) - midiTolerance;
-    float lowFreq = midiToFreq(lowMidi);
+
+    float lowFreq = 0.0;
+    float hiFreq = 0.0;
+
+    if (!isTolInHz)
+    {
+        float midiTolerance = tolerance / 100.0;
+        float lowMidi = freqToMidi(targetFreq) - midiTolerance;
+        lowFreq = midiToFreq(lowMidi);        
+        float hiMidi = freqToMidi(targetFreq) + midiTolerance;
+        hiFreq = midiToFreq(hiMidi);
+    }
+    else
+    {
+        lowFreq = targetFreq - tolerance;
+        hiFreq = targetFreq + tolerance;
+    }
+
     int lowBin = freqToBin(lowFreq, n, sr);
-    float hiMidi = freqToMidi(targetFreq) + midiTolerance;
-    float hiFreq = midiToFreq(hiMidi);
     int hiBin = freqToBin(hiFreq, n, sr);
     int targetBin = freqToBin(targetFreq, n, sr);
 

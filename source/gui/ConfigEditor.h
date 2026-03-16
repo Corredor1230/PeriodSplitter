@@ -105,6 +105,8 @@ public:
             {
                 ImGui::Checkbox("Enabled", &config.hSettings.applyHanning);
                 ImGui::InputFloat("Tolerance", &config.hSettings.toleranceValue);
+                ImGui::Checkbox("Use Tolerance in Hz", &config.hSettings.useTolInHz);
+                ImGui::InputFloat("Tolerance in Hz", &config.hSettings.tolInHz);
                 const char* windowStyles[] = { "Period Loop", "Single Period", "Audio Chunk" };
                 int styleCount = IM_ARRAYSIZE(windowStyles);
 
@@ -135,6 +137,8 @@ public:
                 ImGui::InputFloat("Ignore Threshold", &config.oSettings.overtoneThreshold);
                 ImGui::InputDouble("Tolerance", &config.oSettings.toleranceValue);
                 ImGui::Checkbox("Use Tolerance", &config.oSettings.useTolerance);
+                ImGui::Checkbox("Use Tolerance in Hz", &config.oSettings.useTolInHz);
+                ImGui::InputDouble("Tolerance in Hz", &config.oSettings.tolInHz);
                 ImGui::Checkbox("Absolute Threshold", &config.oSettings.setAbsoluteThreshold);
                 ImGui::Checkbox("Post Transient Start", &config.oSettings.postTransientStart);
                 ImGui::Checkbox("Sum Amplitudes", &config.oSettings.sumAmplitudes);

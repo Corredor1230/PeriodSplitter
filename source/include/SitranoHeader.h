@@ -81,7 +81,9 @@ namespace Sitrano
     struct HarmonicSettings {
         bool applyHanning;
         WindowStyle style;
-        float toleranceValue;
+        float toleranceValue = 100.0;
+        bool useTolInHz = true;
+        float tolInHz = 6.0;
     };
 
     /**
@@ -97,6 +99,8 @@ namespace Sitrano
     struct OvertoneSettings {
         bool useTolerance = true;
         double toleranceValue = 100.0;
+        bool useTolInHz = true;
+        double tolInHz = 6.0;
         bool postTransientStart = true;
         bool chooseFirstSample = false;
         int overtoneFirstSample = 0;
@@ -317,7 +321,7 @@ namespace Sitrano
     }
 
     //Functions with a definition in .cpp file
-    BinFreq findPeakWithinTolerance(float targetFreq, float tolerance, int n, float sr, void* out);
+    BinFreq findPeakWithinTolerance(float targetFreq, float tolerance, int n, float sr, void* out, bool isTolInHz);
     FreqUnit findPeak(BinFreq target, void* fftwfOut, int nfft, float fs, int binRange);
     void filterVector(std::vector<float>& input, int filterSize, bool zeroPad);
     void normalizeByMaxAbs(std::vector<float>& vec);

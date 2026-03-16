@@ -452,15 +452,15 @@ def synthesize(f0, ratios, indices, fastData, slowData, transientData,
 # =============================
 if __name__ == "__main__":
     inPrefix = "DATA_"
-    instr = "EGuit"
-    string = "6"
-    freq = "82"
+    instr = "Piano"
+    string = ""
+    freq = "261"
     newF0 = 82.0
     dyn = "F"
     inExt = ".sihat"
     outExt = ".wav"
-    outputDir = "tests/withTransient/"
-    inputDir = "sihat/withTransient/"
+    outputDir = "sihat/newTests/"
+    inputDir = "sihat/newTests/"
     outPrefix = "GEN" + "_"
 
     plotsStrings=["rms", "ratio", "scalogram"] # Default plots

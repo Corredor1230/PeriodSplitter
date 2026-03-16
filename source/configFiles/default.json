@@ -7,11 +7,13 @@
             "c_threshold": 0.949999988079071
         },
         "harmonicSettings": {
-            "h_Tolerance": 100.0,
+            "h_Tolerance": 50.0,
             "h_enabled": true,
+            "h_tolInHz": 6.0,
+            "h_useTolInHz": true,
             "h_windowStyle": 2
         },
-        "hopSize": 1024,
+        "hopSize": 256,
         "maxHarmonics": 32,
         "noiseSettings": {
             "n_hopSize": 32,
@@ -28,12 +30,14 @@
             "o_FirstSample": 0,
             "o_absThreshold": true,
             "o_chooseFirstSample": false,
-            "o_ignoreThreshold": -60.0,
-            "o_mfft": 65536,
+            "o_ignoreThreshold": -80.0,
+            "o_mfft": 8192,
             "o_postTransientStart": true,
             "o_sumAmplitudes": true,
+            "o_tolInHz": 30.0,
             "o_tolerance": 100.0,
             "o_useCustomSignal": true,
+            "o_useTolInHz": true,
             "o_useTolerance": true
         },
         "pitchSettings": {
@@ -53,20 +57,20 @@
         "transientSettings": {
             "t_StartSample": 0,
             "t_UseMs": false,
+            "t_correlationThreshold": 0.8500000238418579,
             "t_factor": 2.0,
             "t_preAttack": 20,
             "t_rmsHopLength": 128,
             "t_rmsHopRatio": 1.0,
             "t_rmsSampleSize": 128,
             "t_rmsSizeMs": 1.0,
-            "t_threshold": 0.10000000149011612,
-            "t_correlationThreshold": 0.85
+            "t_threshold": 0.10000000149011612
         },
         "verbose": true
     },
     "info": {
         "extension": "sihat",
-        "outDir": "sihat/withTransient",
+        "outDir": "sihat/newTests",
         "prefix": "DATA"
     },
     "settings": {

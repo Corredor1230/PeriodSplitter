@@ -63,6 +63,8 @@ namespace SihatJson {
     inline void to_json(json& j, const Sitrano::OvertoneSettings& o) {
         j = json{
             {"o_useTolerance", o.useTolerance},
+            {"o_useTolInHz", o.useTolInHz},
+            {"o_tolInHz", o.tolInHz},
             {"o_chooseFirstSample", o.chooseFirstSample},
             {"o_tolerance", o.toleranceValue},
             {"o_postTransientStart", o.postTransientStart},
@@ -80,7 +82,9 @@ namespace SihatJson {
         j = json{
             {"h_enabled", h.applyHanning},
             {"h_windowStyle", static_cast<int>(h.style)},  // convert enum to int
-            {"h_Tolerance", h.toleranceValue}
+            {"h_Tolerance", h.toleranceValue},
+            {"h_tolInHz", h.tolInHz},
+            {"h_useTolInHz", h.useTolInHz}
         };
     }
 
@@ -208,6 +212,8 @@ namespace SihatJson {
     // ---- OvertoneSettings ----
     inline void from_json(const json& j, Sitrano::OvertoneSettings& o) {
         j.at("o_useTolerance").get_to(o.useTolerance);
+        j.at("o_useTolInHz").get_to(o.useTolInHz);
+        j.at("o_tolInHz").get_to(o.tolInHz);
         j.at("o_chooseFirstSample").get_to(o.chooseFirstSample);
         j.at("o_tolerance").get_to(o.toleranceValue);
         j.at("o_postTransientStart").get_to(o.postTransientStart);
@@ -223,6 +229,8 @@ namespace SihatJson {
     inline void from_json(const json& j, Sitrano::HarmonicSettings& h) {
         j.at("h_enabled").get_to(h.applyHanning);
         j.at("h_Tolerance").get_to(h.toleranceValue);
+        j.at("h_tolInHz").get_to(h.tolInHz);
+        j.at("h_useTolInHz").get_to(h.useTolInHz);
 
         // Read the integer and cast it back to the enum type
         int styleAsInt;
