@@ -452,10 +452,10 @@ def synthesize(f0, ratios, indices, fastData, slowData, transientData,
 # =============================
 if __name__ == "__main__":
     inPrefix = "DATA_"
-    instr = "Piano"
-    string = ""
-    freq = "261"
-    newF0 = 82.0
+    instr = "EGuit"
+    string = "6"
+    freq = "82"
+    newF0 = 329.0
     dyn = "F"
     inExt = ".sihat"
     outExt = ".wav"
@@ -468,10 +468,10 @@ if __name__ == "__main__":
     ampThreshold = 0.001
 
     sampleRate = 96000
-    replaceF0 = False
+    replaceF0 = True
     if replaceF0:
         outPrefix = "GENto" + str(int(newF0)) + "_"
-    useTransient = True
+    useTransient = False
     useOvertones = True
 
     runMode = "synth"
