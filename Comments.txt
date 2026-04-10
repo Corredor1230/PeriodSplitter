@@ -1,0 +1,8 @@
+HOW TO ADD A NEW PARAMETER
+
+1. add it to the main SitranoHeader.h
+2. add it to SihatJson.h
+    Here we have two places
+    a. First, to_json
+    b. Next, from_json
+3. add it to ConfigEditor.h
