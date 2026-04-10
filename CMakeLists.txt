@@ -48,6 +48,8 @@ set(DSP_SOURCES
     ${SOURCE_DIR}/dsp/WTransform.h
     ${SOURCE_DIR}/dsp/WTransform.cpp
     ${SOURCE_DIR}/dsp/MorletWavelet.h
+    ${SOURCE_DIR}/dsp/MedianFilter.cpp
+    ${SOURCE_DIR}/dsp/MedianFilter.h
 )
 
 set(GUI_SOURCES
