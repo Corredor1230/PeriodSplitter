@@ -14,8 +14,8 @@ ANALYSIS_MODE = "linear"      # Options: "mel" or "linear"
 
 # 2. Files to Analyze
 FILE_PATHS = [
-    "AGuit3_195_F.wav",
-    "sihat/newTests/GEN_Aguit3_195_F.wav",
+    "sihat/newTests/GENto329_EGuit6_82_F.wav",
+    "sihat/newTests/GEN_EGuit1_329_F.wav",
     # ... add more files here
 ]
 
