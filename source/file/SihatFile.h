@@ -80,6 +80,10 @@ namespace SihatFile {
 	*/
 	inline std::string openFolderDialog() {
 		std::string folderPath = "";
+
+		HRESULT hrInit = CoInitialize(NULL);
+		if (FAILED(hrInit)) return folderPath;
+
 		CoInitialize(NULL);
 
 		IFileOpenDialog* pFileOpen;
@@ -227,6 +231,61 @@ namespace SihatFile {
 		}
 
 		std::cout << "Batch processing complete.\n";
+	}
+
+	inline void exportSeparatedAudio(const std::vector<float>& interleaved, const std::string& outputDir, int sampleRate = 96000, const std::string& name)
+	{
+		if (interleaved.size() % 2 != 0) {
+			std::cerr << "Error: Interleaved audio vector size is not even. Cannot de-interleave." << std::endl;
+
+			return;
+		}
+
+		size_t numFrames = interleaved.size() / 2;
+
+		std::vector<float> hAudio(numFrames);
+		std::vector<float> pAudio(numFrames);
+
+		for (size_t i = 0; i < numFrames; i++){
+			hAudio[i] = interleaved[i * 2];
+			pAudio[i] = interleaved[i * 2 + 1];
+		}
+
+		SF_INFO sfinfo;
+		sfinfo.channels = 1;
+		sfinfo.samplerate = sampleRate;
+
+		sfinfo.format = SF_FORMAT_WAV | SF_FORMAT_FLOAT;
+
+		std::filesystem::path dir(outputDir);
+		if (!std::filesystem::exists(dir)){
+			std::filesystem::create_directories(dir);
+		}
+
+		auto writeWav = [&](const std::vector<float>& audio, const std::string& filename) -> bool {
+			std::filesystem::path filePath = dir / filename;
+
+			SNDFILE* outfile = sf_open(filePath.string().c_str(), SFM_WRITE, &sfinfo);
+			if (!outfile) {
+				std::cerr << "Error: could not open" << filePath << " for writing." << std::endl;
+				std::cerr << sf_strerror(NULL) << std::endl;
+				return false;
+			}
+
+			sf_count_t framesWritten = sf_write_float(outfile, audio.data(), audio.size());
+			if (framesWritten != audio.size()) {
+				std::cerr << "Warning: Not all frames were written to " << filename << std::endl;
+			}
+
+			sf_close(outfile);
+			return true;
+		};
+
+		bool successH = writeWav(hAudio, name + "harmonic.wav");
+		bool successP = writeWav(pAudio, name + "percussive.wav");
+
+		if (successH) std::cout << "Harmonic data successfully written." << std::endl;
+		if (successP) std::cout << "Percussive data successfully written." << std::endl;
 	}
 
 }
