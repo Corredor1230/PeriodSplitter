@@ -160,8 +160,8 @@ Sitrano::TransientResults Transient::findStartTransient()
     }
 
     std::cout << "Transient Calibration | Source RMS: " << sourceRMS 
-              << " | Model RMS: " << modelRMS 
-              << " | Applied Gain: " << gain << std::endl;
+            << " | Model RMS: " << modelRMS 
+            << " | Applied Gain: " << gain << std::endl;
 
     results.range = range;
     results.scalogram = scalogram;

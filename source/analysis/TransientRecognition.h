@@ -31,6 +31,7 @@ private:
 	const float pitch;
 	const int correlationOffset;
 	const float corrThreshold;
+
 	int rmsSize;
 	int rmsHopLength;
 	int preAttack;
