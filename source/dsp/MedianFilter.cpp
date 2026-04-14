@@ -2,7 +2,7 @@
 #include<algorithm>
 #include<stdexcept>
 
-MedianFilter::MedianFilter(const int n_fft, const int hop) : nfft(n_fft), hopSize(hop)
+MedianFilter::MedianFilter(Sitrano::HPSSSettings set) : nfft(set.nfft), hopSize(set.hopSize), filtSize(set.filtSize)
 {
     initfftw(nfft);
 }
@@ -15,7 +15,7 @@ void MedianFilter::initfftw(const int nfft)
 
     //frequency->time inits for ifft
     ioutBuffer = (float*)fftwf_malloc(sizeof(float) * nfft);
-    invBuffer = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex) * (nfft) / 2 + 1);
+    invBuffer = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex) * (nfft / 2 + 1));
 
     //plans, plans, plans
     ifftPlan = fftwf_plan_dft_c2r_1d(nfft, invBuffer, ioutBuffer, FFTW_ESTIMATE);
@@ -32,21 +32,21 @@ MedianFilter::~MedianFilter()
     fftwf_destroy_plan(ifftPlan);
 }
 
-std::vector<float> MedianFilter::processAudio(const std::vector<float>& input, const int filtSize)
+std::vector<float> MedianFilter::processAudio(const std::vector<float>& input)
 {
 
     //first step, getting a regular spectrogram
-    Sitrano::ComplexSpectrogram spectrogram = getComplexSpectrogram(input, nfft, hopSize);
+    Sitrano::ComplexSpectrogram spectrogram = getComplexSpectrogram(input);
 
     //then we filter it (this is the actual median filter)
-    MedianFilter::HPSpectrogram filtered = filter(spectrogram, filtSize);
+    MedianFilter::HPSpectrogram filtered = filter(spectrogram);
 
     //then we apply a mask, basically, we produce two complex spectrograms that have been reduced to vertical or horizontal elements
     MedianFilter::ComplexHPSpec masked = applyMask(filtered, spectrogram);
 
     //these are the harmonic or percussive audios
-    std::vector<float> hAudio = reconstructAudio(masked.harmonic, nfft, hopSize);
-    std::vector<float> pAudio = reconstructAudio(masked.percussive, nfft, hopSize);
+    std::vector<float> hAudio = reconstructAudio(masked.harmonic);
+    std::vector<float> pAudio = reconstructAudio(masked.percussive);
 
     //I decided to interleave them for processing simplicity
     std::vector<float> interleavedAudio(hAudio.size() + pAudio.size(), 0.0f);
@@ -59,7 +59,7 @@ std::vector<float> MedianFilter::processAudio(const std::vector<float>& input, c
     return interleavedAudio;
 }
 
-MedianFilter::HPSpectrogram MedianFilter::filter(const Sitrano::ComplexSpectrogram& input, int filtSize)
+MedianFilter::HPSpectrogram MedianFilter::filter(const Sitrano::ComplexSpectrogram& input)
 {
 
     if (filtSize % 2 == 0) 
@@ -84,8 +84,10 @@ MedianFilter::HPSpectrogram MedianFilter::filter(const Sitrano::ComplexSpectrogr
 
     int radius = filtSize / 2;
 
+    std::vector<float> row(input.numFrames);
+    std::vector<float> filteredRow(input.numFrames);
     std::vector<float> hWindow;
-    hWindow.resize(filtSize);
+    hWindow.reserve(filtSize);
 
     std::vector<float> pWindow;
     pWindow.resize(filtSize);
@@ -93,17 +95,52 @@ MedianFilter::HPSpectrogram MedianFilter::filter(const Sitrano::ComplexSpectrogr
     //b stands for bins
     for (int b = 0; b < input.numBins; b++)
     {
-        //f stands for frames, meaning this section handles harmonic stuff
+
         for (int f = 0; f < input.numFrames; f++)
         {
-            for (int i = -radius; i <= radius; i++)
+            row[f] = magSpec.at(f, b);
+        }
+
+        //f stands for frames, meaning this section handles harmonic stuff
+        hWindow.clear();
+        for(int i = -radius; i <= radius; i++)
+        {
+            int idx = std::clamp(i, 0, input.numFrames - 1);
+            hWindow.insert(
+                std::upper_bound(hWindow.begin(), hWindow.end(), row[idx]),
+                row[idx]
+            );
+        }
+        filteredRow[0] = hWindow[radius];
+
+        for(int f = 1; f < input.numFrames; f++)
+        {
+            int oldIdx = std::clamp(f - 1 - radius, 0, input.numFrames - 1);
+            float oldVal = row[oldIdx];
+
+            int newIdx = std::clamp(f + radius, 0, input.numFrames - 1);
+            float newVal = row[newIdx];
+
+            if (oldVal != newVal)
             {
-                int idx = std::clamp(f + i, 0, input.numFrames - 1);
-                hWindow[i + radius] = magSpec.at(idx, b);
+                auto it = std::lower_bound(hWindow.begin(), hWindow.end(), oldVal);
+                if (it != hWindow.end() && *it == oldVal)
+                {
+                    hWindow.erase(it);
+                }
+
+                hWindow.insert(
+                    std::upper_bound(hWindow.begin(), hWindow.end(), newVal),
+                    newVal
+                );
             }
-            //this takes the median value
-            std::nth_element(hWindow.begin(), hWindow.begin() + radius, hWindow.end());
-            harmonic.at(f, b) = hWindow[radius];
+
+            filteredRow[f] = hWindow[radius];
+        }
+
+        for (int f = 0; f < input.numFrames; f++)
+        {
+            harmonic.at(f, b) = filteredRow[f];
         }
     }
 
@@ -126,7 +163,7 @@ MedianFilter::HPSpectrogram MedianFilter::filter(const Sitrano::ComplexSpectrogr
     return MedianFilter::HPSpectrogram(harmonic, percussive);
 }
 
-Sitrano::ComplexSpectrogram MedianFilter::getComplexSpectrogram(const std::vector<float>& input, const int nfft, const int hopSize)
+Sitrano::ComplexSpectrogram MedianFilter::getComplexSpectrogram(const std::vector<float>& input)
 {
     int numBins = nfft / 2 + 1;
     int numFrames = (input.size() > nfft) ? (input.size() - nfft) / hopSize + 1 : 1;
@@ -202,7 +239,7 @@ MedianFilter::ComplexHPSpec MedianFilter::applyMask( HPSpectrogram& hp, Sitrano:
     return ComplexHPSpec(hComplex, pComplex);
 }
 
-std::vector<float> MedianFilter::reconstructAudio(const Sitrano::ComplexSpectrogram& spec, const int nfft, const int hopSize)
+std::vector<float> MedianFilter::reconstructAudio(const Sitrano::ComplexSpectrogram& spec)
 {
     int totalSamples = (spec.numFrames - 1) * hopSize + nfft;
     std::vector<float> output(totalSamples, 0.0f);
@@ -230,8 +267,10 @@ std::vector<float> MedianFilter::reconstructAudio(const Sitrano::ComplexSpectrog
     }
 
     for (int i = 0; i < totalSamples; i++){
-        if (windowSum[i] > 1e-6f){
+        if (windowSum[i] > 0.001f){
             output[i] /= windowSum[i];
+        } else {
+            output[i] = 0.0f;
         }
     }
 

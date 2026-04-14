@@ -7,7 +7,7 @@
 
 class MedianFilter{
 public:
-    MedianFilter(const int n_fft, const int hop);
+    MedianFilter(Sitrano::HPSSSettings settings);
     ~MedianFilter();
 
     struct HPSpectrogram{
@@ -22,8 +22,8 @@ public:
         Sitrano::ComplexSpectrogram percussive;
     };
 
-    HPSpectrogram filter(const Sitrano::ComplexSpectrogram& input, const int filtSize);
-    std::vector<float> processAudio(const std::vector<float>& input, const int filtSize);
+    HPSpectrogram filter(const Sitrano::ComplexSpectrogram& input);
+    std::vector<float> processAudio(const std::vector<float>& input);
 
 
 private:
@@ -38,12 +38,13 @@ private:
 
     const int nfft;
     const int hopSize;
+    int filtSize;
 
-    Sitrano::ComplexSpectrogram getComplexSpectrogram(const std::vector<float>& input, const int nfft, const int hopSize);
+    Sitrano::ComplexSpectrogram getComplexSpectrogram(const std::vector<float>& input);
 
     ComplexHPSpec applyMask(HPSpectrogram& hp, Sitrano::ComplexSpectrogram& complex);
 
-    std::vector<float> reconstructAudio(const Sitrano::ComplexSpectrogram& spec, const int nfft, const int hopSize);
+    std::vector<float> reconstructAudio(const Sitrano::ComplexSpectrogram& spec);
 
     void initfftw(const int nfft);
 
