@@ -1,4 +1,6 @@
 #include"SitranoAnalysis.h"
+#include"file/SihatFile.h"
+#include"dsp/MedianFilter.h"
 
 Sitrano::Results Analyzer::analyze(
     const Sitrano::AnalysisUnit& unit,
@@ -9,6 +11,29 @@ Sitrano::Results Analyzer::analyze(
 
     int provisionalHop = unit.sampleRate / 60;
     int provWindowNum = (unit.soundFile.size() - provisionalHop - mConfig.startSample) / provisionalHop;
+
+    Sitrano::AnalysisUnit hUnit = unit;
+    Sitrano::AnalysisUnit pUnit = unit;
+
+    if (settings.sourceSeparation)
+    {
+        std::vector<float> harmonicAudio;
+        std::vector<float> percussiveAudio;
+
+        MedianFilter filter(mConfig.hpSettings);
+        std::vector<float> interleavedHP = filter.processAudio(unit.soundFile);
+
+        for (int i = 0; i < interleavedHP.size(); i++)
+        {
+            if (i % 2 == 0) harmonicAudio.push_back(interleavedHP[i]);
+            else if (i % 2 == 1) percussiveAudio.push_back(interleavedHP[i]);
+        }
+
+        SihatFile::exportSeparatedAudio(interleavedHP, SihatFile::openFolderDialog(), (int)unit.sampleRate, "septest");
+
+        hUnit.soundFile = harmonicAudio;
+        pUnit.soundFile = percussiveAudio;
+    }
 
     //Find the pitch
     if (settings.pitchAnalysis)
