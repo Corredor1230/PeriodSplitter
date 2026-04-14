@@ -103,11 +103,21 @@ namespace SihatJson {
         };
     }
 
+    // ---- HPSSSettings ----
+    inline void to_json(json& j, const Sitrano::HPSSSettings& hp) {
+        j = json{
+            {"hpss_nfft", hp.nfft},
+            {"hpss_hopSize", hp.hopSize},
+            {"hpss_filtSize", hp.filtSize}
+        };
+    }
+
     // ---- General Settings ----
     inline void to_json(json& j, const Sitrano::Settings& s) {
         j = json{
             {"fullHarmonicAnalysis", s.fullHarmonicAnalysis},
             {"pitchAnalysis", s.pitchAnalysis},
+            {"sourceSeparation", s.sourceSeparation},
             {"transientSeparation", s.transientSeparation},
             {"periodAnalysis", s.periodAnalysis},
             {"overtoneAnalysis", s.overtoneAnalysis},
@@ -121,6 +131,7 @@ namespace SihatJson {
 
         json pSettings;
         json tSettings;
+        json hpssSettings;
         json tfftSettings;
         json cSettings;
         json oSettings;
@@ -134,6 +145,7 @@ namespace SihatJson {
         to_json(oSettings, c.oSettings);
         to_json(hSettings, c.hSettings);
         to_json(nSettings, c.nSettings);
+        to_json(hpssSettings, c.hpSettings);
 
 
         j = json{
@@ -142,6 +154,7 @@ namespace SihatJson {
             {"hopSize", c.hopSize},
             {"startSample", c.startSample},
             {"tolerance", c.tolerance},
+            {"hpssSettings", hpssSettings},
             {"pitchSettings", pSettings},
             {"transientSettings", tSettings},
             {"transientFFTSettings", tfftSettings},
@@ -238,9 +251,17 @@ namespace SihatJson {
         h.style = static_cast<decltype(h.style)>(styleAsInt);
     }
 
+    // ---- HPSSSettings ----
+    inline void from_json(const json& j, Sitrano::HPSSSettings& hp) {
+        j.at("hpss_nfft").get_to(hp.nfft);
+        j.at("hpss_hopSize").get_to(hp.hopSize);
+        j.at("hpss_filtSize").get_to(hp.filtSize);
+    }
+
     // ---- General Settings ----
     inline void from_json(const json& j, Sitrano::Settings& s) {
         j.at("fullHarmonicAnalysis").get_to(s.fullHarmonicAnalysis);
+        j.at("sourceSeparation").get_to(s.sourceSeparation);
         j.at("pitchAnalysis").get_to(s.pitchAnalysis);
         j.at("transientSeparation").get_to(s.transientSeparation);
         j.at("periodAnalysis").get_to(s.periodAnalysis);
@@ -261,6 +282,7 @@ namespace SihatJson {
 
         from_json(j.at("pitchSettings"), c.pSettings);
         from_json(j.at("transientSettings"), c.tSettings);
+        from_json(j.at("hpssSettings"), c.hpSettings);
         from_json(j.at("transientFFTSettings"), c.tfftSettings);
         from_json(j.at("correlationSettings"), c.cSettings);
         from_json(j.at("overtoneSettings"), c.oSettings);

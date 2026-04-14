@@ -233,7 +233,7 @@ namespace SihatFile {
 		std::cout << "Batch processing complete.\n";
 	}
 
-	inline void exportSeparatedAudio(const std::vector<float>& interleaved, const std::string& outputDir, int sampleRate = 96000, const std::string& name)
+	inline void exportSeparatedAudio(const std::vector<float>& interleaved, const std::string& outputDir, int sampleRate = 96000, const std::string& name = "")
 	{
 		if (interleaved.size() % 2 != 0) {
 			std::cerr << "Error: Interleaved audio vector size is not even. Cannot de-interleave." << std::endl;

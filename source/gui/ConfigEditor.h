@@ -37,6 +37,7 @@ public:
                 bool newState = settings.fullHarmonicAnalysis;
 
                 settings.pitchAnalysis = newState;
+                settings.sourceSeparation = newState;
                 settings.transientSeparation = newState;
                 settings.periodAnalysis = newState;
                 settings.overtoneAnalysis = newState;
@@ -45,6 +46,7 @@ public:
             }
 
             bool aChildWasClicked = false;
+            aChildWasClicked |= ImGui::Checkbox("Source Separation", &settings.sourceSeparation);
             aChildWasClicked |= ImGui::Checkbox("Pitch Analysis", &settings.pitchAnalysis);
             aChildWasClicked |= ImGui::Checkbox("Transient Separation", &settings.transientSeparation);
             aChildWasClicked |= ImGui::Checkbox("Period Analysis", &settings.periodAnalysis);
@@ -54,6 +56,7 @@ public:
             if (aChildWasClicked)
             {
                 bool allChildrenAreOn = settings.pitchAnalysis &&
+                    settings.sourceSeparation &&
                     settings.transientSeparation &&
                     settings.periodAnalysis &&
                     settings.overtoneAnalysis &&
@@ -93,6 +96,14 @@ public:
             ImGui::Separator();
 
             // --- Nested Settings Groups ---
+
+            if (ImGui::TreeNode("Source Separation Settings"))
+            {
+                ImGui::InputInt("nfft", &config.hpSettings.nfft);
+                ImGui::InputInt("Hop Size", &config.hpSettings.hopSize);
+                ImGui::InputInt("Filter Size", &config.hpSettings.filtSize);
+                ImGui::TreePop();
+            }
 
             if (ImGui::TreeNode("Correlation Settings"))
             {
