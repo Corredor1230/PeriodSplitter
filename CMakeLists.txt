@@ -35,6 +35,8 @@ set(ANALYSIS_SOURCES
     ${SOURCE_DIR}/analysis/OvertoneFinder.cpp
     ${SOURCE_DIR}/analysis/TransientRecognition.cpp
     ${SOURCE_DIR}/analysis/TransientRecognition.h
+    ${SOURCE_DIR}/analysis/TransientAnalysis.cpp
+    ${SOURCE_DIR}/analysis/TransientAnalysis.h
 )
 
 set(DSP_SOURCES
