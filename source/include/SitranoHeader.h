@@ -6,6 +6,7 @@
 #include<cstdint>
 #include<type_traits>
 #include<iostream>
+#include<complex>
 
 namespace Sitrano
 {
@@ -33,6 +34,25 @@ namespace Sitrano
         std::vector<std::vector<float>> freqs;
         std::vector<uint32_t> finalSamples;
         float rms = 0.0;
+    };
+
+    struct ComplexSpectrogram {
+        std::vector<std::complex<float>> data;
+        int numFrames;
+        int numBins;
+        // A helper to make access look clean again
+        std::complex<float>& at(int frame, int bin) {
+            return data[frame * numBins + bin];
+        }
+    };
+
+    struct Spectrogram{
+        std::vector<float> data;
+        int numFrames;
+        int numBins;
+        float& at(int frame, int bin){
+            return data[frame * numBins + bin];
+        }
     };
 
     struct VariableRatePartial
@@ -67,6 +87,17 @@ namespace Sitrano
         WaveletType wtype = WaveletType::morlet;
         bool forceFFTSize = false;
         int fftSize = 4096;
+    };
+
+    struct SingleTransientSettings{
+        int nfft = 512;
+        int hopSize = 32;
+        int rmsWindow = 75;
+        int rmsHopSize = 25;
+        int startSample = 0;
+        float transientFactor = 3.0;
+        float transientThreshold = 0.1f;
+        float outFactor = 0.05;
     };
 
     /** 
@@ -135,6 +166,12 @@ namespace Sitrano
         bool useList = false;
     };
 
+    struct HPSSSettings {
+        int nfft = 4096;
+        int hopSize = 1024;
+        int filtSize = 17;
+    };
+
     struct AnalysisConfig {
         int numHarmonics = 32;
         int nfft = 16384 * 2;
@@ -142,6 +179,7 @@ namespace Sitrano
         int startSample = 0;
         float tolerance = 100.f;
         PitchSettings pSettings;
+        HPSSSettings hpSettings;
         TransientSettings tSettings;
         TransientFFTSettings tfftSettings;
         CorrelationSettings cSettings;
@@ -207,11 +245,25 @@ namespace Sitrano
         float rms = 0.0;
     };
 
+    struct STransientResults{
+        SampleRange range;
+        int riseTime;
+        float peakAmp;
+        float clickRatio;
+        float chirpRate;
+        std::vector<float> ampEnvelope;
+        std::vector<float> centroid;
+        std::vector<float> flatness;
+        std::vector<float> bandEnvelopes;
+
+    };
+
 
     // Main settings for the Analyzer. 
     // This structure decides which processing steps will be completed.
     struct Settings {
         bool fullHarmonicAnalysis = true;
+        bool sourceSeparation = true;
         bool pitchAnalysis = true;
         bool transientSeparation = true;
         bool periodAnalysis = true;
@@ -408,6 +460,13 @@ namespace Sitrano
             // We explicitly cast the final result
             data[n] = static_cast<T>(data[n] * window_val);
         }
+    }
+
+    inline float getHannValue(int i, int nfft)
+    {
+        if (i < 0 || i >= nfft) return 0.0;
+        float windowVal = 0.5 * (1.0 - std::cos(TWO_PI * i / (double)(nfft - 1)));
+        return windowVal;
     }
 
 
