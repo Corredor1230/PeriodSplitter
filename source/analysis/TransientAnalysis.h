@@ -10,6 +10,9 @@ public:
     ~TransientAnalysis();
 
 private:
+
+    Sitrano::SampleRange findBoundaries(const std::vector<float>& input);
+
     void initfftw(int nfft);
 
     const Sitrano::SingleTransientSettings& settings;
