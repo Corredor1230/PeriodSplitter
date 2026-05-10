@@ -106,6 +106,7 @@ namespace Sihat
         int rmsHopSize = 15;
         int startSample = 0;
         int numBands = 16;
+        int maxOvertones = 32;
         float outThreshold = 0.05f;
         float inThreshold = 0.1f;
     };
@@ -266,6 +267,7 @@ namespace Sihat
         std::vector<float> centroid;
         std::vector<float> flatness;
         std::vector<float> bandEnvelopes;
+        std::vector<float> mainOvertones;
         float rms;
         uint32_t envHopSize;
         uint32_t specHopSize;

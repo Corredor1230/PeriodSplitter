@@ -178,6 +178,7 @@ public:
                 ImGui::InputFloat("Out Threshold", &config.stSettings.outThreshold);
                 ImGui::InputInt("Num Bands", &config.stSettings.numBands);
                 ImGui::InputInt("Start Sample", &config.stSettings.startSample);
+                ImGui::InputInt("Max Overtones", &config.stSettings.maxOvertones);
                 ImGui::TreePop();
             }
 

@@ -44,6 +44,7 @@ namespace SihatJson {
             {"st_inThreshold", st.inThreshold},
             {"st_outThreshold", st.outThreshold},
             {"st_numBands", st.numBands},
+            {"st_maxOvertones", st.maxOvertones},
             {"st_startSample", st.startSample}
         };
     }
@@ -224,6 +225,7 @@ namespace SihatJson {
         j.at("st_outThreshold").get_to(st.outThreshold);
         j.at("st_numBands").get_to(st.numBands);
         j.at("st_startSample").get_to(st.startSample);
+        j.at("st_maxOvertones").get_to(st.maxOvertones);
     }
 
     // --- NoiseSettings ---
