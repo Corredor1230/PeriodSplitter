@@ -7,22 +7,22 @@
 
 class MedianFilter{
 public:
-    MedianFilter(Sitrano::HPSSSettings settings);
+    MedianFilter(Sihat::HPSSSettings settings);
     ~MedianFilter();
 
     struct HPSpectrogram{
-        HPSpectrogram(Sitrano::Spectrogram h, Sitrano::Spectrogram p) : harmonic(h), percussive(p) {};
-        Sitrano::Spectrogram harmonic;
-        Sitrano::Spectrogram percussive;
+        HPSpectrogram(Sihat::Spectrogram h, Sihat::Spectrogram p) : harmonic(h), percussive(p) {};
+        Sihat::Spectrogram harmonic;
+        Sihat::Spectrogram percussive;
     };
 
     struct ComplexHPSpec{
-        ComplexHPSpec(Sitrano::ComplexSpectrogram h, Sitrano::ComplexSpectrogram p) : harmonic(h), percussive(p){};
-        Sitrano::ComplexSpectrogram harmonic;
-        Sitrano::ComplexSpectrogram percussive;
+        ComplexHPSpec(Sihat::ComplexSpectrogram h, Sihat::ComplexSpectrogram p) : harmonic(h), percussive(p){};
+        Sihat::ComplexSpectrogram harmonic;
+        Sihat::ComplexSpectrogram percussive;
     };
 
-    HPSpectrogram filter(const Sitrano::ComplexSpectrogram& input);
+    HPSpectrogram filter(const Sihat::ComplexSpectrogram& input);
     std::vector<float> processAudio(const std::vector<float>& input);
 
 
@@ -38,13 +38,14 @@ private:
 
     const int nfft;
     const int hopSize;
+    const float exponent;
     int filtSize;
 
-    Sitrano::ComplexSpectrogram getComplexSpectrogram(const std::vector<float>& input);
+    Sihat::ComplexSpectrogram getComplexSpectrogram(const std::vector<float>& input);
 
-    ComplexHPSpec applyMask(HPSpectrogram& hp, Sitrano::ComplexSpectrogram& complex);
+    ComplexHPSpec applyMask(HPSpectrogram& hp, Sihat::ComplexSpectrogram& complex);
 
-    std::vector<float> reconstructAudio(const Sitrano::ComplexSpectrogram& spec);
+    std::vector<float> reconstructAudio(const Sihat::ComplexSpectrogram& spec);
 
     void initfftw(const int nfft);
 

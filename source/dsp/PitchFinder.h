@@ -7,8 +7,8 @@ class PyinCpp;
 
 class PitchFinder {
 public:
-    PitchFinder(const Sitrano::AnalysisUnit& u,
-        const Sitrano::AnalysisConfig& config);
+    PitchFinder(const Sihat::AnalysisUnit& u,
+        const Sihat::AnalysisConfig& config);
 
     ~PitchFinder();
 
@@ -28,8 +28,8 @@ private:
 
     // --- Member Variables ---
 
-    const Sitrano::AnalysisUnit& unit;
-    const Sitrano::AnalysisConfig& mConfig; // Store the config
+    const Sihat::AnalysisUnit& unit;
+    const Sihat::AnalysisConfig& mConfig; // Store the config
     float tolerance = 10.f;
 
     std::unique_ptr<PyinCpp> mPitchDetector;

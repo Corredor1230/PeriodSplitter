@@ -13,9 +13,9 @@ public:
      * @param config The configuration for transient and correlation.
      * @param pitch The fundamental pitch (from PitchFinder) to search for.
      */
-    PeriodCutter(const Sitrano::AnalysisUnit& unit,
-        const Sitrano::CorrelationSettings& config,
-        float pitch, const Sitrano::SampleRange& transient);
+    PeriodCutter(const Sihat::AnalysisUnit& unit,
+        const Sihat::CorrelationSettings& config,
+        float pitch, const Sihat::SampleRange& transient);
 
     ~PeriodCutter() = default;
 
@@ -28,8 +28,8 @@ public:
 
 private:
     // --- Private Member Data ---
-    const Sitrano::AnalysisUnit& mUnit;
-    const Sitrano::CorrelationSettings& mConfig;
+    const Sihat::AnalysisUnit& mUnit;
+    const Sihat::CorrelationSettings& mConfig;
     const int startSample;
     const float mPitch;
     const float mSampleRate;

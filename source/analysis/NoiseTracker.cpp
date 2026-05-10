@@ -1,8 +1,8 @@
 #include "NoiseTracker.h"
 
-NoiseTracker::NoiseTracker(const Sitrano::NoiseSettings& settings,
-    const Sitrano::AnalysisUnit& ana, 
-	const Sitrano::Results& r,
+NoiseTracker::NoiseTracker(const Sihat::NoiseSettings& settings,
+    const Sihat::AnalysisUnit& ana, 
+	const Sihat::Results& r,
 	float startFreq):
 	unit(ana),
     sf(unit.soundFile),
@@ -17,21 +17,21 @@ NoiseTracker::NoiseTracker(const Sitrano::NoiseSettings& settings,
 	startFreq(startFreq)
 {
 	float f0 = settings.minFreq;
-    float m0 = Sitrano::freqToMidi(f0);
+    float m0 = Sihat::freqToMidi(f0);
     float step;
     float half;
     if (settings.useOctaveDiv) step = 12.0 / settings.octaveDiv;
-    else step = (Sitrano::freqToMidi(settings.maxFreq) - Sitrano::freqToMidi(f0)) / 
+    else step = (Sihat::freqToMidi(settings.maxFreq) - Sihat::freqToMidi(f0)) / 
         (float)num;
     half = step / 2.0;
-	while (m0 < Sitrano::freqToMidi(sr / 2.0) && 
-        m0 < Sitrano::freqToMidi(settings.maxFreq)) 
+	while (m0 < Sihat::freqToMidi(sr / 2.0) && 
+        m0 < Sihat::freqToMidi(settings.maxFreq)) 
     {
-		float f_low = Sitrano::midiToFreq(m0 - half);
-        float f_high = Sitrano::midiToFreq(m0 + half);
+		float f_low = Sihat::midiToFreq(m0 - half);
+        float f_high = Sihat::midiToFreq(m0 + half);
 		bands.push_back({ f_low, f_high, f0 });
         m0 += step;
-		f0 = Sitrano::midiToFreq(m0);
+		f0 = Sihat::midiToFreq(m0);
 	}
 
 	// FFTW Initialization
@@ -80,7 +80,7 @@ std::vector<std::vector<float>> NoiseTracker::analyze() {
 
         // Get frame, apply window, and run FFT (unchanged)
         std::vector<float> frame(signal.begin() + startSample, signal.begin() + startSample + N);
-        Sitrano::applyWindow(frame);
+        Sihat::applyWindow(frame);
         std::copy(frame.begin(), frame.end(), fft_in);
         fftwf_execute(plan);
 
@@ -91,7 +91,7 @@ std::vector<std::vector<float>> NoiseTracker::analyze() {
             float real = fft_out[k][0];
             float imag = fft_out[k][1];
             float mag = real * real + imag * imag;
-            float amp = Sitrano::mag_to_amp(mag, N);
+            float amp = Sihat::mag_to_amp(mag, N);
             int bin = findLargeBin(freq, bands);
 
             if (isInTop(freq, topFreqs, bands)) noise[bin][i] = 0.0;
@@ -121,11 +121,11 @@ std::vector<std::vector<float>> NoiseTracker::analyze() {
     return noise;
 }
 
-bool NoiseTracker::isInTop(float freq, const std::vector<Sitrano::Peak>& topFreqs,
+bool NoiseTracker::isInTop(float freq, const std::vector<Sihat::Peak>& topFreqs,
     const std::vector<Band>& b)
 {
     bool isInVector = false;
-    int freqBin = Sitrano::freqToBin(freq, N, sr);
+    int freqBin = Sihat::freqToBin(freq, N, sr);
     for (int i = 0; i < topFreqs.size(); i++)
     {
         int topFreqBin = findLargeBin(topFreqs[i].freq, b);

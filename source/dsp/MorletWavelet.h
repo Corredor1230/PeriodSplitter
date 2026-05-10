@@ -8,14 +8,14 @@ class MorletWavelet : public WTransform
 public:
     using WTransform::WTransform;
 
-    std::vector<Sitrano::VariableRatePartial> analyze(int numPartials, int scanRes, float minFreq, float maxFreq)
+    std::vector<Sihat::VariableRatePartial> analyze(int numPartials, int scanRes, float minFreq, float maxFreq)
     {
         // 1. Run the Scanner (Fast Energy Calculation)
         // We find the best frequencies without doing the heavy iFFT yet.
         std::vector<float> bestFreqs = scanAndPickPeaks(scanRes, numPartials, minFreq, maxFreq);
 
         // 2. Extract Envelopes with Variable Rates
-        std::vector<Sitrano::VariableRatePartial> results;
+        std::vector<Sihat::VariableRatePartial> results;
         results.reserve(bestFreqs.size());
 
         // Perform the standard Forward FFT once (if not already done)
@@ -37,7 +37,7 @@ public:
             std::vector<float> fullResEnvelope = extractEnvelope(freq);
 
             // C. Decimate (Downsample)
-            Sitrano::VariableRatePartial partial;
+            Sihat::VariableRatePartial partial;
             partial.frequency = freq;
             partial.hopSize = hop;
             partial.data.reserve(fullResEnvelope.size() / hop + 1);
@@ -155,7 +155,7 @@ private:
             float re = invBuffer[i][0];
             float im = invBuffer[i][1];
             // Normalize by nfft if needed, but relative mag is fine usually
-            envelope.push_back(Sitrano::mag_to_amp(std::sqrt(re*re + im*im), nfft));
+            envelope.push_back(Sihat::mag_to_amp(std::sqrt(re*re + im*im), nfft));
         }
         return envelope;
     }
@@ -166,12 +166,12 @@ private:
         std::vector<float> wave;
         wave.reserve(nfft / 2 + 1);
 
-        float fc = omega0 / (Sitrano::PI * 2.0f);
+        float fc = omega0 / (Sihat::PI * 2.0f);
         float scale = (fc * fs) / freq;
 
         for (int i = 0; i < (nfft / 2 + 1); ++i)
         {
-            float omegak = (Sitrano::PI * 2.0f * i) / static_cast<float>(nfft);
+            float omegak = (Sihat::PI * 2.0f * i) / static_cast<float>(nfft);
             float exponent = scale * omegak - omega0;
             // Note: Added factor 2.0 to compensate for analytic signal energy loss
             float weight = 2.0f * std::exp(-0.5f * exponent * exponent); 

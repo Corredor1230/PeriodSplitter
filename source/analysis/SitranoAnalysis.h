@@ -12,21 +12,22 @@
 #include"analysis/TransientRecognition.h"
 #include"analysis/HarmonicTracker.h"
 #include"analysis/NoiseTracker.h"
+#include"analysis/TransientAnalysis.h"
 #include"include/SitranoHeader.h"
 
 class Analyzer {
-    const Sitrano::AnalysisConfig mConfig;
+    const Sihat::AnalysisConfig mConfig;
 
 public:
 
-    Analyzer(const Sitrano::AnalysisConfig& config) : mConfig(config) 
+    Analyzer(const Sihat::AnalysisConfig& config) : mConfig(config) 
     {};
 
     ~Analyzer() {}
 
-    Sitrano::Results analyze(
-        const Sitrano::AnalysisUnit& unit,
-        const Sitrano::Settings& settings);
+    Sihat::Results analyze(
+        const Sihat::AnalysisUnit& unit,
+        const Sihat::Settings& settings);
 
 private:
     std::vector<double> checker;

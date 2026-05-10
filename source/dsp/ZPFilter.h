@@ -12,7 +12,7 @@ public:
         if (input.empty()) return{};
         if (input.size() < 2) return input;
 
-        float u = std::tan(Sitrano::PI * cutoffFreq / sr);
+        float u = std::tan(Sihat::PI * cutoffFreq / sr);
         float common = 1.0 + u;
 
         float b0 = u / common;

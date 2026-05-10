@@ -10,9 +10,9 @@
 
 class NoiseTracker {
 public:
-	NoiseTracker(const Sitrano::NoiseSettings& settings,
-		const Sitrano::AnalysisUnit& ana, 
-		const Sitrano::Results& r,
+	NoiseTracker(const Sihat::NoiseSettings& settings,
+		const Sihat::AnalysisUnit& ana, 
+		const Sihat::Results& r,
 		float startFreq);
 	~NoiseTracker();
 
@@ -26,9 +26,9 @@ public:
 
 private:
 
-	const Sitrano::AnalysisUnit& unit;
+	const Sihat::AnalysisUnit& unit;
 
-	bool isInTop(float freq, const std::vector<Sitrano::Peak>& topFreqs,
+	bool isInTop(float freq, const std::vector<Sihat::Peak>& topFreqs,
 		const std::vector<Band>& bands);
 	int findLargeBin(float freq, std::vector<Band> bands);
 	float sr{ 96000.f };
@@ -45,7 +45,7 @@ private:
 	fftwf_complex* fft_out;
 
 	const std::vector<float>& sf;
-	const std::vector<Sitrano::Peak>& topFreqs;
+	const std::vector<Sihat::Peak>& topFreqs;
 	std::vector<Band> bands;
 	std::vector<int> frameTable;
 	std::vector<std::vector<float>> results;

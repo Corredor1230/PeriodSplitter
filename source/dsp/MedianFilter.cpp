@@ -2,7 +2,7 @@
 #include<algorithm>
 #include<stdexcept>
 
-MedianFilter::MedianFilter(Sitrano::HPSSSettings set) : nfft(set.nfft), hopSize(set.hopSize), filtSize(set.filtSize)
+MedianFilter::MedianFilter(Sihat::HPSSSettings set) : nfft(set.nfft), hopSize(set.hopSize), filtSize(set.filtSize), exponent(set.exponent)
 {
     initfftw(nfft);
 }
@@ -36,7 +36,7 @@ std::vector<float> MedianFilter::processAudio(const std::vector<float>& input)
 {
 
     //first step, getting a regular spectrogram
-    Sitrano::ComplexSpectrogram spectrogram = getComplexSpectrogram(input);
+    Sihat::ComplexSpectrogram spectrogram = getComplexSpectrogram(input);
 
     //then we filter it (this is the actual median filter)
     MedianFilter::HPSpectrogram filtered = filter(spectrogram);
@@ -59,7 +59,7 @@ std::vector<float> MedianFilter::processAudio(const std::vector<float>& input)
     return interleavedAudio;
 }
 
-MedianFilter::HPSpectrogram MedianFilter::filter(const Sitrano::ComplexSpectrogram& input)
+MedianFilter::HPSpectrogram MedianFilter::filter(const Sihat::ComplexSpectrogram& input)
 {
 
     if (filtSize % 2 == 0) 
@@ -69,7 +69,7 @@ MedianFilter::HPSpectrogram MedianFilter::filter(const Sitrano::ComplexSpectrogr
     }
 
     //magspec is basically a non-complex spectrogram of magnitudes
-    Sitrano::Spectrogram magSpec;
+    Sihat::Spectrogram magSpec;
     magSpec.numBins = input.numBins;
     magSpec.numFrames = input.numFrames;
     magSpec.data.resize(input.numBins*input.numFrames);
@@ -79,8 +79,8 @@ MedianFilter::HPSpectrogram MedianFilter::filter(const Sitrano::ComplexSpectrogr
     }
 
     //these are also non-complex
-    Sitrano::Spectrogram harmonic = magSpec;
-    Sitrano::Spectrogram percussive = magSpec;
+    Sihat::Spectrogram harmonic = magSpec;
+    Sihat::Spectrogram percussive = magSpec;
 
     int radius = filtSize / 2;
 
@@ -163,12 +163,12 @@ MedianFilter::HPSpectrogram MedianFilter::filter(const Sitrano::ComplexSpectrogr
     return MedianFilter::HPSpectrogram(harmonic, percussive);
 }
 
-Sitrano::ComplexSpectrogram MedianFilter::getComplexSpectrogram(const std::vector<float>& input)
+Sihat::ComplexSpectrogram MedianFilter::getComplexSpectrogram(const std::vector<float>& input)
 {
     int numBins = nfft / 2 + 1;
     int numFrames = (input.size() > nfft) ? (input.size() - nfft) / hopSize + 1 : 1;
 
-    Sitrano::ComplexSpectrogram spectrogram;
+    Sihat::ComplexSpectrogram spectrogram;
     spectrogram.numFrames = numFrames;
     spectrogram.numBins = numBins;
 
@@ -187,7 +187,7 @@ Sitrano::ComplexSpectrogram MedianFilter::getComplexSpectrogram(const std::vecto
             else
             inBuffer[samp] = 0.0;
         }
-        Sitrano::applyHann(inBuffer, nfft);
+        Sihat::applyHann(inBuffer, nfft);
 
         fftwf_execute(fftPlan);
 
@@ -201,16 +201,16 @@ Sitrano::ComplexSpectrogram MedianFilter::getComplexSpectrogram(const std::vecto
     return spectrogram;
 }
 
-MedianFilter::ComplexHPSpec MedianFilter::applyMask( HPSpectrogram& hp, Sitrano::ComplexSpectrogram& complex)
+MedianFilter::ComplexHPSpec MedianFilter::applyMask( HPSpectrogram& hp, Sihat::ComplexSpectrogram& complex)
 {
     if (hp.harmonic.numFrames != complex.numFrames || hp.percussive.numFrames != complex.numFrames) std::cerr << "All spectrograms should be the same size!!" << std::endl;
 
-    Sitrano::ComplexSpectrogram hComplex;
+    Sihat::ComplexSpectrogram hComplex;
     hComplex.data.resize(complex.data.size());
     hComplex.numBins = complex.numBins;
     hComplex.numFrames = complex.numFrames;
     
-    Sitrano::ComplexSpectrogram pComplex;
+    Sihat::ComplexSpectrogram pComplex;
     pComplex.data.resize(complex.data.size());
     pComplex.numBins = complex.numBins;
     pComplex.numFrames = complex.numFrames;
@@ -225,10 +225,10 @@ MedianFilter::ComplexHPSpec MedianFilter::applyMask( HPSpectrogram& hp, Sitrano:
         {
             float hVal = hp.harmonic.at(f, b);
             float pVal = hp.percussive.at(f, b);
-            float denominator = hVal + pVal + eps;
+            float denominator = std::pow<float>(hVal, exponent) + std::pow<float>(pVal, exponent) + eps;
 
-            float hMask = hVal / denominator;
-            float pMask = pVal / denominator;
+            float hMask = std::pow<float>(hVal, exponent) / denominator;
+            float pMask = std::pow<float>(pVal, exponent) / denominator;
 
             std::complex<float> original = complex.at(f, b);
             hComplex.at(f, b) = original * hMask;
@@ -239,7 +239,7 @@ MedianFilter::ComplexHPSpec MedianFilter::applyMask( HPSpectrogram& hp, Sitrano:
     return ComplexHPSpec(hComplex, pComplex);
 }
 
-std::vector<float> MedianFilter::reconstructAudio(const Sitrano::ComplexSpectrogram& spec)
+std::vector<float> MedianFilter::reconstructAudio(const Sihat::ComplexSpectrogram& spec)
 {
     int totalSamples = (spec.numFrames - 1) * hopSize + nfft;
     std::vector<float> output(totalSamples, 0.0f);
@@ -255,7 +255,7 @@ std::vector<float> MedianFilter::reconstructAudio(const Sitrano::ComplexSpectrog
 
         int frameStart = f * hopSize;
         for (int i = 0; i < nfft; i++){
-            float windowVal = Sitrano::getHannValue(i, nfft);
+            float windowVal = Sihat::getHannValue(i, nfft);
 
             float sample = (ioutBuffer[i] / (float)nfft) * windowVal;
 

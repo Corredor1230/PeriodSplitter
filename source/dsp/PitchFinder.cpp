@@ -11,8 +11,8 @@
 #include <cmath> // For NAN
 
 // 2. The constructor initializes the Pimpl and stores the config
-PitchFinder::PitchFinder(const Sitrano::AnalysisUnit& u,
-    const Sitrano::AnalysisConfig& config) :
+PitchFinder::PitchFinder(const Sihat::AnalysisUnit& u,
+    const Sihat::AnalysisConfig& config) :
     unit(u),
     mConfig(config),
     mPitchDetector(std::make_unique<PyinCpp>(u.sampleRate, mConfig.nfft, mConfig.nfft / 2))
@@ -40,10 +40,10 @@ float PitchFinder::findPitch()
     if (std::isnan(foundPitch)) {
         std::cerr << "PitchFinder: Could not find a valid pitch mode." << std::endl;
         // Fallback to metadata pitch if analysis fails
-        return Sitrano::getPitchFromFilename(unit.filename);
+        return Sihat::getPitchFromFilename(unit.filename);
     }
 
-    float metaPitch = Sitrano::getPitchFromFilename(unit.filename);
+    float metaPitch = Sihat::getPitchFromFilename(unit.filename);
     float pitch{ 0.0 };
 
     if (metaPitch <= 0.0) {
@@ -51,7 +51,7 @@ float PitchFinder::findPitch()
     }
     else {
         // Use the config for tolerance
-        float tolerance = Sitrano::cents_to_hz(metaPitch, mConfig.pSettings.toleranceInCents);
+        float tolerance = Sihat::cents_to_hz(metaPitch, mConfig.pSettings.toleranceInCents);
 
         // Adjudicate between analyzed pitch and metadata pitch
         if (foundPitch > metaPitch - tolerance && foundPitch < metaPitch + tolerance)

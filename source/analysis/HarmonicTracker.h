@@ -12,9 +12,9 @@
 class HarmonicTracker {
 public:
 
-    HarmonicTracker(const Sitrano::AnalysisUnit& a,
-        const Sitrano::AnalysisConfig& conf,
-        const std::vector<Sitrano::Peak>& top,
+    HarmonicTracker(const Sihat::AnalysisUnit& a,
+        const Sihat::AnalysisConfig& conf,
+        const std::vector<Sihat::Peak>& top,
         const std::vector<uint32_t>& sampleList,
         const int startSample);
 
@@ -24,7 +24,7 @@ public:
         fftwf_free(output);
     }
 
-    Sitrano::HarmonicResults analyze();
+    Sihat::HarmonicResults analyze();
     double interpolatePeak(int k, const std::vector<double>& mags);
 
     const std::vector<std::vector<float>>& getAmplitudes() const { return hResults.amps; }
@@ -43,14 +43,14 @@ private:
     std::vector<float> checker;
     fftwf_complex* output;
 
-    const std::vector<Sitrano::Peak>& tFreqs;
-    const Sitrano::AnalysisUnit& unit;
-    const Sitrano::HarmonicSettings& settings;
-    const Sitrano::AnalysisConfig& config;
+    const std::vector<Sihat::Peak>& tFreqs;
+    const Sihat::AnalysisUnit& unit;
+    const Sihat::HarmonicSettings& settings;
+    const Sihat::AnalysisConfig& config;
     const std::vector<uint32_t>& sList;
     const float sr;
     const int start;
-    Sitrano::HarmonicResults hResults;
+    Sihat::HarmonicResults hResults;
 
     void initFFTW();
     void applyHann(float* data, int size);

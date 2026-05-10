@@ -11,14 +11,14 @@ class IWindowStrategy {
 public:
 	virtual ~IWindowStrategy() = default;
 	virtual LoopParameters getLoopParameters(const std::vector<uint32_t>& sampleList,
-		const Sitrano::AnalysisUnit& unit, 
-		const Sitrano::AnalysisConfig& config, const int firstSample) const = 0;
+		const Sihat::AnalysisUnit& unit, 
+		const Sihat::AnalysisConfig& config, const int firstSample) const = 0;
 	virtual bool processFrame(size_t i,
 		int frameStep,
-		const Sitrano::AnalysisConfig& config,
-		const Sitrano::AnalysisUnit& unit,
+		const Sihat::AnalysisConfig& config,
+		const Sihat::AnalysisUnit& unit,
 		const std::vector<uint32_t>& sampleList, 
-		Sitrano::HarmonicResults& results,
+		Sihat::HarmonicResults& results,
 		float* inputBuffer,
 		int& outPeriodLength,
 		int firstSample) = 0;

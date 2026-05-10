@@ -10,9 +10,9 @@ public:
 
 
 	Transient(
-		const Sitrano::AnalysisUnit& unit,
-		const Sitrano::TransientSettings& conf,
-		const Sitrano::TransientFFTSettings& ffts,
+		const Sihat::AnalysisUnit& unit,
+		const Sihat::TransientSettings& conf,
+		const Sihat::TransientFFTSettings& ffts,
 		const float pitch
 	);
 
@@ -22,7 +22,7 @@ public:
 	 * @brief Finds the first major transient in the signal based on RMS.
 	 * @return The sample index of the nearest zero-crossing *before* the transient.
 	 */
-	Sitrano::TransientResults findStartTransient();
+	Sihat::TransientResults findStartTransient();
 
 private:
 	/*
@@ -38,9 +38,9 @@ private:
 	float factor;
 	float threshold;
 	float sampleRate;
-	const Sitrano::TransientSettings& tSettings;
+	const Sihat::TransientSettings& tSettings;
 	const std::vector<float>& aud;
-	Sitrano::SampleRange findFromRMS();
+	Sihat::SampleRange findFromRMS();
 	int findFirstAboveThreshold(int startSample, float thresh);
 
 
@@ -57,6 +57,6 @@ private:
 	const int waveletNumber = 64;
 	const float flatnessThresh;
 	const bool useFFT;
-	Sitrano::SampleRange findFromFFT();
-	Sitrano::SampleRange findWithCrossCorrelation(int offset, int firstSample);
+	Sihat::SampleRange findFromFFT();
+	Sihat::SampleRange findWithCrossCorrelation(int offset, int firstSample);
 };

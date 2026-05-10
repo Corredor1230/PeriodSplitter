@@ -4,9 +4,9 @@
 #include"support/SinglePeriodStrategy.h"
 
 HarmonicTracker::HarmonicTracker(
-    const Sitrano::AnalysisUnit& a,
-    const Sitrano::AnalysisConfig& conf,
-    const std::vector<Sitrano::Peak>& top,
+    const Sihat::AnalysisUnit& a,
+    const Sihat::AnalysisConfig& conf,
+    const std::vector<Sihat::Peak>& top,
     const std::vector<uint32_t>& sampleList,
     const int startSample) :
     unit(a),
@@ -28,13 +28,13 @@ HarmonicTracker::HarmonicTracker(
 
     switch (settings.style)
     {
-    case Sitrano::WindowStyle::periodLoop:
+    case Sihat::WindowStyle::periodLoop:
         mWindowStrategy = std::make_unique<PeriodLoopStrategy>();
         break;
-    case Sitrano::WindowStyle::singlePeriod:
+    case Sihat::WindowStyle::singlePeriod:
         mWindowStrategy = std::make_unique<SinglePeriodStrategy>();
         break;
-    case Sitrano::WindowStyle::audioChunk:
+    case Sihat::WindowStyle::audioChunk:
     default:
         mWindowStrategy = std::make_unique<AudioChunkStrategy>();
         break;
@@ -49,7 +49,7 @@ void HarmonicTracker::initFFTW() {
 
 void HarmonicTracker::applyHann(float* data, int size) {
     for (int i = 0; i < size; ++i) {
-        float w = 0.5f * (1.0f - std::cos(Sitrano::TWO_PI * i / (size - 1)));
+        float w = 0.5f * (1.0f - std::cos(Sihat::TWO_PI * i / (size - 1)));
         data[i] *= w;
     }
 }
@@ -63,7 +63,7 @@ double HarmonicTracker::interpolatePeak(int k, const std::vector<double>& mags)
     return 0.5 * (m1 - p1) / denom;
 }
 
-Sitrano::HarmonicResults HarmonicTracker::analyze()
+Sihat::HarmonicResults HarmonicTracker::analyze()
 {
     LoopParameters params = mWindowStrategy->getLoopParameters(sList, unit, config, start);
 
@@ -74,7 +74,7 @@ Sitrano::HarmonicResults HarmonicTracker::analyze()
     size_t numFrames = params.numFrames;
     int frameStep = params.frameStep;
 
-    float ampThresh = Sitrano::dbToAmp(-50.0);
+    float ampThresh = Sihat::dbToAmp(-50.0);
 
     for (size_t i = 0; i < numFrames - (frameStep + 1); i += frameStep) {
 
@@ -92,14 +92,14 @@ Sitrano::HarmonicResults HarmonicTracker::analyze()
         for (int h = 1; h <= tFreqs.size(); ++h) {
             if (tFreqs[h - 1].freq <= 20.0) continue;
             float targetFreq = tFreqs[h - 1].freq;
-            Sitrano::BinFreq binFreq = settings.tolInHz ? Sitrano::findPeakWithinTolerance(targetFreq, settings.tolInHz, nfft,
-                sr, output, true) : Sitrano::findPeakWithinTolerance(targetFreq, settings.toleranceValue, nfft, sr, output, false);
+            Sihat::BinFreq binFreq = settings.tolInHz ? Sihat::findPeakWithinTolerance(targetFreq, settings.tolInHz, nfft,
+                sr, output, true) : Sihat::findPeakWithinTolerance(targetFreq, settings.toleranceValue, nfft, sr, output, false);
 
             if (binFreq.bin < nfft / 2 + 1) {
-                Sitrano::FreqUnit fUnit{ binFreq, 0.0, 0.0, 0.0 };
+                Sihat::FreqUnit fUnit{ binFreq, 0.0, 0.0, 0.0 };
                 int binRange = 5; //Gotta improve this eventually, make algorithm
 
-                fUnit = Sitrano::findPeak(fUnit.bin, output, nfft, unit.sampleRate, binRange);
+                fUnit = Sihat::findPeak(fUnit.bin, output, nfft, unit.sampleRate, binRange);
 
                 if (std::isnan(fUnit.amp)) 
                 break;

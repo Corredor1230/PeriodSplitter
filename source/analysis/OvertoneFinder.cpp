@@ -1,8 +1,8 @@
 #include "OvertoneFinder.h"
 #include<algorithm>
 
-OvertoneFinder::OvertoneFinder(const Sitrano::AnalysisUnit& unit,
-    const Sitrano::AnalysisConfig& conf) : 
+OvertoneFinder::OvertoneFinder(const Sihat::AnalysisUnit& unit,
+    const Sihat::AnalysisConfig& conf) : 
     unit(unit),
     config(conf),
     settings(conf.oSettings),
@@ -21,7 +21,7 @@ void OvertoneFinder::initFFTW() {
 }
 
 // This is now a member function of OvertoneFinder
-std::vector<Sitrano::Peak> OvertoneFinder::getRelevantOvertones(
+std::vector<Sihat::Peak> OvertoneFinder::getRelevantOvertones(
     const std::vector<double>& checkSignal,
     float pitch)
 {
@@ -32,7 +32,7 @@ std::vector<Sitrano::Peak> OvertoneFinder::getRelevantOvertones(
     std::fill_n(input, N, 0.0f);
     std::copy(checkSignal.begin(), checkSignal.begin() + numToCopy, input);
 
-    Sitrano::applyHann<float>(input, N);
+    Sihat::applyHann<float>(input, N);
 
     fftwf_execute(plan);
 
@@ -45,25 +45,25 @@ std::vector<Sitrano::Peak> OvertoneFinder::getRelevantOvertones(
     }
 
     // FIND & INTERPOLATE PEAKS 
-    std::vector<Sitrano::Peak> peaks;
+    std::vector<Sihat::Peak> peaks;
     peaks.reserve(Nout); 
     for (int k = 1; k < Nout - 1; ++k) {
         // Find local maxima (basic peak-picking)
         if (mags[k] > mags[k - 1] && mags[k] > mags[k + 1])
         {
-            double delta = Sitrano::interp_delta(k, mags);
+            double delta = Sihat::interp_delta(k, mags);
             double f = (k + delta) * unit.sampleRate / double(N);
-            double amp = Sitrano::mag_to_amp(mags[k], N);
+            double amp = Sihat::mag_to_amp(mags[k], N);
             peaks.push_back({ f, mags[k], amp });
         }
     }
 
     // Sort all found peaks by amplitude (loudest first)
-    std::sort(peaks.begin(), peaks.end(), [](const Sitrano::Peak& a, const Sitrano::Peak& b) {
+    std::sort(peaks.begin(), peaks.end(), [](const Sihat::Peak& a, const Sihat::Peak& b) {
         return a.amp > b.amp;
         });
 
-    std::vector<Sitrano::Peak> merged;
+    std::vector<Sihat::Peak> merged;
     merged.reserve(outHarm);
 
     std::vector<bool> peak_processed(peaks.size(), false);
@@ -71,12 +71,12 @@ std::vector<Sitrano::Peak> OvertoneFinder::getRelevantOvertones(
     float ampThresh = 0.5;
     if (absThreshold)
     {
-        ampThresh = Sitrano::dbToAmp(threshold);
+        ampThresh = Sihat::dbToAmp(threshold);
     }
     else
     {
-        float peakDb = Sitrano::ampToDb(peaks[0].amp);
-        ampThresh = Sitrano::dbToAmp(peakDb - std::abs(threshold));
+        float peakDb = Sihat::ampToDb(peaks[0].amp);
+        ampThresh = Sihat::dbToAmp(peakDb - std::abs(threshold));
     }
 
     for (int i = 0; i < peaks.size() && merged.size() < outHarm; ++i) {
@@ -86,7 +86,7 @@ std::vector<Sitrano::Peak> OvertoneFinder::getRelevantOvertones(
 
         // This is the  new "seed" peak
         const auto& seedPeak = peaks[i];
-        float tolInHz = settings.useTolInHz ? settings.tolInHz : Sitrano::cents_to_hz(seedPeak.freq, settings.toleranceValue);
+        float tolInHz = settings.useTolInHz ? settings.tolInHz : Sihat::cents_to_hz(seedPeak.freq, settings.toleranceValue);
         peak_processed[i] = true;
         bool withinTolerance = false;
 
@@ -97,11 +97,11 @@ std::vector<Sitrano::Peak> OvertoneFinder::getRelevantOvertones(
             continue; // This peak is invalid, skip it
         }
 
-        Sitrano::Peak cluster = seedPeak;
+        Sihat::Peak cluster = seedPeak;
 
         for (int i = 0; i < merged.size(); i++)
         {
-            if (Sitrano::withinTolerance(merged[i].freq, seedPeak.freq, tolInHz))
+            if (Sihat::withinTolerance(merged[i].freq, seedPeak.freq, tolInHz))
             {
                 withinTolerance = true;
             }
@@ -113,7 +113,7 @@ std::vector<Sitrano::Peak> OvertoneFinder::getRelevantOvertones(
     // If we summed amplitudes, the list is no longer sorted by amp.
     //re-sort to get the Top N.
     if (settings.sumAmplitudes) {
-        std::sort(merged.begin(), merged.end(), [](const Sitrano::Peak& a, const Sitrano::Peak& b) {
+        std::sort(merged.begin(), merged.end(), [](const Sihat::Peak& a, const Sihat::Peak& b) {
             return a.amp > b.amp;
             });
     }
@@ -124,7 +124,7 @@ std::vector<Sitrano::Peak> OvertoneFinder::getRelevantOvertones(
     }
 
     // sort by frequency for a clean output
-    std::sort(merged.begin(), merged.end(), [](const Sitrano::Peak& a, const Sitrano::Peak& b) {
+    std::sort(merged.begin(), merged.end(), [](const Sihat::Peak& a, const Sihat::Peak& b) {
         return a.freq < b.freq;
         });
 

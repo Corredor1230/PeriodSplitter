@@ -10,15 +10,15 @@ using json = nlohmann::json;
 namespace nlohmann {
 
     template <>
-    struct adl_serializer<Sitrano::AnalysisConfig> {
-        static void to_json(json& j, const Sitrano::AnalysisConfig& value) {
+    struct adl_serializer<Sihat::AnalysisConfig> {
+        static void to_json(json& j, const Sihat::AnalysisConfig& value) {
             SihatJson::to_json(j, value);
         }
     };
 
     template <>
-    struct adl_serializer<Sitrano::PitchSettings> {
-        static void to_json(json& j, const Sitrano::PitchSettings& value) {
+    struct adl_serializer<Sihat::PitchSettings> {
+        static void to_json(json& j, const Sihat::PitchSettings& value) {
             SihatJson::to_json(j, value);
         }
     };

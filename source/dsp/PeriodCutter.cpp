@@ -12,9 +12,9 @@
 #include <chrono>   // For std::chrono
 #include <numeric>  // For std::distance
 
-PeriodCutter::PeriodCutter(const Sitrano::AnalysisUnit& unit,
-    const Sitrano::CorrelationSettings& config,
-    float pitch, const Sitrano::SampleRange& transient) :
+PeriodCutter::PeriodCutter(const Sihat::AnalysisUnit& unit,
+    const Sihat::CorrelationSettings& config,
+    float pitch, const Sihat::SampleRange& transient) :
     mUnit(unit),
     mConfig(config),
     mPitch(pitch),
@@ -33,7 +33,7 @@ std::vector<uint32_t> PeriodCutter::findPeriodSamples()
     int expectedNumPeriods = static_cast<int>(mUnit.soundFile.size() / expectedPeriodLength);
 
     // Pre-find all zero crossings
-    std::vector<int> zeroCrossings = Sitrano::findZeroCrossings(mUnit.soundFile, startSample);
+    std::vector<int> zeroCrossings = Sihat::findZeroCrossings(mUnit.soundFile, startSample);
     if (zeroCrossings.empty()) {
         std::cerr << "PeriodCutter: No zero crossings found. Aborting." << std::endl;
         return {};
@@ -42,8 +42,8 @@ std::vector<uint32_t> PeriodCutter::findPeriodSamples()
     // Find the initial period start
     // int initialSample = startSample + static_cast<int>(mSampleRate * (mConfig.periodStartOffsetMs / 1000.0));
     int initialSample = startSample;
-    int peakSample = Sitrano::findPeakSample(mUnit.soundFile, initialSample, initialSample + windowSize, true);
-    int periodStart = Sitrano::findNearestCachedZero(zeroCrossings, peakSample);
+    int peakSample = Sihat::findPeakSample(mUnit.soundFile, initialSample, initialSample + windowSize, true);
+    int periodStart = Sihat::findNearestCachedZero(zeroCrossings, peakSample);
     int margin = std::max<int>(4, std::ceil<int>((float)expectedPeriodLength * 0.02));
 
     // create the window template
@@ -93,7 +93,7 @@ std::vector<uint32_t> PeriodCutter::findPeriodSamples()
                 corrVals.push_back(corr);
             }
             else if (filePos > lastStart + expectedPeriodLength + 3) {
-                int nz = Sitrano::findNearestCachedZero(zeroCrossings, lastStart + expectedPeriodLength);
+                int nz = Sihat::findNearestCachedZero(zeroCrossings, lastStart + expectedPeriodLength);
                 if (nz == forwardList.back()) { filePos++; continue; }
                 if (nz - forwardList.back() >= expectedPeriodLength - margin &&
                     nz - forwardList.back() <= expectedPeriodLength + margin)
@@ -118,7 +118,7 @@ std::vector<uint32_t> PeriodCutter::findPeriodSamples()
             bool isPeak = (corrVals[lc - 1] > corrVals[lc]) && (corrVals[lc - 1] > corrVals[lc - 2]);
 
             if (isPeak) {
-                int nz = Sitrano::findNearestCachedZero(zeroCrossings, filePos);
+                int nz = Sihat::findNearestCachedZero(zeroCrossings, filePos);
                 if (nz == forwardList.back()) { filePos++; continue; }
                 int currentWindowSize = nz - forwardList.back();
                 if (currentWindowSize >= (expectedPeriodLength - margin))
@@ -175,7 +175,7 @@ std::vector<uint32_t> PeriodCutter::findPeriodSamples()
             bool isPeak = (corrVals[lc - 1] > corrVals[lc]) && (corrVals[lc - 1] > corrVals[lc - 2]);
 
             if (isPeak && aboveThreshold) {
-                int nz = Sitrano::findNearestCachedZero(zeroCrossings, filePos);
+                int nz = Sihat::findNearestCachedZero(zeroCrossings, filePos);
                 int currentWindowSize = backwardList.front() - nz;
                 if (currentWindowSize <= expectedPeriodLength + margin &&
                     currentWindowSize >= expectedPeriodLength - margin)

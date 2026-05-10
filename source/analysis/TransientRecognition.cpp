@@ -5,9 +5,9 @@
 #include"dsp/MorletWavelet.h"
 
 Transient::Transient(
-    const Sitrano::AnalysisUnit& unit,
-    const Sitrano::TransientSettings& conf,
-    const Sitrano::TransientFFTSettings& ffts,
+    const Sihat::AnalysisUnit& unit,
+    const Sihat::TransientSettings& conf,
+    const Sihat::TransientFFTSettings& ffts,
     const float pitch
 ) :
     tSettings(conf),
@@ -64,10 +64,10 @@ void Transient::initFFTW()
     plan = fftwf_plan_dft_r2c_1d(nfft, input, output, FFTW_MEASURE);
 }
 
-Sitrano::TransientResults Transient::findStartTransient()
+Sihat::TransientResults Transient::findStartTransient()
 {
-    Sitrano::TransientResults results;
-    Sitrano::SampleRange range{0, 0};
+    Sihat::TransientResults results;
+    Sihat::SampleRange range{0, 0};
     if (!useFFT)
     {
         range = findFromRMS();
@@ -98,16 +98,16 @@ Sitrano::TransientResults Transient::findStartTransient()
 
     for (int i = 0; i < wTransform.size(); ++i)
     {
-        float midiLow = Sitrano::freqToMidi(pitch / 2.f);
-        float midiHigh = Sitrano::freqToMidi(20000.f);
+        float midiLow = Sihat::freqToMidi(pitch / 2.f);
+        float midiHigh = Sihat::freqToMidi(20000.f);
 
         float midiRange = midiHigh - midiLow;
         float midiStep = midiRange / static_cast<float>(transient.size());
 
-        wTransform[i] = Sitrano::midiToFreq(midiLow + midiStep * i);
+        wTransform[i] = Sihat::midiToFreq(midiLow + midiStep * i);
     }
 
-    std::vector<Sitrano::VariableRatePartial> scalogram = wavelet.analyze(64, 2048, pitch * 1.0, 20000.f);
+    std::vector<Sihat::VariableRatePartial> scalogram = wavelet.analyze(64, 2048, pitch * 1.0, 20000.f);
 
     double sourceSumSq = 0.0;
     int rangeLen = range.endSample - range.initSample;
@@ -177,9 +177,9 @@ Sitrano::TransientResults Transient::findStartTransient()
     return results;
 }
 
-Sitrano::SampleRange Transient::findFromRMS()
+Sihat::SampleRange Transient::findFromRMS()
 {
-    Sitrano::SampleRange range;
+    Sihat::SampleRange range;
     range.initSample = tSettings.tStartSample;
 
     std::vector<float> rmsList;
@@ -219,20 +219,20 @@ Sitrano::SampleRange Transient::findFromRMS()
 
     if (!transientFound) {
         // No transient, just find the first peak in a small window
-        int peakSample = Sitrano::findPeakSample(aud, 0, std::min((int)aud.size(), 8192), true);
-        range.endSample = Sitrano::findPreviousZero(aud, peakSample);
+        int peakSample = Sihat::findPeakSample(aud, 0, std::min((int)aud.size(), 8192), true);
+        range.endSample = Sihat::findPreviousZero(aud, peakSample);
         return range;
     }
 
-    range.initSample = Sitrano::findPreviousZero(aud, tInitSample);
-    range.endSample = Sitrano::findNextZero(aud, tInitSample + rmsSize);
+    range.initSample = Sihat::findPreviousZero(aud, tInitSample);
+    range.endSample = Sihat::findNextZero(aud, tInitSample + rmsSize);
     return range;
 }
 
 // Rewritten transient detector using spectral flatness
-Sitrano::SampleRange Transient::findFromFFT()
+Sihat::SampleRange Transient::findFromFFT()
 {
-    Sitrano::SampleRange range{0, 0};
+    Sihat::SampleRange range{0, 0};
 
     // 1. Basic Safety Checks
     if (nfft <= 2 || hop <= 0 || aud.empty()) return range;
@@ -248,7 +248,7 @@ Sitrano::SampleRange Transient::findFromFFT()
     // 2. Prepare Windowing (Hanning)
     std::vector<float> window(nfft);
     for (int i = 0; i < nfft; ++i) {
-        window[i] = 0.5f * (1.0f - std::cos(2.0f * static_cast<float>(Sitrano::PI) * i / (nfft - 1)));
+        window[i] = 0.5f * (1.0f - std::cos(2.0f * static_cast<float>(Sihat::PI) * i / (nfft - 1)));
     }
 
     // 3. Setup Frequency Limits
@@ -347,8 +347,8 @@ Sitrano::SampleRange Transient::findFromFFT()
     if (foundTransient)
     {
         // Pad the result slightly to ensure we capture the very start of the rise
-        range.initSample = Sitrano::findNearestZero(aud, std::max(0, transientFrameStart - hop));
-        range.endSample = Sitrano::findNearestZero(aud, std::min(static_cast<int>(aud.size()), range.initSample + nfft));
+        range.initSample = Sihat::findNearestZero(aud, std::max(0, transientFrameStart - hop));
+        range.endSample = Sihat::findNearestZero(aud, std::min(static_cast<int>(aud.size()), range.initSample + nfft));
     }
     else
     {
@@ -379,7 +379,7 @@ int Transient::findFirstAboveThreshold(int startSample, float thresh)
     else return firstAbove;
 }
 
-Sitrano::SampleRange Transient::findWithCrossCorrelation(int offset, int firstSample)
+Sihat::SampleRange Transient::findWithCrossCorrelation(int offset, int firstSample)
 {
     int withOffset = firstSample + offset;
     int expectedPeriod = static_cast<int>(sr / pitch);
@@ -388,8 +388,8 @@ Sitrano::SampleRange Transient::findWithCrossCorrelation(int offset, int firstSa
 
     ZPFilter filter;
 
-    int corrStart = Sitrano::findPreviousZero(aud, Sitrano::findPeakSample(aud, withOffset, withOffset + expectedPeriod * 2, true));
-    int firstWindowEnd = Sitrano::findNearestZero(aud, corrStart + expectedPeriod);
+    int corrStart = Sihat::findPreviousZero(aud, Sihat::findPeakSample(aud, withOffset, withOffset + expectedPeriod * 2, true));
+    int firstWindowEnd = Sihat::findNearestZero(aud, corrStart + expectedPeriod);
 
     std::vector<float> window(firstWindowEnd - corrStart);
 
@@ -453,7 +453,7 @@ Sitrano::SampleRange Transient::findWithCrossCorrelation(int offset, int firstSa
 
         if (isPeak && aboveThreshold)
         {
-            earliestCorrelation = Sitrano::findNearestZero(aud, compStart);
+            earliestCorrelation = Sihat::findNearestZero(aud, compStart);
             for (int i = 0; i < window.size(); ++i)
             {
                 window[i] = aud[earliestCorrelation + i];
@@ -467,7 +467,7 @@ Sitrano::SampleRange Transient::findWithCrossCorrelation(int offset, int firstSa
 
     }
 
-    Sitrano::SampleRange out{firstSample, earliestCorrelation + 1};
+    Sihat::SampleRange out{firstSample, earliestCorrelation + 1};
 
     //Maybe we can consider a Haar Wavelet transform for this.
     return out;

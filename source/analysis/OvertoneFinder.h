@@ -7,19 +7,19 @@
 
 class OvertoneFinder {
 public:
-	OvertoneFinder(const Sitrano::AnalysisUnit& unit,
-		const Sitrano::AnalysisConfig& config);
+	OvertoneFinder(const Sihat::AnalysisUnit& unit,
+		const Sihat::AnalysisConfig& config);
 	~OvertoneFinder() {
 		fftwf_destroy_plan(plan);
 	}
 
-	std::vector<Sitrano::Peak> getRelevantOvertones(const std::vector<double>& checkSignal,
+	std::vector<Sihat::Peak> getRelevantOvertones(const std::vector<double>& checkSignal,
 		float pitch);
 
 private:
-	const Sitrano::AnalysisUnit& unit;
-	const Sitrano::OvertoneSettings& settings;
-	const Sitrano::AnalysisConfig& config;
+	const Sihat::AnalysisUnit& unit;
+	const Sihat::OvertoneSettings& settings;
+	const Sihat::AnalysisConfig& config;
 	void initFFTW();
 	float* input;
 	int N;
