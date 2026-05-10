@@ -19,6 +19,7 @@ private:
 	void checkAndJoinThread();
 	void onSave();
 	void onRun(bool isBulk);
+	void onRunResynth();
 
 	GLFWwindow* m_window = nullptr;
 	EditorViewModel viewModel;

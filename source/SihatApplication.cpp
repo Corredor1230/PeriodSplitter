@@ -16,8 +16,8 @@
 void runAnalysisThread(
     bool isBulk,
     std::string path,
-    Sitrano::AnalysisConfig config,
-    Sitrano::Settings settings,
+    Sihat::AnalysisConfig config,
+    Sihat::Settings settings,
     SihatFile::OutInfo info,
     std::atomic<bool>& isProcessingFlag,
     SihatLogger& logger)
@@ -42,6 +42,28 @@ void runAnalysisThread(
         logger.logTemp("Analysis failed. Check log for details.");
     }
     isProcessingFlag = false;
+}
+
+void runResynthThread(
+    std::string path,
+    std::atomic<bool>& isProcessingFlag,
+    SihatLogger& logger)
+{
+    logger.logTemp("Resynthesis started...");
+    logger.log("Processing: " + path);
+    
+    try
+    {
+        logger.log("Resynthesis complete.");
+    }
+    catch(const std::exception& e)
+    {
+        logger.log("[ERROR] " + std::string(e.what()));
+        logger.logTemp("Resynthesis failed. Check log for details.");
+    }
+
+    isProcessingFlag = false;
+    
 }
 
 SihatApplication::SihatApplication(const std::string& jsonPath)
@@ -69,6 +91,10 @@ SihatApplication::SihatApplication(const std::string& jsonPath)
 
     viewModel.onRunBulkRequested = [this]() {
         this->onRun(true);
+        };
+
+    viewModel.onRunResynthRequested = [this]() {
+        this->onRunResynth();
         };
 }
 
@@ -164,6 +190,29 @@ void SihatApplication::onRun(bool isBulk)
         viewModel.config,
         viewModel.settings,
         viewModel.info,
+        std::ref(viewModel.isProcessing),
+        std::ref(viewModel.logger)
+    );
+}
+
+void SihatApplication::onRunResynth()
+{
+    if (viewModel.isProcessing.load()) return;
+
+    std::string path = SihatFile::openFileDialog();
+    if (path.empty()) {
+        viewModel.logger.logTemp("Resynthesis cancelled");
+        return;
+    }
+
+    viewModel.logger.logTemp("Starting resynthesis on " + path);
+    viewModel.isProcessing = true;
+
+    checkAndJoinThread();
+
+    analysisThread = std::thread(
+        runResynthThread,
+        path,
         std::ref(viewModel.isProcessing),
         std::ref(viewModel.logger)
     );

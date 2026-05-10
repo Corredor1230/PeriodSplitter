@@ -2,38 +2,18 @@
 #include"file/SihatFile.h"
 #include"dsp/MedianFilter.h"
 
-Sitrano::Results Analyzer::analyze(
-    const Sitrano::AnalysisUnit& unit,
-    const Sitrano::Settings& settings
+Sihat::Results Analyzer::analyze(
+    const Sihat::AnalysisUnit& unit,
+    const Sihat::Settings& settings
 )
 {
-    Sitrano::Results results;
+    Sihat::Results results;
 
     int provisionalHop = unit.sampleRate / 60;
     int provWindowNum = (unit.soundFile.size() - provisionalHop - mConfig.startSample) / provisionalHop;
 
-    Sitrano::AnalysisUnit hUnit = unit;
-    Sitrano::AnalysisUnit pUnit = unit;
-
-    if (settings.sourceSeparation)
-    {
-        std::vector<float> harmonicAudio;
-        std::vector<float> percussiveAudio;
-
-        MedianFilter filter(mConfig.hpSettings);
-        std::vector<float> interleavedHP = filter.processAudio(unit.soundFile);
-
-        for (int i = 0; i < interleavedHP.size(); i++)
-        {
-            if (i % 2 == 0) harmonicAudio.push_back(interleavedHP[i]);
-            else if (i % 2 == 1) percussiveAudio.push_back(interleavedHP[i]);
-        }
-
-        SihatFile::exportSeparatedAudio(interleavedHP, SihatFile::openFolderDialog(), (int)unit.sampleRate, "septest");
-
-        hUnit.soundFile = harmonicAudio;
-        pUnit.soundFile = percussiveAudio;
-    }
+    Sihat::AnalysisUnit hUnit = unit;
+    Sihat::AnalysisUnit pUnit = unit;
 
     //Find the pitch
     if (settings.pitchAnalysis)
@@ -43,17 +23,57 @@ Sitrano::Results Analyzer::analyze(
     }
     else
     {
-        results.pitch = Sitrano::getPitchFromFilename(unit.filename);
+        results.pitch = Sihat::getPitchFromFilename(unit.filename);
     }
 
-    if (settings.transientSeparation)
+    if (settings.sourceSeparation)
     {
-        Transient t(unit, mConfig.tSettings, mConfig.tfftSettings, results.pitch);
-        results.tResults = t.findStartTransient();
+
+        std::filesystem::path hpath(mConfig.outDir + "/" + SihatFile::getFilenameFromPath(unit.filename) + "harmonic.wav");
+        std::filesystem::path ppath(mConfig.outDir + "/" +  SihatFile::getFilenameFromPath(unit.filename) + "percussive.wav");
+
+        if (!std::filesystem::exists(hpath) && !std::filesystem::exists(ppath))
+        {
+            std::vector<float> harmonicAudio;
+            std::vector<float> percussiveAudio;
+
+            MedianFilter filter(mConfig.hpSettings);
+            std::vector<float> interleavedHP = filter.processAudio(unit.soundFile);
+
+            for (int i = 0; i < interleavedHP.size(); i++)
+            {
+                if (i % 2 == 0) harmonicAudio.push_back(interleavedHP[i]);
+                else if (i % 2 == 1) percussiveAudio.push_back(interleavedHP[i]);
+            }
+
+            SihatFile::exportSeparatedAudio(interleavedHP, mConfig.outDir, (int)unit.sampleRate, SihatFile::getFilenameFromPath(unit.filename));
+
+            hUnit.soundFile = harmonicAudio;
+            pUnit.soundFile = percussiveAudio;
+        }
+        else
+        {
+            SF_INFO hInfo;
+            SF_INFO pInfo;
+            hUnit.soundFile = SihatFile::getAudioFromFile(hpath.generic_string(), hInfo);
+            pUnit.soundFile = SihatFile::getAudioFromFile(ppath.generic_string(), pInfo);
+        }
+
+        TransientAnalysis stAnalysis(mConfig.stSettings, pUnit);
+
+        results.stResults = stAnalysis.analyze();
     }
-    else
+    else 
     {
-        results.tResults = { 0, 0 };
+        if (settings.transientSeparation)
+        {
+            Transient t(unit, mConfig.tSettings, mConfig.tfftSettings, results.pitch);
+            results.tResults = t.findStartTransient();
+        }
+        else
+        {
+            results.tResults = { 0, 0 };
+        }
     }
 
     //Use the pitch to find the periods' zero crossings
@@ -79,12 +99,12 @@ Sitrano::Results Analyzer::analyze(
         std::vector<double> checkSignal;
         int firstSample = 0;
 
-        if (!mConfig.oSettings.chooseFirstSample) firstSample = results.tResults.range.initSample;
+        if (!mConfig.oSettings.chooseFirstSample) firstSample = settings.sourceSeparation? results.stResults.range.initSample: results.tResults.range.initSample;
         else firstSample = mConfig.oSettings.overtoneFirstSample;
 
         for (int i = 0; i < mConfig.oSettings.fftSize; ++i)
         {
-            checkSignal.push_back(unit.soundFile[i + firstSample]);
+            checkSignal.push_back(hUnit.soundFile[i + firstSample]);
         }
         OvertoneFinder finder{ unit, mConfig };
         results.topFreqs = finder.getRelevantOvertones(checkSignal, results.pitch);
@@ -98,7 +118,7 @@ Sitrano::Results Analyzer::analyze(
     {
         for (int i = 0; i < mConfig.numHarmonics; ++i)
         {
-            Sitrano::Peak p{
+            Sihat::Peak p{
                 i * results.pitch,
                 0.f,
                 1.0 / (float)(i + 1)
@@ -111,7 +131,13 @@ Sitrano::Results Analyzer::analyze(
     //Check the amplitude envelope for each harmonic
     if (settings.harmonicAnalysis)
     {
-        HarmonicTracker tracker(unit, mConfig, results.topFreqs, results.sampleList, results.tResults.range.endSample);
+        HarmonicTracker tracker = [&]() {
+            if (settings.sourceSeparation) {
+                return HarmonicTracker(hUnit, mConfig, results.topFreqs, results.sampleList, results.stResults.range.initSample);
+            } else {
+                return HarmonicTracker(unit, mConfig, results.topFreqs, results.sampleList, results.tResults.range.endSample);
+            }
+        }();
         results.hResults = tracker.analyze();
     }
 
