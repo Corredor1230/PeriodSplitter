@@ -27,7 +27,8 @@
             "st_inThreshold": 0.1,
             "st_outThreshold": 0.07,
             "st_numBands": 16,
-            "st_startSample": 0
+            "st_startSample": 0,
+            "st_maxOvertones": 32
         },
         "maxHarmonics": 32,
         "noiseSettings": {
