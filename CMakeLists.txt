@@ -78,6 +78,8 @@ set(INCLUDE_FILES
     ${SOURCE_DIR}/include/csv.h
     ${SOURCE_DIR}/include/SitranoHeader.h
     ${SOURCE_DIR}/include/SitranoHeader.cpp
+    ${SOURCE_DIR}/include/ResynthHeader.h
+    ${SOURCE_DIR}/include/ResynthHeader.cpp
     ${SOURCE_DIR}/include/json.hpp
 )
 
@@ -86,6 +88,11 @@ set(FILE_FILES
     ${SOURCE_DIR}/file/SihatFile.h
     ${SOURCE_DIR}/file/SihatJson.h
     ${SOURCE_DIR}/file/JsonAdapters.h
+)
+
+set(RESYNTH_FILES
+    ${SOURCE_DIR}/resynthesis/SihatResynth.h
+    ${SOURCE_DIR}/resynthesis/SihatResynth.cpp
 )
 
 set(APPLICATION_SOURCES
@@ -106,6 +113,7 @@ add_executable(${EXECUTABLE_NAME}
     ${SUPPORT_SOURCES}
     ${INCLUDE_FILES}
     ${FILE_FILES}
+    ${RESYNTH_FILES}
 )
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
