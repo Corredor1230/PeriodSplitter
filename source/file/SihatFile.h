@@ -177,37 +177,41 @@ namespace SihatFile {
 	*/
 	inline void processFile(const std::string& filename,
 		const OutInfo& info,
-		const Sitrano::AnalysisConfig& config,
-		const Sitrano::Settings& settings)
+		const Sihat::AnalysisConfig& config,
+		const Sihat::Settings& settings)
 	{
 		SF_INFO sfInfo;
 		std::vector<float> delaced = SihatFile::getAudioFromFile(filename, sfInfo);
-		Sitrano::normalizeByMaxAbs(delaced);
+		Sihat::normalizeByMaxAbs(delaced);
 
-		Sitrano::AnalysisUnit unit{ delaced, filename, (float)sfInfo.samplerate };
+		Sihat::AnalysisUnit unit{ delaced, filename, (float)sfInfo.samplerate };
 		Analyzer ana(config);
-		Sitrano::Results r = ana.analyze(unit, settings);
+		Sihat::Results r = ana.analyze(unit, settings);
 
 		for (auto& amps : r.hResults.amps)
-			if (!amps.empty()) Sitrano::filterVector(amps, 4, true);
+			if (!amps.empty()) Sihat::filterVector(amps, 4, true);
 		for (auto& freqs : r.hResults.freqs)
-			if (!freqs.empty()) Sitrano::filterVector(freqs, 40, false);
+			if (!freqs.empty()) Sihat::filterVector(freqs, 40, false);
 
-		std::string csvName = Sitrano::getRawFilename(filename);
+		std::string csvName = Sihat::getRawFilename(filename);
 		std::string dir = info.outDir.empty() ? "sihat" : info.outDir;
 
 		std::string fName = info.prefix + "_" + csvName;
 		std::string ext = "." + info.extension;
 
-		Sitrano::saveHarmonicDataSihat(
-			r.hResults, r.tResults,
-			r.pitch, dir, fName, ext);
+		if (settings.sourceSeparation) {
+			Sihat::saveHarmonicDataSihat(r.hResults, r.stResults, config, r.pitch, dir, fName, ext);
+		}
+		else
+		{
+			Sihat::saveHarmonicDataSihat(r.hResults, r.tResults, r.pitch, dir, fName, ext);
+		}
 	}
 
 	inline void processFolder(const std::string& inputDir,
 		const OutInfo& i,
-		const Sitrano::AnalysisConfig& config,
-		const Sitrano::Settings& settings)
+		const Sihat::AnalysisConfig& config,
+		const Sihat::Settings& settings)
 	{
 		OutInfo info = i;
 		SihatFile::DirAndFiles dnf = SihatFile::getFileListFromExtension(inputDir, ".wav");
@@ -288,4 +292,8 @@ namespace SihatFile {
 		if (successP) std::cout << "Percussive data successfully written." << std::endl;
 	}
 
+	inline std::string getFilenameFromPath(const std::string& path)
+	{
+		return std::filesystem::path(path).stem().string();
+	}
 }

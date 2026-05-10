@@ -6,7 +6,7 @@
 #include<iomanip>
 #include<complex>
 
-Sitrano::BinFreq Sitrano::findPeakWithinTolerance(float targetFreq, float tolerance, int n, float sr, void* generic_out, bool isTolInHz = true)
+Sihat::BinFreq Sihat::findPeakWithinTolerance(float targetFreq, float tolerance, int n, float sr, void* generic_out, bool isTolInHz = true)
 {
     fftwf_complex* out = reinterpret_cast<fftwf_complex*>(generic_out);
 
@@ -31,7 +31,7 @@ Sitrano::BinFreq Sitrano::findPeakWithinTolerance(float targetFreq, float tolera
     int hiBin = freqToBin(hiFreq, n, sr);
     int targetBin = freqToBin(targetFreq, n, sr);
 
-    Sitrano::BinFreq outBF{ 0.f, 0.f };
+    Sihat::BinFreq outBF{ 0.f, 0.f };
 
     int binNumber = std::abs(hiBin - lowBin);
 
@@ -73,14 +73,14 @@ Sitrano::BinFreq Sitrano::findPeakWithinTolerance(float targetFreq, float tolera
     return outBF;
 }
 
-Sitrano::FreqUnit Sitrano::findPeak(Sitrano::BinFreq inTarget, void* fftwfOut,
+Sihat::FreqUnit Sihat::findPeak(Sihat::BinFreq inTarget, void* fftwfOut,
     int nfft, float fs, int binRange)
 {
-    Sitrano::BinFreq target = inTarget;
-    Sitrano::FreqUnit outData;
+    Sihat::BinFreq target = inTarget;
+    Sihat::FreqUnit outData;
 
     fftwf_complex* out = reinterpret_cast<fftwf_complex*>(fftwfOut);
-    Sitrano::BinFreq outBin;
+    Sihat::BinFreq outBin;
     outBin.bin = target.bin;
 
     float log_km1 = logf(hypotf(out[target.bin - 1][0],
@@ -101,7 +101,7 @@ Sitrano::FreqUnit Sitrano::findPeak(Sitrano::BinFreq inTarget, void* fftwfOut,
             inputvector.push_back(logf(hypotf(out[target.bin + i][0],
                 out[target.bin + i][1])));
         }
-        target.bin += Sitrano::findPeakIndexVector(inputvector) + iStart;
+        target.bin += Sihat::findPeakIndexVector(inputvector) + iStart;
 
         log_km1 = logf(hypotf(out[target.bin - 1][0],
             out[target.bin - 1][1]));
@@ -135,7 +135,7 @@ Sitrano::FreqUnit Sitrano::findPeak(Sitrano::BinFreq inTarget, void* fftwfOut,
     return outData;
 }
 
-void Sitrano::filterVector(std::vector<float>& input, int filterSize, bool zeroPad)
+void Sihat::filterVector(std::vector<float>& input, int filterSize, bool zeroPad)
 {
     std::vector<float> filter;
     filter.resize(filterSize);
@@ -168,7 +168,7 @@ void Sitrano::filterVector(std::vector<float>& input, int filterSize, bool zeroP
     }
 }
 
-void Sitrano::normalizeByMaxAbs(std::vector<float>& vec)
+void Sihat::normalizeByMaxAbs(std::vector<float>& vec)
 {
     if (vec.empty()) return;
 
@@ -189,7 +189,7 @@ void Sitrano::normalizeByMaxAbs(std::vector<float>& vec)
     }
 }
 
-std::string Sitrano::getRawFilename(const std::string& filename)
+std::string Sihat::getRawFilename(const std::string& filename)
 {
     std::string rawFilename;
     std::filesystem::path path = filename;
@@ -198,7 +198,7 @@ std::string Sitrano::getRawFilename(const std::string& filename)
     return rawFilename;
 }
 
-void Sitrano::applyWindow(std::vector<float>& frame) 
+void Sihat::applyWindow(std::vector<float>& frame) 
 {
     int size = frame.size();
     for (int i = 0; i < size; ++i) {
@@ -206,7 +206,7 @@ void Sitrano::applyWindow(std::vector<float>& frame)
     }
 }
 
-float Sitrano::getPitchFromFilename(const std::string& filename)
+float Sihat::getPitchFromFilename(const std::string& filename)
 {
     std::string name = filename;
     std::vector<std::string> parts;
@@ -223,7 +223,7 @@ float Sitrano::getPitchFromFilename(const std::string& filename)
     return outPitch;
 }
 
-void Sitrano::saveHarmonicData(
+void Sihat::saveHarmonicData(
     const std::vector<uint32_t>& indices,
     const std::vector<std::vector<float>>& fastData,   // RMS per harmonic
     const std::vector<std::vector<float>>& slowData,   // raw frequencies per harmonic
@@ -284,9 +284,9 @@ void Sitrano::saveHarmonicData(
     }
 }
 
-void Sitrano::saveHarmonicDataSihat(
+void Sihat::saveHarmonicDataSihat(
     const HarmonicResults& hResults,
-    const Sitrano::TransientResults& tResults, // <--- NEW ARGUMENT
+    const Sihat::TransientResults& tResults, // <--- NEW ARGUMENT
     float fundamentalFreq,
     const std::string& outputDirectory,
     const std::string& baseFilename,
@@ -412,7 +412,146 @@ void Sitrano::saveHarmonicDataSihat(
     }
 }
 
-int Sitrano::findPeakIndexVector(const std::vector<float>& input)
+void Sihat::saveHarmonicDataSihat(
+    const HarmonicResults& hResults,
+    const Sihat::STransientResults& stResults,
+    const Sihat::AnalysisConfig& config, // <--- NEW ARGUMENT
+    float fundamentalFreq,
+    const std::string& outputDirectory,
+    const std::string& baseFilename,
+    const std::string& extension
+) {
+
+    const std::vector<uint32_t>& hInd = hResults.finalSamples;
+    const std::vector<std::vector<float>>& hAmps = hResults.amps;
+    const std::vector<std::vector<float>>& hFreqs = hResults.freqs;
+    const float& hRms = hResults.rms;
+    const float& tRms = stResults.rms;
+
+    try {
+        std::filesystem::create_directories(outputDirectory);
+
+        std::filesystem::path fullPath(outputDirectory);
+        fullPath /= baseFilename;
+        fullPath.replace_extension(extension);
+
+        std::ofstream f(fullPath, std::ios::binary);
+        if (!f) {
+            throw std::runtime_error("Failed to open file for writing: " + fullPath.string());
+        }
+
+        // Header: Fundamental Frequency
+        {
+            f.write(reinterpret_cast<const char*>(&fundamentalFreq), sizeof(float));
+        }
+
+        // Block 1: Write indices
+        {
+            uint32_t n = static_cast<uint32_t>(hInd.size());
+            f.write(reinterpret_cast<const char*>(&n), sizeof(uint32_t));
+            if (n > 0) {
+                f.write(reinterpret_cast<const char*>(hInd.data()), n * sizeof(uint32_t));
+            }
+        }
+
+        // Block 2: Write amp data
+        {
+            uint32_t numHarmonics = static_cast<uint32_t>(hAmps.size());
+            f.write(reinterpret_cast<const char*>(&numHarmonics), sizeof(uint32_t));
+            for (const auto& harmonic : hAmps) {
+                uint32_t len = static_cast<uint32_t>(harmonic.size());
+                f.write(reinterpret_cast<const char*>(&len), sizeof(uint32_t));
+                if (len > 0) {
+                    f.write(reinterpret_cast<const char*>(harmonic.data()), len * sizeof(float));
+                }
+            }
+        }
+
+        // Block 3: Write frequency data
+        {
+            uint32_t numHarmonics = static_cast<uint32_t>(hFreqs.size());
+            f.write(reinterpret_cast<const char*>(&numHarmonics), sizeof(uint32_t));
+
+            for (const auto& freqVec : hFreqs) {
+                std::vector<ChangePoint> cps;
+
+                if (!freqVec.empty() && !hInd.empty()) {
+                    float prev = freqVec.front();
+                    cps.push_back({ hInd.front(), prev, prev / fundamentalFreq });
+
+                    for (size_t i = 1; i < freqVec.size() && i < hInd.size(); ++i) {
+                        if (std::fabs(freqVec[i] - prev) > 1e-6f) { 
+                            cps.push_back({ hInd[i], freqVec[i], freqVec[i] / fundamentalFreq });
+                            prev = freqVec[i];
+                        }
+                    }
+                }
+
+                uint32_t len = static_cast<uint32_t>(cps.size());
+                f.write(reinterpret_cast<const char*>(&len), sizeof(uint32_t));
+
+                if (len > 0) {
+                    f.write(reinterpret_cast<const char*>(cps.data()), len * sizeof(ChangePoint));
+                }
+            }
+        }
+
+        // Block 4: Write Transient Data (NEW)
+        {
+            // 1. Write the Range
+            uint32_t tStart = static_cast<uint32_t>(stResults.range.initSample);
+            uint32_t tEnd   = static_cast<uint32_t>(stResults.range.endSample);
+            
+            f.write(reinterpret_cast<const char*>(&tStart), sizeof(uint32_t));
+            f.write(reinterpret_cast<const char*>(&tEnd), sizeof(uint32_t));
+
+            // These are some important parameters, nothing more
+            f.write(reinterpret_cast<const char*>(&stResults.envHopSize), sizeof(uint32_t));
+            f.write(reinterpret_cast<const char*>(&stResults.specHopSize), sizeof(uint32_t));
+            f.write(reinterpret_cast<const char*>(&stResults.specWindowSize), sizeof(uint32_t));
+            f.write(reinterpret_cast<const char*>(&stResults.specNumBins), sizeof(uint32_t));
+
+            // 2. Write scalar metrics (use fixed width int32_t for riseTime)
+            int32_t riseTime = static_cast<int32_t>(stResults.riseTime);
+            f.write(reinterpret_cast<const char*>(&riseTime), sizeof(int32_t));
+            f.write(reinterpret_cast<const char*>(&stResults.peakAmp), sizeof(float));
+
+            // Helper lambda to safely write [Size: uint32_t] followed by [Data: float[]]
+            auto writeFloatVector = [&f](const std::vector<float>& vec) {
+                uint32_t size = static_cast<uint32_t>(vec.size());
+                f.write(reinterpret_cast<const char*>(&size), sizeof(uint32_t));
+                if (size > 0) {
+                    f.write(reinterpret_cast<const char*>(vec.data()), size * sizeof(float));
+                }
+            };
+
+            // 3. Write 1D analysis envelopes
+            writeFloatVector(stResults.ampEnvelope);
+            writeFloatVector(stResults.centroid);
+            writeFloatVector(stResults.flatness);
+
+            // 4. Write the Band Partials
+            uint32_t numPartials = static_cast<uint32_t>(config.stSettings.numBands);
+            f.write(reinterpret_cast<const char*>(&numPartials), sizeof(uint32_t));
+            
+            // 5. Write the flattened band envelopes
+            writeFloatVector(stResults.bandEnvelopes);
+        }
+
+        //Write the RMS values for each section
+        {
+            f.write(reinterpret_cast<const char*>(&hRms), sizeof(float));
+            f.write(reinterpret_cast<const char*>(&tRms), sizeof(float));
+        }
+
+        std::cout << "Successfully saved data to: " << fullPath.string() << std::endl;
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Error saving harmonic data: " << e.what() << std::endl;
+    }
+}
+
+int Sihat::findPeakIndexVector(const std::vector<float>& input)
 {
     int outIndex = 0;
     float maxVal = 0.f;
@@ -430,7 +569,7 @@ int Sitrano::findPeakIndexVector(const std::vector<float>& input)
     return outIndex;
 }
 
-int Sitrano::findPreviousZero(const std::vector<float>& signal, int startSmaple)
+int Sihat::findPreviousZero(const std::vector<float>& signal, int startSmaple)
 {
     int zeroSample = 0;
     for (int i = startSmaple; i > 2 && i < signal.size(); i--)
@@ -450,7 +589,7 @@ int Sitrano::findPreviousZero(const std::vector<float>& signal, int startSmaple)
     return zeroSample;
 }
 
-int Sitrano::findNextZero(const std::vector<float>& signal, int startSample) {
+int Sihat::findNextZero(const std::vector<float>& signal, int startSample) {
     int zeroSample = 0;
     for (int i = startSample; i > 1 && i < signal.size(); i++)
     {
@@ -469,7 +608,7 @@ int Sitrano::findNextZero(const std::vector<float>& signal, int startSample) {
     return zeroSample;
 }
 
-int Sitrano::findNearestZero(const std::vector<float>& signal, int startSample) {
+int Sihat::findNearestZero(const std::vector<float>& signal, int startSample) {
     int prevZero = findPreviousZero(signal, startSample);
     int nextZero = findNextZero(signal, startSample);
 
@@ -482,7 +621,7 @@ int Sitrano::findNearestZero(const std::vector<float>& signal, int startSample) 
         return nextZero;
 }
 
-int Sitrano::findPeakSample(const std::vector<float>& signal, int startSample, int endSample, bool useAbsolute) {
+int Sihat::findPeakSample(const std::vector<float>& signal, int startSample, int endSample, bool useAbsolute) {
     int peakSample = startSample;
     float peakValue = -1.0e30f; // Use a very small number, not 0
     if (useAbsolute) peakValue = 0.f;
@@ -508,7 +647,7 @@ int Sitrano::findPeakSample(const std::vector<float>& signal, int startSample, i
     return peakSample;
 }
 
-std::vector<int> Sitrano::findZeroCrossings(const std::vector<float>& signal, int startSample) {
+std::vector<int> Sihat::findZeroCrossings(const std::vector<float>& signal, int startSample) {
     std::vector<int> zeroCrossings;
     for (int i = std::max(1, startSample); i < signal.size(); ++i)
     {
@@ -522,7 +661,7 @@ std::vector<int> Sitrano::findZeroCrossings(const std::vector<float>& signal, in
     return zeroCrossings;
 }
 
-int Sitrano::findNearestCachedZero(const std::vector<int>& zeroCrossings, int sample) {
+int Sihat::findNearestCachedZero(const std::vector<int>& zeroCrossings, int sample) {
     if (zeroCrossings.empty()) return sample; // Safety check
 
     auto it = std::lower_bound(zeroCrossings.begin(), zeroCrossings.end(), sample);
@@ -534,7 +673,7 @@ int Sitrano::findNearestCachedZero(const std::vector<int>& zeroCrossings, int sa
     return (std::abs(after - sample) < std::abs(before - sample)) ? after : before;
 }
 
-int Sitrano::findAbsPeakIndex(const std::vector<float>& vector) {
+int Sihat::findAbsPeakIndex(const std::vector<float>& vector) {
     if (vector.empty()) return 0;
 
     std::vector<float> absTransient(vector.size());

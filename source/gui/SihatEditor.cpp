@@ -100,7 +100,7 @@ void SihatEditor::Render(EditorViewModel& viewModel)
 {
     // --- Main GUI Window ---
     ImGui::SetNextWindowSize(ImVec2(600, 400), ImGuiCond_FirstUseEver);
-    ImGui::Begin("Sihat Analysis Configuration");
+    ImGui::Begin("Sihat Configuration");
     {
         ImGui::Text("Settings loaded from: %s", viewModel.jsonPath.c_str());
         ImGui::Separator();
@@ -109,6 +109,24 @@ void SihatEditor::Render(EditorViewModel& viewModel)
         bool processing = viewModel.isProcessing.load();
 
         // Disable buttons if processing
+        ImGui::BeginDisabled(processing);
+        if (ImGui::BeginTabBar("AppModeTabs"))
+        {
+            if (ImGui::BeginTabItem("Analysis"))
+            {
+                viewModel.currentMode = AppMode::Analysis;
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Resynthesis"))
+            {
+                viewModel.currentMode = AppMode::Resynthesis;
+                ImGui::EndTabItem();
+            }
+            ImGui::EndTabBar();
+        }
+        ImGui::EndDisabled();
+        ImGui::Separator();
+
         ImGui::BeginDisabled(processing);
 
         if (ImGui::Button("Save Settings"))
@@ -119,31 +137,42 @@ void SihatEditor::Render(EditorViewModel& viewModel)
         }
 
         ImGui::SameLine();
-        // 2. Bind checkbox directly to the view model
-        ImGui::Checkbox("Bulk Process Folder", &viewModel.config.bulkProcess);
-
-        ImGui::SameLine();
-        if (ImGui::Button(processing ? "Processing..." : "Run Analysis"))
+        
+        if (viewModel.currentMode == AppMode::Analysis)
         {
-            // 3. Call the correct callback based on state
-            if (viewModel.config.bulkProcess)
+            ImGui::Checkbox("Bulk Process Folder", &viewModel.config.bulkProcess);
+
+            ImGui::SameLine();
+            if (ImGui::Button(processing ? "Processing..." : "Run Analysis"))
             {
-                if (viewModel.onRunBulkRequested)
-                    viewModel.onRunBulkRequested();
-            }
-            else
-            {
-                if (viewModel.onRunSingleRequested)
-                    viewModel.onRunSingleRequested();
+                // 3. Call the correct callback based on state
+                if (viewModel.config.bulkProcess)
+                {
+                    if (viewModel.onRunBulkRequested)
+                        viewModel.onRunBulkRequested();
+                }
+                else
+                {
+                    if (viewModel.onRunSingleRequested)
+                        viewModel.onRunSingleRequested();
+                }
             }
         }
+        else if (viewModel.currentMode == AppMode::Resynthesis)
+        {
+            if (ImGui::Button(processing ? "Processing Resynth..." : "Run Resynthesis"))
+            {
+                if (viewModel.onRunResynthRequested) viewModel.onRunResynthRequested();
+            }
+        }
+
         ImGui::EndDisabled(); // Re-enable GUI
 
         ImGui::Separator();
 
         if (processing)
         {
-            ImGui::Text("Analysis in progress, please wait...");
+            ImGui::Text(viewModel.currentMode == AppMode::Analysis ? "Analysis in progress, please wait..." : "Resynthesis in progress, please wait...");
             // You could add an ImGui::Spinner or loading bar here
         }
 
@@ -153,8 +182,14 @@ void SihatEditor::Render(EditorViewModel& viewModel)
             renderLogger(viewModel.logger);
             ImGui::Separator();
 
-            // 4. Pass the view model's data to the sub-editor
-            ConfigEditor::Render(viewModel.config, viewModel.settings, viewModel.info);
+            if (viewModel.currentMode == AppMode::Analysis)
+            {
+                ConfigEditor::Render(viewModel.config, viewModel.settings, viewModel.info);
+            }
+            else if (viewModel.currentMode == AppMode::Resynthesis)
+            {
+                
+            }
         }
 
         ImGui::EndChild();

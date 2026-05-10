@@ -9,7 +9,7 @@ using json = nlohmann::json;
 
 namespace SihatJson {
     // ---- PitchSettings ----
-    inline void to_json(json& j, const Sitrano::PitchSettings& p) {
+    inline void to_json(json& j, const Sihat::PitchSettings& p) {
         j = json{
             {"p_threshold", p.modeThreshold},
             {"p_inCents", p.toleranceInCents},
@@ -19,7 +19,7 @@ namespace SihatJson {
     }
 
     // ---- TransientSettings ----
-    inline void to_json(json& j, const Sitrano::TransientSettings& t) {
+    inline void to_json(json& j, const Sihat::TransientSettings& t) {
         j = json{
             {"t_StartSample", t.tStartSample},
             {"t_UseMs", t.useMs},
@@ -34,7 +34,21 @@ namespace SihatJson {
         };
     }
 
-    inline void to_json(json& j, const Sitrano::TransientFFTSettings& tfft){
+    //Single transient settings
+    inline void to_json(json& j, const Sihat::SingleTransientSettings& st){
+        j = json{
+            {"st_rmsWindow", st.rmsWindow},
+            {"st_rmsHopSize", st.rmsHopSize},
+            {"st_nfft", st.nfft},
+            {"st_hopSize", st.hopSize},
+            {"st_inThreshold", st.inThreshold},
+            {"st_outThreshold", st.outThreshold},
+            {"st_numBands", st.numBands},
+            {"st_startSample", st.startSample}
+        };
+    }
+
+    inline void to_json(json& j, const Sihat::TransientFFTSettings& tfft){
         j = json{
             {"tfft_nfft", tfft.nfft},
             {"tfft_hopSize", tfft.hopSize},
@@ -52,7 +66,7 @@ namespace SihatJson {
     }
 
     // ---- CorrelationSettings ----
-    inline void to_json(json& j, const Sitrano::CorrelationSettings& c) {
+    inline void to_json(json& j, const Sihat::CorrelationSettings& c) {
         j = json{
             {"c_offset", c.periodStartOffsetMs},
             {"c_threshold", c.correlationThreshold}
@@ -60,7 +74,7 @@ namespace SihatJson {
     }
 
     // ---- OvertoneSettings ----
-    inline void to_json(json& j, const Sitrano::OvertoneSettings& o) {
+    inline void to_json(json& j, const Sihat::OvertoneSettings& o) {
         j = json{
             {"o_useTolerance", o.useTolerance},
             {"o_useTolInHz", o.useTolInHz},
@@ -78,7 +92,7 @@ namespace SihatJson {
     }
 
     // ---- HarmonicSettings ----
-    inline void to_json(json& j, const Sitrano::HarmonicSettings& h) {
+    inline void to_json(json& j, const Sihat::HarmonicSettings& h) {
         j = json{
             {"h_enabled", h.applyHanning},
             {"h_windowStyle", static_cast<int>(h.style)},  // convert enum to int
@@ -89,7 +103,7 @@ namespace SihatJson {
     }
 
     // --- NoiseSettings ---
-    inline void to_json(json& j, const Sitrano::NoiseSettings& n) {
+    inline void to_json(json& j, const Sihat::NoiseSettings& n) {
         j = json{
             {"n_nfft", n.nfft},
             {"n_hopSize", n.hopSize},
@@ -104,7 +118,7 @@ namespace SihatJson {
     }
 
     // ---- HPSSSettings ----
-    inline void to_json(json& j, const Sitrano::HPSSSettings& hp) {
+    inline void to_json(json& j, const Sihat::HPSSSettings& hp) {
         j = json{
             {"hpss_nfft", hp.nfft},
             {"hpss_hopSize", hp.hopSize},
@@ -113,7 +127,7 @@ namespace SihatJson {
     }
 
     // ---- General Settings ----
-    inline void to_json(json& j, const Sitrano::Settings& s) {
+    inline void to_json(json& j, const Sihat::Settings& s) {
         j = json{
             {"fullHarmonicAnalysis", s.fullHarmonicAnalysis},
             {"pitchAnalysis", s.pitchAnalysis},
@@ -127,12 +141,13 @@ namespace SihatJson {
     }
 
     // ---- AnalysisConfig ----
-    inline void to_json(json& j, const Sitrano::AnalysisConfig& c) {
+    inline void to_json(json& j, const Sihat::AnalysisConfig& c) {
 
         json pSettings;
         json tSettings;
         json hpssSettings;
         json tfftSettings;
+        json stSettings;
         json cSettings;
         json oSettings;
         json hSettings;
@@ -146,6 +161,7 @@ namespace SihatJson {
         to_json(hSettings, c.hSettings);
         to_json(nSettings, c.nSettings);
         to_json(hpssSettings, c.hpSettings);
+        to_json(stSettings, c.stSettings);
 
 
         j = json{
@@ -157,6 +173,7 @@ namespace SihatJson {
             {"hpssSettings", hpssSettings},
             {"pitchSettings", pSettings},
             {"transientSettings", tSettings},
+            {"stSettings", stSettings},
             {"transientFFTSettings", tfftSettings},
             {"correlationSettings", cSettings},
             {"overtoneSettings", oSettings},
@@ -168,7 +185,7 @@ namespace SihatJson {
     }
 
     // --- PitchSettings ---
-    inline void from_json(const json& j, Sitrano::PitchSettings& p) {
+    inline void from_json(const json& j, Sihat::PitchSettings& p) {
         j.at("p_threshold").get_to(p.modeThreshold);
         j.at("p_inCents").get_to(p.toleranceInCents);
         j.at("p_minFreq").get_to(p.minFreq);
@@ -176,7 +193,7 @@ namespace SihatJson {
     }
 
     // ---- TransientSettings ----
-    inline void from_json(const json& j, Sitrano::TransientSettings& t) {
+    inline void from_json(const json& j, Sihat::TransientSettings& t) {
         j.at("t_StartSample").get_to(t.tStartSample);
         j.at("t_UseMs").get_to(t.useMs);
         j.at("t_rmsSampleSize").get_to(t.rmsSampleSize);
@@ -189,15 +206,28 @@ namespace SihatJson {
         j.at("t_correlationThreshold").get_to(t.tCorrelationThreshold);
     }
 
-    inline void from_json(const json& j, Sitrano::TransientFFTSettings& tfft){
+    inline void from_json(const json& j, Sihat::TransientFFTSettings& tfft){
         j.at("tfft_nfft").get_to(tfft.nfft);
         j.at("tfft_hopSize").get_to(tfft.hopSize);
         j.at("tfft_useFFT").get_to(tfft.useFFT);
         j.at("tfft_flatnessThreshold").get_to(tfft.flatnessThreshold);
     }
 
+    //Single transient settings
+    inline void from_json(const json& j, Sihat::SingleTransientSettings& st)
+    {
+        j.at("st_rmsWindow").get_to(st.rmsWindow);
+        j.at("st_rmsHopSize").get_to(st.rmsHopSize); 
+        j.at("st_nfft").get_to(st.nfft);
+        j.at("st_hopSize").get_to(st.hopSize);
+        j.at("st_inThreshold").get_to(st.inThreshold);
+        j.at("st_outThreshold").get_to(st.outThreshold);
+        j.at("st_numBands").get_to(st.numBands);
+        j.at("st_startSample").get_to(st.startSample);
+    }
+
     // --- NoiseSettings ---
-    inline void from_json(const json& j, Sitrano::NoiseSettings& n) {
+    inline void from_json(const json& j, Sihat::NoiseSettings& n) {
         j.at("n_nfft").get_to(n.nfft);
         j.at("n_hopSize").get_to(n.hopSize);
         j.at("n_numBins").get_to(n.numBins);
@@ -217,13 +247,13 @@ namespace SihatJson {
     }
 
     // ---- CorrelationSettings ----
-    inline void from_json(const json& j, Sitrano::CorrelationSettings& c) {
+    inline void from_json(const json& j, Sihat::CorrelationSettings& c) {
         j.at("c_offset").get_to(c.periodStartOffsetMs);
         j.at("c_threshold").get_to(c.correlationThreshold);
     }
 
     // ---- OvertoneSettings ----
-    inline void from_json(const json& j, Sitrano::OvertoneSettings& o) {
+    inline void from_json(const json& j, Sihat::OvertoneSettings& o) {
         j.at("o_useTolerance").get_to(o.useTolerance);
         j.at("o_useTolInHz").get_to(o.useTolInHz);
         j.at("o_tolInHz").get_to(o.tolInHz);
@@ -239,7 +269,7 @@ namespace SihatJson {
     }
 
     // ---- HarmonicSettings ----
-    inline void from_json(const json& j, Sitrano::HarmonicSettings& h) {
+    inline void from_json(const json& j, Sihat::HarmonicSettings& h) {
         j.at("h_enabled").get_to(h.applyHanning);
         j.at("h_Tolerance").get_to(h.toleranceValue);
         j.at("h_tolInHz").get_to(h.tolInHz);
@@ -252,14 +282,14 @@ namespace SihatJson {
     }
 
     // ---- HPSSSettings ----
-    inline void from_json(const json& j, Sitrano::HPSSSettings& hp) {
+    inline void from_json(const json& j, Sihat::HPSSSettings& hp) {
         j.at("hpss_nfft").get_to(hp.nfft);
         j.at("hpss_hopSize").get_to(hp.hopSize);
         j.at("hpss_filtSize").get_to(hp.filtSize);
     }
 
     // ---- General Settings ----
-    inline void from_json(const json& j, Sitrano::Settings& s) {
+    inline void from_json(const json& j, Sihat::Settings& s) {
         j.at("fullHarmonicAnalysis").get_to(s.fullHarmonicAnalysis);
         j.at("sourceSeparation").get_to(s.sourceSeparation);
         j.at("pitchAnalysis").get_to(s.pitchAnalysis);
@@ -271,7 +301,7 @@ namespace SihatJson {
     }
 
     // ---- AnalysisConfig ----
-    inline void from_json(const json& j, Sitrano::AnalysisConfig& c) {
+    inline void from_json(const json& j, Sihat::AnalysisConfig& c) {
         j.at("maxHarmonics").get_to(c.numHarmonics);
         j.at("N").get_to(c.nfft);
         j.at("hopSize").get_to(c.hopSize);
@@ -284,6 +314,7 @@ namespace SihatJson {
         from_json(j.at("transientSettings"), c.tSettings);
         from_json(j.at("hpssSettings"), c.hpSettings);
         from_json(j.at("transientFFTSettings"), c.tfftSettings);
+        from_json(j.at("stSettings"), c.stSettings);
         from_json(j.at("correlationSettings"), c.cSettings);
         from_json(j.at("overtoneSettings"), c.oSettings);
         from_json(j.at("harmonicSettings"), c.hSettings);
@@ -291,8 +322,8 @@ namespace SihatJson {
     }
 
 
-    inline void saveSettings(const Sitrano::AnalysisConfig& c,
-        const Sitrano::Settings& s, const SihatFile::OutInfo& i, 
+    inline void saveSettings(const Sihat::AnalysisConfig& c,
+        const Sihat::Settings& s, const SihatFile::OutInfo& i, 
         const std::string& path) 
     { 
         json j; 
@@ -315,8 +346,8 @@ namespace SihatJson {
         std::cout << "Configuration saved to: " << path << std::endl; 
     }
 
-    inline void loadSettings(Sitrano::AnalysisConfig& c,
-        Sitrano::Settings& s,
+    inline void loadSettings(Sihat::AnalysisConfig& c,
+        Sihat::Settings& s,
         SihatFile::OutInfo& i,
         const std::string& path)
     {

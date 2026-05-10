@@ -20,7 +20,7 @@ public:
      * @param info Reference to your file info struct.
      * @param p_open Pointer to a bool to control the window's visibility (optional).
      */
-    static void Render(Sitrano::AnalysisConfig& config, Sitrano::Settings& settings, SihatFile::OutInfo& info, bool* p_open = nullptr)
+    static void Render(Sihat::AnalysisConfig& config, Sihat::Settings& settings, SihatFile::OutInfo& info, bool* p_open = nullptr)
     {
         // Begin the ImGui window
         if (!ImGui::Begin("Analysis Configuration Editor", p_open))
@@ -73,9 +73,11 @@ public:
         {
             // Uses imgui_stdlib.h to allow ImGui::InputText to work with std::string
             ImGui::InputText("Output Directory", &info.outDir);
+            config.outDir =   info.outDir;
             if (ImGui::Button("Choose directory"))
             {
                 info.outDir = SihatFile::openFolderDialog();
+                config.outDir = info.outDir;
             }
             ImGui::InputText("File Prefix", &info.prefix);
             ImGui::InputText("File Extension", &info.extension);
@@ -124,7 +126,7 @@ public:
                 int styleAsInt = static_cast<int>(config.hSettings.style);
                 if (ImGui::Combo("Window Style", &styleAsInt, windowStyles, styleCount))
                 {
-                    config.hSettings.style = static_cast<Sitrano::WindowStyle>(styleAsInt);
+                    config.hSettings.style = static_cast<Sihat::WindowStyle>(styleAsInt);
                 }
 
                 //ImGui::SameLine();
@@ -163,6 +165,19 @@ public:
                 ImGui::InputFloat("Max Frequency", &config.pSettings.maxFreq);
                 ImGui::InputFloat("Threshold", &config.pSettings.modeThreshold);
                 ImGui::InputFloat("In Cents", &config.pSettings.toleranceInCents);
+                ImGui::TreePop();
+            }
+
+            if (ImGui::TreeNode("Single Transient"))
+            {
+                ImGui::InputInt("NFFT", &config.stSettings.nfft);
+                ImGui::InputInt("Hop Size", &config.stSettings.hopSize);
+                ImGui::InputInt("RMS Window", &config.stSettings.rmsWindow);
+                ImGui::InputInt("RMS Hop Size", &config.stSettings.rmsHopSize);
+                ImGui::InputFloat("In Threshold", &config.stSettings.inThreshold);
+                ImGui::InputFloat("Out Threshold", &config.stSettings.outThreshold);
+                ImGui::InputInt("Num Bands", &config.stSettings.numBands);
+                ImGui::InputInt("Start Sample", &config.stSettings.startSample);
                 ImGui::TreePop();
             }
 

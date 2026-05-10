@@ -7,11 +7,20 @@
 #include <atomic>     // For the isProcessing flag
 #include <functional> // For the callbacks
 
+enum class AppMode
+{
+    Analysis,
+    Resynthesis
+};
+
 struct EditorViewModel
 {
+
+    AppMode currentMode = AppMode::Analysis;
+
     // The GUI will read/write these values directly.
-    Sitrano::AnalysisConfig config;
-    Sitrano::Settings       settings;
+    Sihat::AnalysisConfig config;
+    Sihat::Settings       settings;
     SihatFile::OutInfo      info;
     std::string             jsonPath;
 
@@ -23,6 +32,7 @@ struct EditorViewModel
     std::function<void(void)> onSaveRequested;
     std::function<void(void)> onRunSingleRequested;
     std::function<void(void)> onRunBulkRequested;
+    std::function<void(void)> onRunResynthRequested;
 
     SihatLogger logger;
 };

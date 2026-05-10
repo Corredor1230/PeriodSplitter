@@ -5,10 +5,12 @@
 #include<cmath>
 #include<cstdint>
 #include<type_traits>
+#include<numeric>
 #include<iostream>
+#include<algorithm>
 #include<complex>
 
-namespace Sitrano
+namespace Sihat
 {
     constexpr double PI = 3.14159265358979323846;
     constexpr double M_E = 2.718281828459045;
@@ -44,6 +46,10 @@ namespace Sitrano
         std::complex<float>& at(int frame, int bin) {
             return data[frame * numBins + bin];
         }
+
+        const std::complex<float>& at(int frame, int bin) const {
+            return data[frame * numBins + bin];
+        }
     };
 
     struct Spectrogram{
@@ -51,6 +57,10 @@ namespace Sitrano
         int numFrames;
         int numBins;
         float& at(int frame, int bin){
+            return data[frame * numBins + bin];
+        }
+
+        const float& at(int frame, int bin) const {
             return data[frame * numBins + bin];
         }
     };
@@ -92,12 +102,12 @@ namespace Sitrano
     struct SingleTransientSettings{
         int nfft = 512;
         int hopSize = 32;
-        int rmsWindow = 75;
-        int rmsHopSize = 25;
+        int rmsWindow = 30;
+        int rmsHopSize = 15;
         int startSample = 0;
-        float transientFactor = 3.0;
-        float transientThreshold = 0.1f;
-        float outFactor = 0.05;
+        int numBands = 16;
+        float outThreshold = 0.05f;
+        float inThreshold = 0.1f;
     };
 
     /** 
@@ -170,6 +180,7 @@ namespace Sitrano
         int nfft = 4096;
         int hopSize = 1024;
         int filtSize = 17;
+        float exponent = 2.0;
     };
 
     struct AnalysisConfig {
@@ -178,10 +189,12 @@ namespace Sitrano
         int hopSize = 1024;
         int startSample = 0;
         float tolerance = 100.f;
+        std::string outDir = "../../media/tests";
         PitchSettings pSettings;
         HPSSSettings hpSettings;
         TransientSettings tSettings;
         TransientFFTSettings tfftSettings;
+        SingleTransientSettings stSettings;
         CorrelationSettings cSettings;
         OvertoneSettings oSettings;
         HarmonicSettings hSettings;
@@ -233,7 +246,7 @@ namespace Sitrano
     };
 
     struct FreqUnit {
-        Sitrano::BinFreq bin;
+        Sihat::BinFreq bin;
         float mag;
         float amp;
         float pha;
@@ -249,13 +262,15 @@ namespace Sitrano
         SampleRange range;
         int riseTime;
         float peakAmp;
-        float clickRatio;
-        float chirpRate;
         std::vector<float> ampEnvelope;
         std::vector<float> centroid;
         std::vector<float> flatness;
         std::vector<float> bandEnvelopes;
-
+        float rms;
+        uint32_t envHopSize;
+        uint32_t specHopSize;
+        uint32_t specWindowSize;
+        uint32_t specNumBins;
     };
 
 
@@ -275,6 +290,7 @@ namespace Sitrano
 	//Larger structure containing all results of the analysis
 	struct Results {
         TransientResults tResults;
+        STransientResults stResults;
         std::vector<uint32_t> sampleList;
 		std::vector<Peak> topFreqs;
         float pitch;
@@ -371,6 +387,22 @@ namespace Sitrano
         std::cerr << "Error: Transient size too big" << '\n';
         return 0;
     }
+    inline float getRmsValue(const std::vector<float>& input, int start, int end)
+    {
+        if (start >= end || end > input.size() || input.empty()) {
+            return 0.0;
+        }
+
+        double sumOfSquares = 0.0;
+        std::for_each(input.begin() + start, input.begin() + end, [&sumOfSquares](double val) {
+            sumOfSquares += val * val;
+        });
+
+        size_t count = end - start;
+        
+        // Return RMS: sqrt(sum of squares / number of elements)
+        return std::sqrt(sumOfSquares / count);
+    }
 
     //Functions with a definition in .cpp file
     BinFreq findPeakWithinTolerance(float targetFreq, float tolerance, int n, float sr, void* out, bool isTolInHz);
@@ -392,6 +424,15 @@ namespace Sitrano
     void saveHarmonicDataSihat(
         const HarmonicResults& hResults,
         const TransientResults& tResults,
+        float f0,
+        const std::string& outputDirectory,
+        const std::string& baseFilename,
+        const std::string& extension
+    );
+    void saveHarmonicDataSihat(
+        const HarmonicResults& hResults,
+        const STransientResults& stResults,
+        const AnalysisConfig& config,
         float f0,
         const std::string& outputDirectory,
         const std::string& baseFilename,
@@ -460,6 +501,17 @@ namespace Sitrano
             // We explicitly cast the final result
             data[n] = static_cast<T>(data[n] * window_val);
         }
+    }
+
+    inline std::vector<float> getHannWindow(int size)
+    {
+        std::vector<float> window(size);
+        for(int i = 0; i < size; i++)
+        {
+            window[i] = 0.5f * (1.0f - std::cos(2.0f * PI * i / (size - 1.0f)));
+        }
+
+        return window;
     }
 
     inline float getHannValue(int i, int nfft)
