@@ -21,17 +21,25 @@ void TransientAnalysis::initfftw(int nfft)
 {
     inBuffer = (float*)fftwf_malloc(sizeof(float) * nfft);
     outBuffer = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex) * (nfft / 2 + 1));
-
     plan = fftwf_plan_dft_r2c_1d(nfft, inBuffer, outBuffer, FFTW_MEASURE);
 }
 
 Sihat::STransientResults TransientAnalysis::analyze()
 {
     Sihat::SampleRange initRange{0, u.soundFile.size() / 4};
-    std::vector<float> tEnv = getAmpEnvelope(u.soundFile, initRange);
+    std::vector<Sihat::Sample> tEnv = getAmpEnvelope(u.soundFile, initRange);
     Sihat::SampleRange tRange = findBoundaries(u.soundFile, tEnv, initRange);
     float rms = Sihat::getRmsValue(u.soundFile, tRange.initSample, tRange.endSample);
     Sihat::Spectrogram tSpec = computeSpectrogram(u.soundFile, tRange);
+
+    //Find representative frequencies
+    std::vector<Sihat::Peak> stOvertones = getMainOvertones(u.soundFile, tRange);
+    std::vector<float> stOvertonesAmps;
+    for (int i = 0; i < stOvertones.size(); i++){stOvertonesAmps.push_back(stOvertones[i].amp);}
+
+    //Track representative frequencies
+    std::vector<Sihat::OvertoneTrajectory> trajectories = trackOvertonesInTime(u.soundFile, tRange, stOvertones, settings.overFrames);
+
     int tRise = getRiseTime(tEnv);
     std::vector<float> tCentroid = getSpectralCentroid(tSpec);
     std::vector<float> tFlatness = getFlatnessCurve(tSpec);
@@ -42,19 +50,23 @@ Sihat::STransientResults TransientAnalysis::analyze()
     startFrame = std::max(0, startFrame);
     endFrame = std::min(static_cast<int>(tEnv.size()), endFrame + 1);
 
-    std::vector<float> slicedEnv(tEnv.begin() + startFrame, tEnv.begin() + endFrame);
-
-    auto maxIt = std::max_element(slicedEnv.begin(), slicedEnv.end());
+    //Slicing envelopes to conform to actual transient
+    std::vector<Sihat::Sample> slicedEnv(tEnv.begin() + startFrame, tEnv.begin() + endFrame);
+    std::vector<float> slicedAEnv(slicedEnv.size());
+    for (int i = 0; i < slicedEnv.size(); i++){slicedAEnv[i] = slicedEnv[i].value;}
+    auto maxIt = std::max_element(slicedAEnv.begin(), slicedAEnv.end());
     float peakVal = *maxIt;
 
-    Sihat::STransientResults results {tRange, tRise, peakVal, slicedEnv, tCentroid, tFlatness, tBands, rms, settings.rmsHopSize, settings.hopSize, settings.nfft, settings.nfft / 2 + 1};
+    Sihat::STransientResults results {tRange, tRise, peakVal, slicedEnv, tCentroid, tFlatness, tBands, stOvertonesAmps, trajectories, rms, settings.rmsHopSize, settings.hopSize, settings.nfft, settings.nfft / 2 + 1};
 
     return results;
 }
 
-Sihat::SampleRange TransientAnalysis::findBoundaries(const std::vector<float>& input, const std::vector<float>& env, const Sihat::SampleRange& range)
+Sihat::SampleRange TransientAnalysis::findBoundaries(const std::vector<float>& input, const std::vector<Sihat::Sample>& tenv, const Sihat::SampleRange& range)
 {
 
+    std::vector<float> env(tenv.size());
+    for (int i = 0; i < tenv.size(); i++){env[i] = tenv[i].value;}
     Sihat::SampleRange outRange;
     outRange.initSample = range.initSample;
     outRange.endSample = range.endSample;
@@ -65,8 +77,8 @@ Sihat::SampleRange TransientAnalysis::findBoundaries(const std::vector<float>& i
     int peakFrame = static_cast<int>(std::distance(env.begin(), maxIt));
     float peakVal = *maxIt;
 
-    float inThresh = peakVal * settings.inThreshold;
-    float outThresh = peakVal * settings.outThreshold;
+    float inThresh  = peakVal * std::pow(10.0f, settings.inThreshold / 20.0f);
+    float outThresh = peakVal * std::pow(10.0f, settings.outThreshold / 20.0f);
 
     int startFrame = 0;
     for (int i = peakFrame; i >= 0; i--)
@@ -86,6 +98,10 @@ Sihat::SampleRange TransientAnalysis::findBoundaries(const std::vector<float>& i
             endFrame = i;
             break;
         }
+    }
+
+    if (endFrame == -1) {
+        endFrame = env.size() - 1; 
     }
 
     int appInitSamp = std::max(0, startFrame * settings.rmsHopSize);
@@ -136,13 +152,13 @@ Sihat::Spectrogram TransientAnalysis::computeSpectrogram(const std::vector<float
     return spec;
 }
 
-std::vector<float> TransientAnalysis::getAmpEnvelope(const std::vector<float>& audio, const Sihat::SampleRange& range)
+std::vector<Sihat::Sample> TransientAnalysis::getAmpEnvelope(const std::vector<float>& audio, const Sihat::SampleRange& range)
 {
     int start = std::max(0, range.initSample);
     int end = std::min(static_cast<int>(audio.size()), range.endSample);
     int size = settings.rmsWindow;
     int hop = settings.rmsHopSize;
-    std::vector<float> env;
+    std::vector<Sihat::Sample> env;
 
     for (int i = start; i < end; i += hop){
         float sum = 0.0f;
@@ -151,14 +167,17 @@ std::vector<float> TransientAnalysis::getAmpEnvelope(const std::vector<float>& a
         {
             sum += std::abs(audio[j]);
         }
-        env.push_back(sum / (frameEnd - i));
+        Sihat::Sample samp = {i, sum / (frameEnd - i)};
+        env.push_back(samp);
     }
 
     return env;
 }
 
-int TransientAnalysis::getRiseTime(const std::vector<float>& env)
+int TransientAnalysis::getRiseTime(const std::vector<Sihat::Sample>& tenv)
 {
+    std::vector<float> env(tenv.size());
+    for (int i = 0; i < tenv.size(); i++) {env[i] = tenv[i].value;}
     if(env.empty()) return 0;
 
     auto maxIt = std::max_element(env.begin(), env.end());
@@ -262,3 +281,254 @@ std::vector<float> TransientAnalysis::getBandEnvelopes(const Sihat::Spectrogram&
     return envelopes;
 }
 
+std::vector<Sihat::Peak> TransientAnalysis::getMainOvertones(const std::vector<float>& audio, const Sihat::SampleRange& range)
+{
+    int maxOvertones = settings.maxOvertones;
+
+    float* o_input;
+    fftwf_complex* o_output;
+    fftwf_plan o_plan;
+
+    int nfft = Sihat::findNextPowerOfTwo(range.endSample - range.initSample);
+    const int Nout = nfft / 2 + 1;
+
+    o_input = (float*)fftwf_malloc(sizeof(float) * nfft);
+    o_output = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex) * Nout);
+    
+    // Note: If called frequently, consider making the plan a class member 
+    // to avoid the expensive plan generation overhead.
+    o_plan = fftwf_plan_dft_r2c_1d(nfft, o_input, o_output, FFTW_MEASURE);
+
+    std::fill_n(o_input, nfft, 0.0f);
+    std::copy(audio.begin() + range.initSample, audio.begin() + range.initSample + nfft, o_input);
+
+    Sihat::applyHann<float>(o_input, nfft);
+
+    fftwf_execute(o_plan);
+
+    // 1. CALCULATE MAGNITUDES
+    std::vector<double> mags(Nout);
+    for (int k = 0; k < Nout; ++k) {
+        double re = o_output[k][0];
+        double im = o_output[k][1];
+        mags[k] = std::sqrt(re * re + im * im);
+    }
+
+    // 2. CALCULATE GLOBAL NOISE FLOOR (Using all bins, not just peaks)
+    // std::accumulate requires <numeric>
+    double totalMagSum = std::accumulate(mags.begin(), mags.end(), 0.0);
+    double averageFloor = totalMagSum / Nout;
+
+    // 3. FIND & INTERPOLATE PEAKS 
+    std::vector<Sihat::Peak> peaks;
+    peaks.reserve(Nout); 
+    for (int k = 1; k < Nout - 1; ++k) {
+        // Find local maxima (basic peak-picking)
+        if (mags[k] > mags[k - 1] && mags[k] > mags[k + 1])
+        {
+            double delta = Sihat::interp_delta(k, mags);
+            double f = (k + delta) * u.sampleRate / double(nfft);
+            double amp = Sihat::mag_to_amp(mags[k], nfft);
+            
+            // Assuming your struct is { freq, mag, amp } based on previous usage
+            peaks.push_back({ f, mags[k], amp });
+        }
+    }
+
+    // Sort all found peaks by magnitude (loudest first)
+    std::sort(peaks.begin(), peaks.end(), [](const Sihat::Peak& a, const Sihat::Peak& b) {
+        return a.mag > b.mag; 
+    });
+
+    std::vector<Sihat::Peak> merged;
+    merged.reserve(settings.maxOvertones);
+
+    std::vector<bool> peak_processed(peaks.size(), false);
+    
+    // Set a stricter crest factor for noisy signals
+    const float minCrestFactor = 4.0f; 
+
+    for (int i = 0; i < peaks.size() && merged.size() < settings.maxOvertones; ++i) {
+        if (peak_processed[i]) {
+            continue; // This peak was already added to a cluster
+        }
+
+        // This is the new "seed" peak
+        const auto& seedPeak = peaks[i];
+        float tolInHz = Sihat::cents_to_hz(seedPeak.freq, settings.tolInCents);
+        peak_processed[i] = true;
+        
+        // Calculate crest factor against the GLOBAL average floor using Magnitudes
+        float crestFactor = seedPeak.mag / averageFloor;
+
+        // Apply filters to the seed peak
+        if (seedPeak.freq < 500.0 ||
+            seedPeak.freq > 20000.f ||
+            crestFactor < minCrestFactor) {
+            continue; // This peak is invalid (noise), skip it
+        }
+
+        bool withinTolerance = false;
+        
+        // Fixed: Changed loop index to 'j' to prevent shadowing the outer 'i'
+        for (int j = 0; j < merged.size(); j++)
+        {
+            if (Sihat::withinTolerance(merged[j].freq, seedPeak.freq, tolInHz))
+            {
+                withinTolerance = true;
+                break; // Small optimization: stop checking once we find a match
+            }
+        }
+
+        if (!withinTolerance) {
+            merged.push_back(seedPeak);
+        }
+    }
+
+    // sort by frequency for a clean output
+    std::sort(merged.begin(), merged.end(), [](const Sihat::Peak& a, const Sihat::Peak& b) {
+        return a.freq < b.freq;
+    });
+
+    // Clean up FFTW resources
+    fftwf_free(o_input);
+    fftwf_free(o_output);
+    fftwf_destroy_plan(o_plan);
+    
+    return merged;
+}
+
+std::vector<Sihat::OvertoneTrajectory> TransientAnalysis::trackOvertonesInTime(
+    const std::vector<float>& audio, 
+    const Sihat::SampleRange& range, 
+    const std::vector<Sihat::Peak>& targetPeaks, 
+    int numFrames)
+{
+    std::vector<Sihat::OvertoneTrajectory> trajectories(targetPeaks.size());
+    for (size_t i = 0; i < targetPeaks.size(); ++i) {
+        trajectories[i].targetOvertone = targetPeaks[i];
+        trajectories[i].envelope.reserve(numFrames); // Assuming 1 point per frame for cleaner structure
+    }
+
+    int nfft = Sihat::findNextPowerOfTwo(range.endSample - range.initSample);
+    const int Nout = nfft / 2 + 1;
+
+    float* input = (float*)fftwf_malloc(sizeof(float) * nfft);
+    fftwf_complex* output = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex) * Nout);
+    fftwf_plan plan = fftwf_plan_dft_r2c_1d(nfft, input, output, FFTW_MEASURE);
+
+    std::vector<double> mags(Nout);
+
+    // Calculate our frame step (hop size)
+    int totalRangeSamples = range.endSample - range.initSample;
+    int frameStep = totalRangeSamples / numFrames;
+    if (frameStep < 1) frameStep = 1;
+
+    // We start the window so the *center* of the first frame is at initSample
+    int startOffset = range.initSample - (nfft / 2);
+
+    const float trackingMinCrest = 1.5f; // Lower threshold to track the tail effectively
+
+    for (int i = 0; i < numFrames; ++i) 
+    {
+        int winStart = startOffset + (i * frameStep);
+        int winEnd = winStart + nfft;
+        int frameSampleCenter = winStart + (nfft / 2); // Exact sample time for this frame
+
+        // 1. Fill buffer with zero-padding logic
+        std::fill_n(input, nfft, 0.0f);
+        int copyStart = std::max(winStart, 0); // Assuming audio starts at 0
+        int copyEnd = std::min(winEnd, (int)audio.size());
+
+        if (copyStart < copyEnd) {
+            int dstOffset = copyStart - winStart;
+            std::copy(audio.begin() + copyStart, audio.begin() + copyEnd, input + dstOffset);
+        }
+
+        // Apply Hann Window using your exact logic
+        for (int w = 0; w < nfft; ++w) {
+            float winVal = 0.5f * (1.0f - std::cos(Sihat::TWO_PI * w / (nfft - 1)));
+            input[w] *= winVal;
+        }
+
+        fftwf_execute(plan);
+
+        // 2. Calculate Magnitudes and Noise Floor
+        for (int k = 0; k < Nout; ++k) {
+            double re = output[k][0];
+            double im = output[k][1];
+            mags[k] = std::sqrt(re * re + im * im);
+        }
+
+        double totalMagSum = std::accumulate(mags.begin(), mags.end(), 0.0);
+        double averageFloor = totalMagSum / Nout;
+        if (averageFloor < 1e-12) averageFloor = 1e-12; // Prevent div by zero
+
+        // 3. Analyze each target frequency
+        for (size_t h = 0; h < targetPeaks.size(); ++h) 
+        {
+            float targetFreq = targetPeaks[h].freq;
+            if (targetFreq <= 20.0f) continue; // Skip sub-audio
+
+            // Determine search bounds based on tolerance
+            float hzTolerance = Sihat::cents_to_hz(targetFreq, settings.o_tolInCents);
+            int k_center = std::round(targetFreq * nfft / u.sampleRate);
+            int k_spread = std::ceil(hzTolerance * nfft / u.sampleRate);
+            
+            // Constrain search bounds
+            int k_min = std::max(1, k_center - k_spread);
+            int k_max = std::min(Nout - 2, k_center + k_spread);
+
+            int bestBin = -1;
+            double maxMag = -1.0;
+
+            // Search for the true peak within the tight tolerance window
+            for (int k = k_min; k <= k_max; ++k) {
+                if (mags[k] > mags[k - 1] && mags[k] > mags[k + 1]) {
+                    if (mags[k] > maxMag) {
+                        maxMag = mags[k];
+                        bestBin = k;
+                    }
+                }
+            }
+
+            Sihat::TrackedPoint point;
+            point.sampleIndex = frameSampleCenter;
+
+            // If we found a valid peak within tolerance
+            if (bestBin != -1) {
+                // Use your custom parabolic interpolation logic
+                double m1 = mags[bestBin - 1], m0 = mags[bestBin], p1 = mags[bestBin + 1];
+                double denom = (m1 - 2 * m0 + p1);
+                double delta = 0.0;
+                
+                if (std::fabs(denom) >= 1e-12) {
+                    delta = 0.5 * (m1 - p1) / denom;
+                }
+
+                point.freq = (bestBin + delta) * u.sampleRate / double(nfft);
+                point.crestFactor = maxMag / averageFloor;
+                
+                // Determine if the peak is prominent enough to be considered "active"
+                point.active = (point.crestFactor >= trackingMinCrest);
+            } 
+            else 
+            {
+                // Fallback: If no local max is found, write the target freq and 0 crest factor.
+                // This prevents the frequency values from flying "all over the place" 
+                // when the harmonic is missing.
+                point.freq = targetFreq;
+                point.crestFactor = 0.0;
+                point.active = false;
+            }
+
+            trajectories[h].envelope.push_back(point);
+        }
+    }
+
+    fftwf_free(input);
+    fftwf_free(output);
+    fftwf_destroy_plan(plan);
+
+    return trajectories;
+}
