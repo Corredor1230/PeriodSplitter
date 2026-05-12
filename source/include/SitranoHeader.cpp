@@ -416,7 +416,8 @@ void Sihat::saveHarmonicDataSihat(
     const HarmonicResults& hResults,
     const Sihat::STransientResults& stResults,
     const Sihat::AnalysisConfig& config, // <--- NEW ARGUMENT
-    float fundamentalFreq,
+    const float fundamentalFreq,
+    const uint32_t sr,
     const std::string& outputDirectory,
     const std::string& baseFilename,
     const std::string& extension
@@ -424,6 +425,7 @@ void Sihat::saveHarmonicDataSihat(
 
     const std::vector<uint32_t>& hInd = hResults.finalSamples;
     const std::vector<std::vector<float>>& hAmps = hResults.amps;
+    const std::vector<std::vector<float>>& hPhases = hResults.phases;
     const std::vector<std::vector<float>>& hFreqs = hResults.freqs;
     const float& hRms = hResults.rms;
     const float& tRms = stResults.rms;
@@ -440,9 +442,11 @@ void Sihat::saveHarmonicDataSihat(
             throw std::runtime_error("Failed to open file for writing: " + fullPath.string());
         }
 
-        // Header: Fundamental Frequency
+        // Header: Sample rate, fundamental frequency and export structure
         {
+            f.write(reinterpret_cast<const char*>(&sr), sizeof(uint32_t));
             f.write(reinterpret_cast<const char*>(&fundamentalFreq), sizeof(float));
+            //This is where the export structure would go when I'm finished working it out, maybe a std::vector<bool> but I'm not sure yet.
         }
 
         // Block 1: Write indices
@@ -467,7 +471,20 @@ void Sihat::saveHarmonicDataSihat(
             }
         }
 
-        // Block 3: Write frequency data
+        // Block 2b: Write phase data
+        {
+            uint32_t numPhases = static_cast<uint32_t>(hPhases.size());
+            f.write(reinterpret_cast<const char*>(&numPhases), sizeof(uint32_t));
+            for (const auto& phaseList : hPhases) {
+                uint32_t len = static_cast<uint32_t>(phaseList.size());
+                f.write(reinterpret_cast<const char*>(&len), sizeof(uint32_t));
+                if (len > 0) {
+                    f.write(reinterpret_cast<const char*>(phaseList.data()), len * sizeof(float));
+                }
+            }
+        }
+
+        // Block 3: Write frequency data (ChangePoints)
         {
             uint32_t numHarmonics = static_cast<uint32_t>(hFreqs.size());
             f.write(reinterpret_cast<const char*>(&numHarmonics), sizeof(uint32_t));
@@ -491,12 +508,19 @@ void Sihat::saveHarmonicDataSihat(
                 f.write(reinterpret_cast<const char*>(&len), sizeof(uint32_t));
 
                 if (len > 0) {
-                    f.write(reinterpret_cast<const char*>(cps.data()), len * sizeof(ChangePoint));
+                    //f.write(reinterpret_cast<const char*>(cps.data()), len * sizeof(ChangePoint));
+
+                    for (const auto& point: cps) {
+                        f.write(reinterpret_cast<const char*>(&point.index), sizeof(uint32_t));
+                        f.write(reinterpret_cast<const char*>(&point.value), sizeof(float));
+                        f.write(reinterpret_cast<const char*>(&point.ratio), sizeof(float));
+                    }
+
                 }
             }
         }
 
-        // Block 4: Write Transient Data (NEW)
+        // Block 4: Write Transient Data
         {
             // 1. Write the Range
             uint32_t tStart = static_cast<uint32_t>(stResults.range.initSample);
@@ -505,18 +529,18 @@ void Sihat::saveHarmonicDataSihat(
             f.write(reinterpret_cast<const char*>(&tStart), sizeof(uint32_t));
             f.write(reinterpret_cast<const char*>(&tEnd), sizeof(uint32_t));
 
-            // These are some important parameters, nothing more
+            // Important parameters (Note: envHopSize is saved right here)
             f.write(reinterpret_cast<const char*>(&stResults.envHopSize), sizeof(uint32_t));
             f.write(reinterpret_cast<const char*>(&stResults.specHopSize), sizeof(uint32_t));
             f.write(reinterpret_cast<const char*>(&stResults.specWindowSize), sizeof(uint32_t));
             f.write(reinterpret_cast<const char*>(&stResults.specNumBins), sizeof(uint32_t));
 
-            // 2. Write scalar metrics (use fixed width int32_t for riseTime)
+            // 2. Write scalar metrics
             int32_t riseTime = static_cast<int32_t>(stResults.riseTime);
             f.write(reinterpret_cast<const char*>(&riseTime), sizeof(int32_t));
             f.write(reinterpret_cast<const char*>(&stResults.peakAmp), sizeof(float));
 
-            // Helper lambda to safely write [Size: uint32_t] followed by [Data: float[]]
+            // Helper lambda for standard float vectors
             auto writeFloatVector = [&f](const std::vector<float>& vec) {
                 uint32_t size = static_cast<uint32_t>(vec.size());
                 f.write(reinterpret_cast<const char*>(&size), sizeof(uint32_t));
@@ -526,9 +550,31 @@ void Sihat::saveHarmonicDataSihat(
             };
 
             // 3. Write 1D analysis envelopes
-            writeFloatVector(stResults.ampEnvelope);
+            
+            // --- OPTIMIZATION START ---
+            // Extract and write only floats for ampEnvelope, saving memory space
+            uint32_t envSize = static_cast<uint32_t>(stResults.ampEnvelope.size());
+            f.write(reinterpret_cast<const char*>(&envSize), sizeof(uint32_t));
+            
+            if (envSize > 0) {
+                // Write the initial starting index for perfect reconstruction alongside envHopSize
+                int32_t firstIndex = stResults.ampEnvelope[0].index;
+                f.write(reinterpret_cast<const char*>(&firstIndex), sizeof(int32_t));
+
+                // Strip out just the float values
+                std::vector<float> envValues(envSize);
+                for (uint32_t i = 0; i < envSize; ++i) {
+                    envValues[i] = stResults.ampEnvelope[i].value;
+                }
+                
+                // Write contiguous floats in one I/O operation
+                f.write(reinterpret_cast<const char*>(envValues.data()), envSize * sizeof(float));
+            }
+            // --- OPTIMIZATION END ---
+
             writeFloatVector(stResults.centroid);
             writeFloatVector(stResults.flatness);
+            writeFloatVector(stResults.mainOvertones); 
 
             // 4. Write the Band Partials
             uint32_t numPartials = static_cast<uint32_t>(config.stSettings.numBands);
@@ -536,9 +582,33 @@ void Sihat::saveHarmonicDataSihat(
             
             // 5. Write the flattened band envelopes
             writeFloatVector(stResults.bandEnvelopes);
+
+            // 6. Write Trajectories
+            uint32_t numTraj = static_cast<uint32_t>(stResults.trajectories.size());
+            f.write(reinterpret_cast<const char*>(&numTraj), sizeof(uint32_t));
+            
+            for (const auto& traj : stResults.trajectories) {
+                f.write(reinterpret_cast<const char*>(&traj.targetOvertone.freq), sizeof(double));
+                f.write(reinterpret_cast<const char*>(&traj.targetOvertone.mag), sizeof(double));
+                f.write(reinterpret_cast<const char*>(&traj.targetOvertone.amp), sizeof(double));
+
+                f.write(reinterpret_cast<const char*>(&traj.floor), sizeof(float));
+                
+                uint32_t envLen = static_cast<uint32_t>(traj.envelope.size());
+                f.write(reinterpret_cast<const char*>(&envLen), sizeof(uint32_t));
+                if (envLen > 0) {
+                    //f.write(reinterpret_cast<const char*>(traj.envelope.data()), envLen * sizeof(Sihat::TrackedPoint));
+
+                    for (const auto& point : traj.envelope) {
+                        f.write(reinterpret_cast<const char*>(&point.sampleIndex), sizeof(int32_t));
+                        f.write(reinterpret_cast<const char*>(&point.freq), sizeof(float));
+                        f.write(reinterpret_cast<const char*>(&point.crestFactor), sizeof(float));
+                    }
+                }
+            }
         }
 
-        //Write the RMS values for each section
+        // Block 5: Write the RMS values for each section
         {
             f.write(reinterpret_cast<const char*>(&hRms), sizeof(float));
             f.write(reinterpret_cast<const char*>(&tRms), sizeof(float));

@@ -185,6 +185,7 @@ namespace SihatFile {
 		Sihat::normalizeByMaxAbs(delaced);
 
 		Sihat::AnalysisUnit unit{ delaced, filename, (float)sfInfo.samplerate };
+		uint32_t sr = static_cast<uint32_t>(sfInfo.samplerate);
 		Analyzer ana(config);
 		Sihat::Results r = ana.analyze(unit, settings);
 
@@ -200,7 +201,7 @@ namespace SihatFile {
 		std::string ext = "." + info.extension;
 
 		if (settings.sourceSeparation) {
-			Sihat::saveHarmonicDataSihat(r.hResults, r.stResults, config, r.pitch, dir, fName, ext);
+			Sihat::saveHarmonicDataSihat(r.hResults, r.stResults, config, r.pitch, sr, dir, fName, ext);
 		}
 		else
 		{
