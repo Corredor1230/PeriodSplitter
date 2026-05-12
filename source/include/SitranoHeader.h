@@ -107,8 +107,11 @@ namespace Sihat
         int startSample = 0;
         int numBands = 16;
         int maxOvertones = 32;
+        int overFrames = 16;
         float outThreshold = 0.05f;
         float inThreshold = 0.1f;
+        float tolInCents = 50.0;
+        float o_tolInCents = 10.0;
     };
 
     /** 
@@ -121,8 +124,8 @@ namespace Sihat
     * @param toleranceValue: The value in cents around each top harmonic where buckets will be considered the same overtone.
     */
     struct HarmonicSettings {
-        bool applyHanning;
-        WindowStyle style;
+        bool applyHanning = true;
+        WindowStyle style = WindowStyle::audioChunk;
         float toleranceValue = 100.0;
         bool useTolInHz = true;
         float tolInHz = 6.0;
@@ -163,6 +166,12 @@ namespace Sihat
         //Period detection
         float periodStartOffsetMs = 50.0f;
         float correlationThreshold = 0.95f;
+    };
+
+    struct ExportSettings {
+        bool exportHarmonicPhase = false;
+        bool exportSpectralCentroid = false;
+        bool exportSpectralFlatness = true;
     };
 
     struct NoiseSettings {
@@ -253,6 +262,19 @@ namespace Sihat
         float pha;
     };
 
+    struct TrackedPoint {
+        int32_t sampleIndex;      // Center sample of the FFT window for this frame
+        float freq;          // The exact interpolated frequency at this frame
+        float crestFactor;   // Prominence vs noise floor (can be swapped for absolute amp/mag if preferred later)
+        bool active;          // True if a distinct peak was found within tolerance
+    };
+
+    struct OvertoneTrajectory {
+        Sihat::Peak targetOvertone; 
+        std::vector<TrackedPoint> envelope;
+        float floor;
+    };
+
     struct TransientResults {
         SampleRange range;
         std::vector<VariableRatePartial> scalogram;
@@ -263,11 +285,12 @@ namespace Sihat
         SampleRange range;
         int riseTime;
         float peakAmp;
-        std::vector<float> ampEnvelope;
+        std::vector<Sample> ampEnvelope;
         std::vector<float> centroid;
         std::vector<float> flatness;
         std::vector<float> bandEnvelopes;
         std::vector<float> mainOvertones;
+        std::vector<OvertoneTrajectory> trajectories;
         float rms;
         uint32_t envHopSize;
         uint32_t specHopSize;
@@ -389,6 +412,23 @@ namespace Sihat
         std::cerr << "Error: Transient size too big" << '\n';
         return 0;
     }
+    inline int findPrevPowerOfTwo(int size)
+    {
+        if (size < 0)
+        {
+            std::cerr << "Error: non-positive size" << '\n';
+        }
+        for (int i = 1; i < 32; i++)
+        {
+            int prevPow = static_cast<int>(std::pow(2.0, static_cast<float>(i) - 1));
+            int currPow = static_cast<int>(std::pow(2.0, static_cast<float>(i)));
+
+            if (size > prevPow && size < currPow) return currPow;
+        }
+
+        std::cerr << "Error: size too big" << '\n';
+        return 0;
+    }
     inline float getRmsValue(const std::vector<float>& input, int start, int end)
     {
         if (start >= end || end > input.size() || input.empty()) {
@@ -435,7 +475,8 @@ namespace Sihat
         const HarmonicResults& hResults,
         const STransientResults& stResults,
         const AnalysisConfig& config,
-        float f0,
+        const float f0,
+        const uint32_t sr,
         const std::string& outputDirectory,
         const std::string& baseFilename,
         const std::string& extension
