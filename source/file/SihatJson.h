@@ -45,7 +45,10 @@ namespace SihatJson {
             {"st_outThreshold", st.outThreshold},
             {"st_numBands", st.numBands},
             {"st_maxOvertones", st.maxOvertones},
-            {"st_startSample", st.startSample}
+            {"st_startSample", st.startSample},
+            {"st_overFrames", st.overFrames},
+            {"st_tolInCents", st.tolInCents},
+            {"st_o_tolInCents", st.o_tolInCents}
         };
     }
 
@@ -226,6 +229,9 @@ namespace SihatJson {
         j.at("st_numBands").get_to(st.numBands);
         j.at("st_startSample").get_to(st.startSample);
         j.at("st_maxOvertones").get_to(st.maxOvertones);
+        j.at("st_overFrames").get_to(st.overFrames);
+        j.at("st_tolInCents").get_to(st.tolInCents);
+        j.at("st_o_tolInCents").get_to(st.o_tolInCents);
     }
 
     // --- NoiseSettings ---

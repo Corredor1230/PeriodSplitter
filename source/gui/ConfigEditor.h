@@ -179,6 +179,9 @@ public:
                 ImGui::InputInt("Num Bands", &config.stSettings.numBands);
                 ImGui::InputInt("Start Sample", &config.stSettings.startSample);
                 ImGui::InputInt("Max Overtones", &config.stSettings.maxOvertones);
+                ImGui::InputInt("Overtone Frames", &config.stSettings.overFrames);
+                ImGui::InputFloat("Tolerance in Cents", &config.stSettings.tolInCents);
+                ImGui::InputFloat("Overtone tolerance", &config.stSettings.o_tolInCents);
                 ImGui::TreePop();
             }
 
