@@ -188,7 +188,7 @@ void SihatEditor::Render(EditorViewModel& viewModel)
             }
             else if (viewModel.currentMode == AppMode::Resynthesis)
             {
-                
+                ConfigEditor::ResynthRender(viewModel.rConfig);
             }
         }
 
