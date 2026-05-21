@@ -222,4 +222,32 @@ public:
         // End the window
         ImGui::End();
     }
+
+    static void ResynthRender(ResynthConfig& config, bool* p_open = nullptr){
+        if (!ImGui::Begin("Resynthesis Configuration Editor", p_open))
+        {
+            // Window is collapsed, so we stop drawing anything inside it.
+            ImGui::End();
+            return;
+        }
+
+        if (ImGui::CollapsingHeader("Resynthesis Configuration Editor", ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            ImGui::InputText("Output directory", &config.r_outDir);
+            if (ImGui::Button("Choose directory")){
+                config.r_outDir = SihatFile::openFolderDialog();
+            }
+            ImGui::InputText("File Name", &config.filename);
+            ImGui::InputText("Extension", &config.extension);
+            ImGui::Checkbox("Resynth Harmonics", &config.resynthHarmonics);
+            ImGui::Checkbox("Resynth Transient", &config.resynthTransient);
+            ImGui::Checkbox("Separated Outputs", &config.separateOuts);
+            ImGui::Checkbox("Change output level", &config.changeOutLevel);
+            ImGui::BeginDisabled(!config.changeOutLevel);
+            ImGui::SliderFloat("Level (dB)", &config.outLevelDB, -60.0, 6.0, "%.1f dB", ImGuiSliderFlags_Logarithmic);
+            ImGui::EndDisabled();
+        }
+        ImGui::End();
+
+    }
 };
