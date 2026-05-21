@@ -263,22 +263,36 @@ namespace Sihat
     };
 
     struct TrackedPoint {
-        int32_t sampleIndex;      // Center sample of the FFT window for this frame
         float freq;          // The exact interpolated frequency at this frame
         float crestFactor;   // Prominence vs noise floor (can be swapped for absolute amp/mag if preferred later)
         bool active;          // True if a distinct peak was found within tolerance
     };
 
-    struct OvertoneTrajectory {
+    //The information for a single transient overtone. It contains the target and a vector with frames.
+    struct TransientOvertone {
         Sihat::Peak targetOvertone; 
         std::vector<TrackedPoint> envelope;
-        float floor;
     };
 
+    //Outdated, eventually will be fully deprecated.
     struct TransientResults {
         SampleRange range;
         std::vector<VariableRatePartial> scalogram;
         float rms = 0.0;
+    };
+
+    /**
+     * @brief This structure contains the more resonant aspects of a transient. Therefore, it is modeled similarly to the Harmonic Analysis. 
+     * @param overtones: A vector of overtones. Each of them will contain a target overtone as well as an envelope.
+     * @param floor: A vector of floor values. These are simple amplitude averages of each frame's spectrum. Useful to calculate SNR values for overtones or other peaks.
+    */
+    struct TransientHarmonics{
+        uint32_t hopSize = 16;
+        uint32_t startSample = 0;
+        //Each overtone contains one target and one envelope.
+        std::vector<TransientOvertone> overtones;
+        //Should have one floor per frame. So the size should be equal to overtones[n].envelope.size()
+        std::vector<float> floor;
     };
 
     struct STransientResults{
@@ -289,8 +303,7 @@ namespace Sihat
         std::vector<float> centroid;
         std::vector<float> flatness;
         std::vector<float> bandEnvelopes;
-        std::vector<float> mainOvertones;
-        std::vector<OvertoneTrajectory> trajectories;
+        TransientHarmonics tHarmonics;
         float rms;
         uint32_t envHopSize;
         uint32_t specHopSize;
@@ -371,6 +384,10 @@ namespace Sihat
         float midi = 12.0 * std::log2(freq / 440.0) + 69.0;
         return midi;
     }
+    inline float minmax(float low, float high, float in)
+    {
+        return std::max<float>(std::min<float>(high, in), low);
+    }
     inline double cents_to_hz(double f_center, double cents)
     {
         double r = std::pow<double>(2.0, cents / 1200.0);
@@ -412,6 +429,24 @@ namespace Sihat
         std::cerr << "Error: Transient size too big" << '\n';
         return 0;
     }
+    inline float normLogistic(float in, float exp)
+    {
+        float lin = std::clamp(in, 0.0f, 1.0f);
+    
+        // 2. Exact boundary handling to prevent NaN and 0/0 errors
+        if (lin <= 0.0f) return 0.0f;
+        if (lin >= 1.0f) return 1.0f;
+        
+        // 3. Handle exponent edge cases (fallback to linear or step)
+        if (exp <= 0.0f) return 0.5f; // Flat mid-point if exponent is invalid/zero
+        if (exp == 1.0f) return lin;  // Perfect linear shortcut
+        
+        // 4. Core calculation (now safely away from 0.0 and 1.0)
+        float num = std::pow(lin, exp);
+        float den = num + std::pow(1.0f - lin, exp);
+        
+        return num / den;
+    }
     inline int findPrevPowerOfTwo(int size)
     {
         if (size < 0)
@@ -448,7 +483,7 @@ namespace Sihat
 
     //Functions with a definition in .cpp file
     BinFreq findPeakWithinTolerance(float targetFreq, float tolerance, int n, float sr, void* out, bool isTolInHz);
-    FreqUnit findPeak(BinFreq target, void* fftwfOut, int nfft, float fs, int binRange);
+    FreqUnit findPeak(BinFreq target, void* fftwfOut, int nfft, float fs);
     void filterVector(std::vector<float>& input, int filterSize, bool zeroPad);
     void normalizeByMaxAbs(std::vector<float>& vec);
     std::string getRawFilename(const std::string& filename);
@@ -478,6 +513,7 @@ namespace Sihat
         const float f0,
         const uint32_t sr,
         const std::string& outputDirectory,
+        const std::string& prefix,
         const std::string& baseFilename,
         const std::string& extension
     );
