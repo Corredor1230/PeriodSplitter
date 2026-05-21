@@ -5,7 +5,9 @@
 #include<commdlg.h>
 #include<filesystem>
 #include<shlobj.h>
+#include<iostream>
 #include"include/SitranoHeader.h"
+#include"include/ResynthHeader.h"
 #include"analysis/SitranoAnalysis.h"
 
 namespace fs = std::filesystem;
@@ -72,6 +74,242 @@ namespace SihatFile {
 		}
 
 		return "";
+	}
+
+	inline std::string openSihatDialog() {
+		OPENFILENAMEA ofn;
+		char szFile[260];
+		ZeroMemory(&ofn, sizeof(ofn));
+		ofn.lStructSize = sizeof(ofn);
+		ofn.hwndOwner = nullptr;
+		ofn.lpstrFile = szFile;
+		ofn.lpstrFile[0] = '\0';
+		ofn.nMaxFile = sizeof(szFile);
+		ofn.lpstrFilter = "sihat Files\0*sihat\0All Files\0*.*\0";
+		ofn.nFilterIndex = 1;
+		ofn.lpstrFileTitle = nullptr;
+		ofn.nMaxFileTitle = 0;
+		ofn.lpstrInitialDir = nullptr;
+		ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+		if (GetOpenFileNameA(&ofn) == TRUE) {
+			return std::string(ofn.lpstrFile);
+		}
+
+		return "";
+	}
+
+	/**
+	 * Loads .sihat files and parses them into Sihat structs
+	 */
+	inline Synth::Sihat loadSihatFile(const std::string& fullpath)
+	{
+		std::ifstream inFile(fullpath, std::ios::binary);
+
+		// 2. Always check if the file opened successfully
+		if (!inFile.is_open()) {
+			std::cerr << "Failed to open file for reading: " << fullpath << "\n";
+			Synth::Sihat temp;
+			return temp;
+		}
+
+		Synth::Sihat data;
+
+		// Header load
+		{
+			inFile.read(reinterpret_cast<char*>(&data.header.sampleRate), sizeof(uint32_t));
+			inFile.read(reinterpret_cast<char*>(&data.header.f0), sizeof(float));
+			uint32_t stringSize = 0;
+			inFile.read(reinterpret_cast<char*>(&stringSize), sizeof(uint32_t));
+			if (stringSize > 0) {
+				// Resize the string to allocate enough memory buffer space
+				data.header.filename.resize(stringSize);
+
+				// Read directly into the allocated memory buffer
+				inFile.read(&data.header.filename[0], stringSize);
+			}
+		}
+
+		//Block 1
+		{
+			inFile.read(reinterpret_cast<char*>(&data.harmonic.numFrames), sizeof(uint32_t));
+			std::vector<uint32_t> tempIndex;
+			tempIndex.resize(data.harmonic.numFrames);
+
+			inFile.read(reinterpret_cast<char*>(tempIndex.data()), data.harmonic.numFrames * sizeof(uint32_t));
+
+			data.harmonic.indices = tempIndex;
+		}
+
+		//Block 2: Amp
+		{
+			uint32_t numHarmonics = 0;
+			inFile.read(reinterpret_cast<char*>(&numHarmonics), sizeof(uint32_t));
+			data.harmonic.amp.resize(numHarmonics);
+			for (int i = 0; i < numHarmonics; i++)
+			{
+				uint32_t numFrames = 0;
+				inFile.read(reinterpret_cast<char*>(&numFrames), sizeof(uint32_t));
+				std::vector<float> tempAmp;
+				tempAmp.resize(numFrames);
+
+				inFile.read(reinterpret_cast<char*>(tempAmp.data()), numFrames * sizeof(float));
+
+				data.harmonic.amp[i] = tempAmp;
+			}
+		}
+
+		// Block 3: Phase
+		{
+			uint32_t numHarmonics = 0;
+			inFile.read(reinterpret_cast<char*>(&numHarmonics), sizeof(uint32_t));
+			data.harmonic.pha.resize(numHarmonics);
+			for (int i = 0; i < numHarmonics; i++)
+			{
+				uint32_t numFrames = 0;
+				inFile.read(reinterpret_cast<char*>(&numFrames), sizeof(uint32_t));
+				std::vector<float> tempPha;
+				tempPha.resize(numFrames);
+
+				inFile.read(reinterpret_cast<char*>(tempPha.data()), numFrames * sizeof(float));
+
+				data.harmonic.pha[i] = tempPha;
+			}
+		}
+
+		// Block 4: Frequency
+		{
+			uint32_t numHarmonics = 0;
+			inFile.read(reinterpret_cast<char*>(&numHarmonics), sizeof(uint32_t));
+			data.harmonic.freq.resize(numHarmonics);
+			for (int i = 0; i < numHarmonics; i++)
+			{
+				uint32_t numFrames = 0;
+				inFile.read(reinterpret_cast<char*>(&numFrames), sizeof(uint32_t));
+				std::vector<float> tempFreq;
+				tempFreq.resize(numFrames);
+
+				inFile.read(reinterpret_cast<char*>(tempFreq.data()), numFrames * sizeof(float));
+
+				data.harmonic.freq[i] = tempFreq;
+			}
+		}
+
+		auto readFloatVector = [&inFile](std::vector<float>& vec) {
+            uint32_t size = 0;
+            inFile.read(reinterpret_cast<char*>(&size), sizeof(uint32_t));
+            if (size > 0) {
+                vec.resize(size);
+                inFile.read(reinterpret_cast<char*>(vec.data()), size * sizeof(float));
+            }
+        };
+
+        // Block 5
+        {
+            // 1. Read the Range
+            inFile.read(reinterpret_cast<char*>(&data.transient.meta.tStart), sizeof(uint32_t));
+            inFile.read(reinterpret_cast<char*>(&data.transient.meta.tEnd), sizeof(uint32_t));
+
+            // Important parameters
+            inFile.read(reinterpret_cast<char*>(&data.transient.meta.envHopSize), sizeof(uint32_t));
+            inFile.read(reinterpret_cast<char*>(&data.transient.meta.specHopSize), sizeof(uint32_t));
+            inFile.read(reinterpret_cast<char*>(&data.transient.meta.specWindowSize), sizeof(uint32_t));
+            inFile.read(reinterpret_cast<char*>(&data.transient.meta.specNumBins), sizeof(uint32_t));
+
+            // 2. Read scalar metrics
+            inFile.read(reinterpret_cast<char*>(&data.transient.riseTime), sizeof(int32_t));
+            inFile.read(reinterpret_cast<char*>(&data.transient.peakAmp), sizeof(float));
+
+            // 3. Read 1D analysis envelopes
+            uint32_t envSize = 0;
+            inFile.read(reinterpret_cast<char*>(&envSize), sizeof(uint32_t));
+			data.transient.envelope.env.resize(envSize);
+            
+            if (envSize > 0) {
+                inFile.read(reinterpret_cast<char*>(&data.transient.envelope.firstIndex), sizeof(uint32_t));
+                inFile.read(reinterpret_cast<char*>(data.transient.envelope.env.data()), envSize * sizeof(float));
+            }
+
+            readFloatVector(data.transient.centroid);
+            readFloatVector(data.transient.flatness);
+
+            // 4. Read the Band Partials
+            inFile.read(reinterpret_cast<char*>(&data.transient.meta.numBands), sizeof(uint32_t));
+
+            // 5. Read the flattened band envelopes
+            readFloatVector(data.transient.bands);
+
+            // Metadata for the harmonic section
+            inFile.read(reinterpret_cast<char*>(&data.transient.meta.harmHopSize), sizeof(uint32_t));
+            inFile.read(reinterpret_cast<char*>(&data.transient.meta.harmStartSample), sizeof(uint32_t));
+
+            uint32_t numOvertones = 0;
+            inFile.read(reinterpret_cast<char*>(&numOvertones), sizeof(uint32_t));
+            data.transient.overtones.resize(numOvertones);
+
+            // Harmonic section proper
+            for (auto& over : data.transient.overtones) {
+                // Assuming SpectralBin contains double freq, double mag, double amp
+                inFile.read(reinterpret_cast<char*>(&over.target.freq), sizeof(double));
+                inFile.read(reinterpret_cast<char*>(&over.target.mag), sizeof(double));
+                inFile.read(reinterpret_cast<char*>(&over.target.amp), sizeof(double));
+
+                uint32_t frameNum = 0;
+                inFile.read(reinterpret_cast<char*>(&frameNum), sizeof(uint32_t));
+                over.envelope.resize(frameNum);
+
+                // Assuming EnvelopePoint contains float freq, float crestFactor
+                for (auto& point : over.envelope) {
+                    inFile.read(reinterpret_cast<char*>(&point.freq), sizeof(float));
+                    inFile.read(reinterpret_cast<char*>(&point.crestFactor), sizeof(float));
+                }
+            }
+
+            // Floor values
+            readFloatVector(data.transient.floors);
+        }
+
+        // Block 5: Read the RMS values for each section
+        {
+            inFile.read(reinterpret_cast<char*>(&data.harmonic.rms), sizeof(float));
+            inFile.read(reinterpret_cast<char*>(&data.transient.rms), sizeof(float));
+        }
+
+        return data; // Make sure to return your loaded struct!
+	}
+
+	inline void writeAudioFile(const std::vector<float>& audioData, const std::string& filename, const std::string& folderPath, uint32_t sampleRate = 96000) 
+	{
+		if (audioData.empty()) {
+			std::cerr << "Error: Audio data is empty. Nothing to write.\n";
+			return;
+		}
+
+		// Safely combine folder path and filename (C++17)
+		std::filesystem::path fullPath = std::filesystem::path(folderPath) / filename;
+
+		SF_INFO sfinfo;
+		sfinfo.frames = audioData.size();
+		sfinfo.samplerate = sampleRate;
+		sfinfo.channels = 1; // Mono
+		sfinfo.format = SF_FORMAT_WAV | SF_FORMAT_FLOAT; // 32-bit float WAV
+
+		// Open the file for writing
+		SNDFILE* outfile = sf_open(fullPath.string().c_str(), SFM_WRITE, &sfinfo);
+
+		if (!outfile) {
+			std::cerr << "Error opening file for writing: " << sf_strerror(nullptr) << "\n";
+			return;
+		}
+
+		// Write the float data directly
+		sf_count_t framesWritten = sf_write_float(outfile, audioData.data(), audioData.size());
+
+		if (framesWritten != static_cast<sf_count_t>(audioData.size())) {
+			std::cerr << "Warning: Wrote " << framesWritten << " frames out of " << audioData.size() << "\n";
+		}
+
+		sf_close(outfile);
 	}
 
 	/**
@@ -194,14 +432,14 @@ namespace SihatFile {
 		for (auto& freqs : r.hResults.freqs)
 			if (!freqs.empty()) Sihat::filterVector(freqs, 40, false);
 
-		std::string csvName = Sihat::getRawFilename(filename);
+		std::string fName = Sihat::getRawFilename(filename);
+		std::string prefix = info.prefix;
 		std::string dir = info.outDir.empty() ? "sihat" : info.outDir;
 
-		std::string fName = info.prefix + "_" + csvName;
 		std::string ext = "." + info.extension;
 
 		if (settings.sourceSeparation) {
-			Sihat::saveHarmonicDataSihat(r.hResults, r.stResults, config, r.pitch, sr, dir, fName, ext);
+			Sihat::saveHarmonicDataSihat(r.hResults, r.stResults, config, r.pitch, sr, dir, prefix, fName, ext);
 		}
 		else
 		{
