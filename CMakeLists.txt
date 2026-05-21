@@ -81,6 +81,7 @@ set(INCLUDE_FILES
     ${SOURCE_DIR}/include/ResynthHeader.h
     ${SOURCE_DIR}/include/ResynthHeader.cpp
     ${SOURCE_DIR}/include/json.hpp
+    ${SOURCE_DIR}/include/ResynthConfig.h
 )
 
 set(FILE_FILES
@@ -115,6 +116,8 @@ add_executable(${EXECUTABLE_NAME}
     ${FILE_FILES}
     ${RESYNTH_FILES}
 )
+
+target_compile_definitions(${EXECUTABLE_NAME} PRIVATE NOMINMAX)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
 
