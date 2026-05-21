@@ -6,6 +6,9 @@
 #include "imgui_impl_opengl3.h"
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
+#include "include/ResynthHeader.h"
+#include "include/ResynthConfig.h"
+#include "resynthesis/SihatResynth.h"
 
 #include <iostream>
 #include <stdexcept>
@@ -47,13 +50,19 @@ void runAnalysisThread(
 void runResynthThread(
     std::string path,
     std::atomic<bool>& isProcessingFlag,
-    SihatLogger& logger)
+    SihatLogger& logger,
+    const ResynthConfig& config)
 {
     logger.logTemp("Resynthesis started...");
     logger.log("Processing: " + path);
     
+    Synth::Sihat sihat;   
+
     try
     {
+        sihat = SihatFile::loadSihatFile(path);
+        Resynthesizer synth(sihat);
+        synth.resynthesize(config);
         logger.log("Resynthesis complete.");
     }
     catch(const std::exception& e)
@@ -72,7 +81,7 @@ SihatApplication::SihatApplication(const std::string& jsonPath)
 
     try {
         SihatJson::loadSettings(viewModel.config, viewModel.settings,
-            viewModel.info, viewModel.jsonPath);
+            viewModel.info, viewModel.rConfig, viewModel.jsonPath);
     }
     catch (const std::exception& e) {
         //std::cerr << "Failed to load settings: " << e.what() << ". Using defualts." << std::endl;
@@ -157,7 +166,7 @@ void SihatApplication::onSave()
 {
     viewModel.logger.logTemp("Saving settings...");
     try {
-        SihatJson::saveSettings(viewModel.config, viewModel.settings, viewModel.info, viewModel.jsonPath);
+        SihatJson::saveSettings(viewModel.config, viewModel.settings, viewModel.info, viewModel.rConfig, viewModel.jsonPath);
         viewModel.logger.log("Settings saved to " + viewModel.jsonPath);
         viewModel.logger.logTemp("Ready.");
     }
@@ -199,7 +208,7 @@ void SihatApplication::onRunResynth()
 {
     if (viewModel.isProcessing.load()) return;
 
-    std::string path = SihatFile::openFileDialog();
+    std::string path = SihatFile::openSihatDialog();
     if (path.empty()) {
         viewModel.logger.logTemp("Resynthesis cancelled");
         return;
@@ -214,6 +223,7 @@ void SihatApplication::onRunResynth()
         runResynthThread,
         path,
         std::ref(viewModel.isProcessing),
-        std::ref(viewModel.logger)
+        std::ref(viewModel.logger),
+        viewModel.rConfig
     );
 }
