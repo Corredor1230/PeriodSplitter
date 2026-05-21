@@ -10,126 +10,118 @@ Sihat::BinFreq Sihat::findPeakWithinTolerance(float targetFreq, float tolerance,
 {
     fftwf_complex* out = reinterpret_cast<fftwf_complex*>(generic_out);
 
-    float lowFreq = 0.0;
-    float hiFreq = 0.0;
-
-    if (!isTolInHz)
-    {
-        float midiTolerance = tolerance / 100.0;
-        float lowMidi = freqToMidi(targetFreq) - midiTolerance;
-        lowFreq = midiToFreq(lowMidi);        
-        float hiMidi = freqToMidi(targetFreq) + midiTolerance;
-        hiFreq = midiToFreq(hiMidi);
-    }
-    else
-    {
+    float lowFreq, hiFreq;
+    if (!isTolInHz) {
+        float midiTolerance = tolerance / 100.0f;
+        lowFreq = midiToFreq(freqToMidi(targetFreq) - midiTolerance);        
+        hiFreq  = midiToFreq(freqToMidi(targetFreq) + midiTolerance);
+    } else {
         lowFreq = targetFreq - tolerance;
-        hiFreq = targetFreq + tolerance;
+        hiFreq  = targetFreq + tolerance;
     }
 
-    int lowBin = freqToBin(lowFreq, n, sr);
-    int hiBin = freqToBin(hiFreq, n, sr);
-    int targetBin = freqToBin(targetFreq, n, sr);
+    // Ensure we don't go out of bounds
+    int lowBin = std::max(0, freqToBin(lowFreq, n, sr));
+    int hiBin  = std::min(n / 2, freqToBin(hiFreq, n, sr));
+    
+    // +1 ensures we check the top boundary bin as well
+    int binNumber = (hiBin - lowBin) + 1; 
 
     Sihat::BinFreq outBF{ 0.f, 0.f };
+    float peakAmp = -1.0f;
+    bool foundPeak = false;
 
-    int binNumber = std::abs(hiBin - lowBin);
-
-    float outFreq = 0.f;
-    float peakAmp = 0.f;
-    if (binNumber != 0)
-    {
-        bool noAmp = true;
-        for (int i = 0; i < binNumber; i++)
-        {
+    if (binNumber > 0) {
+        for (int i = -1; i < binNumber + 1; i++) {
             int currentBin = lowBin + i;
+            if (currentBin < 0) currentBin = 0;
+            if (i >= n / 1) break;
+
             float real = out[currentBin][0];
             float imag = out[currentBin][1];
 
             float mag = std::sqrt(imag * imag + real * real);
             float amp = mag_to_amp(mag, n);
 
-            if (amp > peakAmp)
-            {
-                noAmp = false;
+            // Test begins here
+            // std::vector<float> testAmps;
+            // for (int b = 0; b < n / 2; b++)
+            // {
+            //     float testR = out[b][0];
+            //     float testI = out[b][1];
+
+            //     float testmag = std::sqrt(testI * testI + testR * testR);
+            //     float testamp = mag_to_amp(testmag, n);
+
+            //     testAmps.push_back(testamp);
+            // }
+            // Test ends here
+
+            if (amp > peakAmp) {
+                foundPeak = true;
                 outBF.bin = currentBin;
                 outBF.freq = binToFreq(currentBin, n, sr);
                 peakAmp = amp;
             }
         }
-        if (noAmp)
-        {
-            outBF.bin = targetBin;
-            outBF.freq = binToFreq(targetBin, n, sr);
-        }
     }
-    else
-    {
-        outFreq = targetFreq;
-        outBF.freq = outFreq;
-        outBF.bin = freqToBin(outFreq, n, sr);
+    
+    // Fallback if tolerance was too tight to capture a bin
+    if (!foundPeak) {
+        outBF.freq = targetFreq;
+        outBF.bin = freqToBin(targetFreq, n, sr);
     }
 
     return outBF;
 }
 
-Sihat::FreqUnit Sihat::findPeak(Sihat::BinFreq inTarget, void* fftwfOut,
-    int nfft, float fs, int binRange)
+Sihat::FreqUnit Sihat::findPeak(Sihat::BinFreq inTarget, void* fftwfOut, int nfft, float fs)
 {
-    Sihat::BinFreq target = inTarget;
     Sihat::FreqUnit outData;
-
     fftwf_complex* out = reinterpret_cast<fftwf_complex*>(fftwfOut);
-    Sihat::BinFreq outBin;
-    outBin.bin = target.bin;
+    
+    int targetBin = inTarget.bin;
 
-    float log_km1 = logf(hypotf(out[target.bin - 1][0],
-        out[target.bin - 1][1]));
-    float log_k = logf(hypotf(out[target.bin][0],
-        out[target.bin][1]));
-    float log_kp1 = logf(hypotf(out[target.bin + 1][0],
-        out[target.bin + 1][1]));
-
-    int iStart = -std::abs(binRange);
-    int iEnd = std::abs(binRange) + 1;
-
-    if (log_km1 > log_k || log_kp1 > log_k)
-    {
-        std::vector<float> inputvector;
-        for (int i = iStart; i < iEnd; i++)
-        {
-            inputvector.push_back(logf(hypotf(out[target.bin + i][0],
-                out[target.bin + i][1])));
-        }
-        target.bin += Sihat::findPeakIndexVector(inputvector) + iStart;
-
-        log_km1 = logf(hypotf(out[target.bin - 1][0],
-            out[target.bin - 1][1]));
-        log_k = logf(hypotf(out[target.bin][0],
-            out[target.bin][1]));
-        log_kp1 = logf(hypotf(out[target.bin + 1][0],
-            out[target.bin + 1][1]));
+    // Safety check against absolute edges
+    if (targetBin <= 0 || targetBin >= nfft / 2) {
+        outData.bin.bin = targetBin;
+        outData.bin.fBin = (float)targetBin;
+        outData.bin.freq = binToFreq(targetBin, nfft, fs);
+        outData.amp = 0.0f; // Or handle edge case
+        return outData;
     }
 
-    float delta = 0.5f * (log_km1 - log_kp1) / 
-        (log_km1 - 2.0f * log_k + log_kp1);
+    float log_km1 = logf(hypotf(out[targetBin - 1][0], out[targetBin - 1][1]));
+    float log_k   = logf(hypotf(out[targetBin][0],     out[targetBin][1]));
+    float log_kp1 = logf(hypotf(out[targetBin + 1][0], out[targetBin + 1][1]));
 
-    if (delta > 1.0f || delta < -1.0f) {
-        delta = 0.0f; // Reset to no offset
+    float delta = 0.0f;
+
+    // Only interpolate if we are actually at a local maximum!
+    // If not, it means spectral leakage is overpowering this bin. 
+    if (log_k > log_km1 && log_k > log_kp1) {
+        delta = 0.5f * (log_km1 - log_kp1) / (log_km1 - 2.0f * log_k + log_kp1);
+        
+        // Clamp delta just in case of float anomalies
+        if (delta > 1.0f || delta < -1.0f) delta = 0.0f; 
     }
 
-    outBin.fBin = (float)target.bin + delta;
-    outBin.freq = binToFreq(outBin.fBin, nfft, fs);
+    outData.bin.bin = targetBin;
+    outData.bin.fBin = (float)targetBin + delta;
+    outData.bin.freq = binToFreq(outData.bin.fBin, nfft, fs);
 
-    outData.bin = outBin;
-
-    float interpLogMag = log_k - 0.25f * (log_km1 - log_kp1) * delta;
-    outData.mag = expf(interpLogMag);
+    // Calculate magnitude based on whether we interpolated
+    if (delta != 0.0f) {
+        float interpLogMag = log_k - 0.25f * (log_km1 - log_kp1) * delta;
+        outData.mag = expf(interpLogMag);
+    } else {
+        outData.mag = expf(log_k);
+    }
+    
     outData.amp = mag_to_amp(outData.mag, nfft);
 
-    float phaseAtBin = atan2f(out[target.bin][1], out[target.bin][0]);
+    float phaseAtBin = atan2f(out[targetBin][1], out[targetBin][0]);
     float phase = phaseAtBin - (PI * outData.bin.fBin);
-
     outData.pha = fmodf(phase + PI, TWO_PI) - PI;
 
     return outData;
@@ -419,6 +411,7 @@ void Sihat::saveHarmonicDataSihat(
     const float fundamentalFreq,
     const uint32_t sr,
     const std::string& outputDirectory,
+    const std::string& prefix,
     const std::string& baseFilename,
     const std::string& extension
 ) {
@@ -434,7 +427,8 @@ void Sihat::saveHarmonicDataSihat(
         std::filesystem::create_directories(outputDirectory);
 
         std::filesystem::path fullPath(outputDirectory);
-        fullPath /= baseFilename;
+        std::string namewprefix = prefix + baseFilename;
+        fullPath /= namewprefix;
         fullPath.replace_extension(extension);
 
         std::ofstream f(fullPath, std::ios::binary);
@@ -446,6 +440,10 @@ void Sihat::saveHarmonicDataSihat(
         {
             f.write(reinterpret_cast<const char*>(&sr), sizeof(uint32_t));
             f.write(reinterpret_cast<const char*>(&fundamentalFreq), sizeof(float));
+            uint32_t filenameLen = static_cast<uint32_t>(baseFilename.size());
+            f.write(reinterpret_cast<const char*>(&filenameLen), sizeof(uint32_t));
+
+            if (filenameLen > 0) {f.write(baseFilename.data(), filenameLen);}
             //This is where the export structure would go when I'm finished working it out, maybe a std::vector<bool> but I'm not sure yet.
         }
 
@@ -490,32 +488,10 @@ void Sihat::saveHarmonicDataSihat(
             f.write(reinterpret_cast<const char*>(&numHarmonics), sizeof(uint32_t));
 
             for (const auto& freqVec : hFreqs) {
-                std::vector<ChangePoint> cps;
-
-                if (!freqVec.empty() && !hInd.empty()) {
-                    float prev = freqVec.front();
-                    cps.push_back({ hInd.front(), prev, prev / fundamentalFreq });
-
-                    for (size_t i = 1; i < freqVec.size() && i < hInd.size(); ++i) {
-                        if (std::fabs(freqVec[i] - prev) > 1e-6f) { 
-                            cps.push_back({ hInd[i], freqVec[i], freqVec[i] / fundamentalFreq });
-                            prev = freqVec[i];
-                        }
-                    }
-                }
-
-                uint32_t len = static_cast<uint32_t>(cps.size());
+                uint32_t len = static_cast<uint32_t>(freqVec.size());
                 f.write(reinterpret_cast<const char*>(&len), sizeof(uint32_t));
-
-                if (len > 0) {
-                    //f.write(reinterpret_cast<const char*>(cps.data()), len * sizeof(ChangePoint));
-
-                    for (const auto& point: cps) {
-                        f.write(reinterpret_cast<const char*>(&point.index), sizeof(uint32_t));
-                        f.write(reinterpret_cast<const char*>(&point.value), sizeof(float));
-                        f.write(reinterpret_cast<const char*>(&point.ratio), sizeof(float));
-                    }
-
+                if (len > 0){
+                    f.write(reinterpret_cast<const char*>(freqVec.data()), len * sizeof(float));
                 }
             }
         }
@@ -574,7 +550,6 @@ void Sihat::saveHarmonicDataSihat(
 
             writeFloatVector(stResults.centroid);
             writeFloatVector(stResults.flatness);
-            writeFloatVector(stResults.mainOvertones); 
 
             // 4. Write the Band Partials
             uint32_t numPartials = static_cast<uint32_t>(config.stSettings.numBands);
@@ -583,29 +558,59 @@ void Sihat::saveHarmonicDataSihat(
             // 5. Write the flattened band envelopes
             writeFloatVector(stResults.bandEnvelopes);
 
-            // 6. Write Trajectories
-            uint32_t numTraj = static_cast<uint32_t>(stResults.trajectories.size());
-            f.write(reinterpret_cast<const char*>(&numTraj), sizeof(uint32_t));
-            
-            for (const auto& traj : stResults.trajectories) {
-                f.write(reinterpret_cast<const char*>(&traj.targetOvertone.freq), sizeof(double));
-                f.write(reinterpret_cast<const char*>(&traj.targetOvertone.mag), sizeof(double));
-                f.write(reinterpret_cast<const char*>(&traj.targetOvertone.amp), sizeof(double));
+            //This is the metadata for the harmonic section
+            uint32_t harmHopSize = static_cast<uint32_t>(stResults.tHarmonics.hopSize);
+            f.write(reinterpret_cast<const char*>(&harmHopSize), sizeof(uint32_t));
+            uint32_t harmStart = static_cast<uint32_t>(stResults.tHarmonics.startSample);
+            f.write(reinterpret_cast<const char*>(&harmStart), sizeof(uint32_t));
 
-                f.write(reinterpret_cast<const char*>(&traj.floor), sizeof(float));
-                
-                uint32_t envLen = static_cast<uint32_t>(traj.envelope.size());
-                f.write(reinterpret_cast<const char*>(&envLen), sizeof(uint32_t));
-                if (envLen > 0) {
-                    //f.write(reinterpret_cast<const char*>(traj.envelope.data()), envLen * sizeof(Sihat::TrackedPoint));
+            uint32_t numOvertones = static_cast<uint32_t>(stResults.tHarmonics.overtones.size());
+            f.write(reinterpret_cast<const char*>(&numOvertones), sizeof(uint32_t));
 
-                    for (const auto& point : traj.envelope) {
-                        f.write(reinterpret_cast<const char*>(&point.sampleIndex), sizeof(int32_t));
-                        f.write(reinterpret_cast<const char*>(&point.freq), sizeof(float));
-                        f.write(reinterpret_cast<const char*>(&point.crestFactor), sizeof(float));
-                    }
+            //This is the harmonic section proper
+            for (const auto& over : stResults.tHarmonics.overtones) {
+
+                //This is each overtone's target
+                f.write(reinterpret_cast<const char*>(&over.targetOvertone.freq), sizeof(double));
+                f.write(reinterpret_cast<const char*>(&over.targetOvertone.mag), sizeof(double));
+                f.write(reinterpret_cast<const char*>(&over.targetOvertone.amp), sizeof(double));
+
+                uint32_t frameNum = static_cast<uint32_t>(over.envelope.size());
+                f.write(reinterpret_cast<const char*>(&frameNum), sizeof(uint32_t));
+
+                //This is each overtone's envelope
+                for (const auto& point : over.envelope) {
+                    f.write(reinterpret_cast<const char*>(&point.freq), sizeof(float));
+                    f.write(reinterpret_cast<const char*>(&point.crestFactor), sizeof(float));
                 }
             }
+
+            //These are the floor values
+            writeFloatVector(stResults.tHarmonics.floor);
+
+            // 6. Write Trajectories
+            // uint32_t numTraj = static_cast<uint32_t>(stResults.tHarmonics.overtones.size());
+            // f.write(reinterpret_cast<const char*>(&numTraj), sizeof(uint32_t));
+            
+            // for (const auto& traj : stResults.tHarmonics.overtones) {
+            //     f.write(reinterpret_cast<const char*>(&traj.targetOvertone.freq), sizeof(double));
+            //     f.write(reinterpret_cast<const char*>(&traj.targetOvertone.mag), sizeof(double));
+            //     f.write(reinterpret_cast<const char*>(&traj.targetOvertone.amp), sizeof(double));
+
+            //     f.write(reinterpret_cast<const char*>(&traj.floor), sizeof(float));
+                
+            //     uint32_t envLen = static_cast<uint32_t>(traj.envelope.size());
+            //     f.write(reinterpret_cast<const char*>(&envLen), sizeof(uint32_t));
+            //     if (envLen > 0) {
+            //         //f.write(reinterpret_cast<const char*>(traj.envelope.data()), envLen * sizeof(Sihat::TrackedPoint));
+
+            //         for (const auto& point : traj.envelope) {
+            //             f.write(reinterpret_cast<const char*>(&point.sampleIndex), sizeof(int32_t));
+            //             f.write(reinterpret_cast<const char*>(&point.freq), sizeof(float));
+            //             f.write(reinterpret_cast<const char*>(&point.crestFactor), sizeof(float));
+            //         }
+            //     }
+            // }
         }
 
         // Block 5: Write the RMS values for each section

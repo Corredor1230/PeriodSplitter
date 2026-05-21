@@ -144,6 +144,18 @@ namespace SihatJson {
         };
     }
 
+    // ---- Resynth ----
+    inline void to_json(json& j, const ResynthConfig& r) {
+        j = json{
+            {"resynthTransient", r.resynthTransient},
+            {"resynthHarmonics", r.resynthHarmonics},
+            {"separateOuts", r.separateOuts},
+            {"changeOutLevel", r.changeOutLevel},
+            {"outLevelDB", r.outLevelDB},
+            {"r_outDir", r.r_outDir}
+        };
+    }
+
     // ---- AnalysisConfig ----
     inline void to_json(json& j, const Sihat::AnalysisConfig& c) {
 
@@ -308,6 +320,17 @@ namespace SihatJson {
         j.at("noiseAnalysis").get_to(s.noiseAnalysis);
     }
 
+    // ---- ResynthConfig ----
+    inline void from_json(const json& j, ResynthConfig& r)
+    {
+        j.at("resynthTransient").get_to(r.resynthTransient);
+        j.at("resynthHarmonics").get_to(r.resynthHarmonics);
+        j.at("separateOuts").get_to(r.separateOuts);
+        j.at("changeOutLevel").get_to(r.changeOutLevel);
+        j.at("outLevelDB").get_to(r.outLevelDB);
+        j.at("r_outDir").get_to(r.r_outDir);
+    }
+
     // ---- AnalysisConfig ----
     inline void from_json(const json& j, Sihat::AnalysisConfig& c) {
         j.at("maxHarmonics").get_to(c.numHarmonics);
@@ -329,21 +352,22 @@ namespace SihatJson {
         from_json(j.at("noiseSettings"), c.nSettings);
     }
 
-
     inline void saveSettings(const Sihat::AnalysisConfig& c,
-        const Sihat::Settings& s, const SihatFile::OutInfo& i, 
+        const Sihat::Settings& s, const SihatFile::OutInfo& i, const ResynthConfig& r, 
         const std::string& path) 
     { 
         json j; 
-        json info, settings, config;
+        json info, settings, config, resynth;
 
         to_json(info, i);
         to_json(settings, s);
         to_json(config, c);
+        to_json(resynth, r);
 
         j["info"] = info; 
         j["settings"] = settings; 
         j["config"] = config; 
+        j["resynth"] = resynth;
         std::ofstream file(path);
         if (!file.is_open()) 
         { 
@@ -357,6 +381,7 @@ namespace SihatJson {
     inline void loadSettings(Sihat::AnalysisConfig& c,
         Sihat::Settings& s,
         SihatFile::OutInfo& i,
+        ResynthConfig& r,
         const std::string& path)
     {
         std::ifstream file(path);
@@ -378,7 +403,7 @@ namespace SihatJson {
         file.close();
 
         // Check for the main keys
-        if (!j.contains("info") || !j.contains("settings") || !j.contains("config"))
+        if (!j.contains("info") || !j.contains("settings") || !j.contains("config") || !j.contains("resynth"))
         {
             throw std::runtime_error("Invalid settings file format: " + path);
         }
@@ -390,6 +415,7 @@ namespace SihatJson {
             from_json(j.at("info"), i);
             from_json(j.at("settings"), s);
             from_json(j.at("config"), c);
+            from_json(j.at("resynth"), r);
         }
         catch (json::exception& e)
         {

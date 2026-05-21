@@ -1,6 +1,6 @@
 {
     "config": {
-        "N": 32768,
+        "N": 16384,
         "bulkProcess": false,
         "correlationSettings": {
             "c_offset": 50.0,
@@ -13,7 +13,7 @@
             "h_useTolInHz": true,
             "h_windowStyle": 2
         },
-        "hopSize": 256,
+        "hopSize": 512,
         "hpssSettings": {
             "hpss_filtSize": 181,
             "hpss_hopSize": 1024,
@@ -35,14 +35,14 @@
             "o_FirstSample": 0,
             "o_absThreshold": true,
             "o_chooseFirstSample": false,
-            "o_ignoreThreshold": -60.0,
-            "o_mfft": 65536,
+            "o_ignoreThreshold": -75.0,
+            "o_mfft": 96000,
             "o_postTransientStart": true,
             "o_sumAmplitudes": true,
             "o_tolInHz": 6.0,
-            "o_tolerance": 100.0,
+            "o_tolerance": 200.0,
             "o_useCustomSignal": true,
-            "o_useTolInHz": true,
+            "o_useTolInHz": false,
             "o_useTolerance": true
         },
         "pitchSettings": {
@@ -91,6 +91,14 @@
         "extension": "sihat",
         "outDir": "sihat/newTests",
         "prefix": "DATA"
+    },
+    "resynth": {
+        "changeOutLevel": false,
+        "outLevelDB": 0.0,
+        "r_outDir": "C:\\Users\\usuario\\Documents\\Programming\\CMake_Learning\\PeriodicSplitter\\media\\sihat\\newTests\\gens",
+        "resynthHarmonics": true,
+        "resynthTransient": true,
+        "separateOuts": false
     },
     "settings": {
         "fullHarmonicAnalysis": false,
