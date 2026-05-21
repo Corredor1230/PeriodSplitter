@@ -1,6 +1,7 @@
 #pragma once
 
 #include "include/SitranoHeader.h" 
+#include "include/ResynthConfig.h"
 #include "file/SihatFile.h"   
 #include "support/SihatLogger.h"
 #include <string>
@@ -19,8 +20,9 @@ struct EditorViewModel
     AppMode currentMode = AppMode::Analysis;
 
     // The GUI will read/write these values directly.
-    Sihat::AnalysisConfig config;
-    Sihat::Settings       settings;
+    Sihat::AnalysisConfig   config;
+    ResynthConfig           rConfig;
+    Sihat::Settings         settings;
     SihatFile::OutInfo      info;
     std::string             jsonPath;
 
