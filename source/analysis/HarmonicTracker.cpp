@@ -76,6 +76,8 @@ Sihat::HarmonicResults HarmonicTracker::analyze()
 
     float ampThresh = Sihat::dbToAmp(-50.0);
 
+    int peakSample = findPeakSample();
+
     for (size_t i = 0; i < numFrames - (frameStep + 1); i += frameStep) {
 
         int periodLength{ 0 };
@@ -97,9 +99,9 @@ Sihat::HarmonicResults HarmonicTracker::analyze()
 
             if (binFreq.bin < nfft / 2 + 1) {
                 Sihat::FreqUnit fUnit{ binFreq, 0.0, 0.0, 0.0 };
-                int binRange = 5; //Gotta improve this eventually, make algorithm
+                //int binRange = 5; //Gotta improve this eventually, make algorithm
 
-                fUnit = Sihat::findPeak(fUnit.bin, output, nfft, unit.sampleRate, binRange);
+                fUnit = Sihat::findPeak(fUnit.bin, output, nfft, unit.sampleRate);
 
                 if (std::isnan(fUnit.amp)) 
                 break;
@@ -108,7 +110,17 @@ Sihat::HarmonicResults HarmonicTracker::analyze()
                 {
                     if (fUnit.amp > 1.0)
                         std::cout << "i: " << i << " , h: " << h << " , val: " << fUnit.amp << '\n';
-                    hResults.amps[h - 1].push_back(fUnit.amp);
+
+                    float duringEnv = 1.0;
+                    if (i < hResults.finalSamples.size()){
+                        if (hResults.finalSamples[i] - start < peakSample && peakSample != 0)
+                        {
+                            float rate = static_cast<float>(hResults.finalSamples[i] - start) / static_cast<float>(peakSample); 
+                            duringEnv = Sihat::normLogistic(rate, 2.0);
+                        }
+                    }
+
+                    hResults.amps[h - 1].push_back(fUnit.amp * duringEnv);
                     hResults.phases[h - 1].push_back(fUnit.pha);
                     hResults.freqs[h - 1].push_back(fUnit.bin.freq);
                 }
@@ -135,4 +147,39 @@ Sihat::HarmonicResults HarmonicTracker::analyze()
     }
     hResults.rms = std::sqrt(sum / sr);
     return hResults;
+}
+
+int HarmonicTracker::findPeakSample()
+{
+    int rmsSize = static_cast<int>(sr / 100.0); // 10ms window
+    int hopSize = rmsSize;
+    int maxScanDuration = static_cast<int>(sr); // 1 second of audio
+    
+    // Determine the absolute hard limit of the audio file to prevent crashes
+    int totalSamples = static_cast<int>(unit.soundFile.size());
+    int safeEnd = std::min(start + maxScanDuration, totalSamples - rmsSize);
+
+    float maxRMS = -1.0f;
+    int bestSampleIndex = start;
+
+    // Scan through the file in safe hops
+    for (int frameStart = start; frameStart <= safeEnd; frameStart += hopSize)
+    {
+        float sum = 0.0f;
+        for (int i = 0; i < rmsSize; i++)
+        {
+            float sample = unit.soundFile[frameStart + i];
+            sum += sample * sample; 
+        }
+        
+        float currentRMS = std::sqrt(sum / static_cast<float>(rmsSize));
+        
+        if (currentRMS > maxRMS)
+        {
+            maxRMS = currentRMS;
+            bestSampleIndex = frameStart;
+        }
+    }
+
+    return bestSampleIndex;
 }

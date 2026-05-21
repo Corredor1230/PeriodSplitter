@@ -54,4 +54,5 @@ private:
 
     void initFFTW();
     void applyHann(float* data, int size);
+    int findPeakSample();
 };
