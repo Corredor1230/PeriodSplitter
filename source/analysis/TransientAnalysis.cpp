@@ -38,7 +38,7 @@ Sihat::STransientResults TransientAnalysis::analyze()
     for (int i = 0; i < stOvertones.size(); i++){stOvertonesAmps.push_back(stOvertones[i].amp);}
 
     //Track representative frequencies
-    std::vector<Sihat::OvertoneTrajectory> trajectories = trackOvertonesInTime(u.soundFile, tRange, stOvertones, settings.overFrames);
+    Sihat::TransientHarmonics tHarmonics = trackOvertonesInTime(u.soundFile, tRange, stOvertones, settings.overFrames);
 
     int tRise = getRiseTime(tEnv);
     std::vector<float> tCentroid = getSpectralCentroid(tSpec);
@@ -57,7 +57,7 @@ Sihat::STransientResults TransientAnalysis::analyze()
     auto maxIt = std::max_element(slicedAEnv.begin(), slicedAEnv.end());
     float peakVal = *maxIt;
 
-    Sihat::STransientResults results {tRange, tRise, peakVal, slicedEnv, tCentroid, tFlatness, tBands, stOvertonesAmps, trajectories, rms, settings.rmsHopSize, settings.hopSize, settings.nfft, settings.nfft / 2 + 1};
+    Sihat::STransientResults results {tRange, tRise, peakVal, slicedEnv, tCentroid, tFlatness, tBands, tHarmonics, rms, settings.rmsHopSize, settings.hopSize, settings.nfft, settings.nfft / 2 + 1};
 
     return results;
 }
@@ -398,34 +398,38 @@ std::vector<Sihat::Peak> TransientAnalysis::getMainOvertones(const std::vector<f
     return merged;
 }
 
-std::vector<Sihat::OvertoneTrajectory> TransientAnalysis::trackOvertonesInTime(
+Sihat::TransientHarmonics TransientAnalysis::trackOvertonesInTime(
     const std::vector<float>& audio, 
     const Sihat::SampleRange& range, 
     const std::vector<Sihat::Peak>& targetPeaks, 
     int numFrames)
 {
-    std::vector<Sihat::OvertoneTrajectory> trajectories(targetPeaks.size());
+    Sihat::TransientHarmonics tHarmonics;
+    std::vector<float> floor;
+    std::vector<Sihat::TransientOvertone> trajectories(targetPeaks.size());
     for (size_t i = 0; i < targetPeaks.size(); ++i) {
         trajectories[i].targetOvertone = targetPeaks[i];
         trajectories[i].envelope.reserve(numFrames); // Assuming 1 point per frame for cleaner structure
     }
 
-    int nfft = Sihat::findNextPowerOfTwo(range.endSample - range.initSample);
+    // Calculate our frame step (hop size)
+    int totalRangeSamples = range.endSample - range.initSample;
+    int frameStep = totalRangeSamples / numFrames;
+    if (frameStep < 1) frameStep = 1;
+    tHarmonics.hopSize = frameStep;
+    int nfft = frameStep * 2;
     const int Nout = nfft / 2 + 1;
 
     float* input = (float*)fftwf_malloc(sizeof(float) * nfft);
     fftwf_complex* output = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex) * Nout);
     fftwf_plan plan = fftwf_plan_dft_r2c_1d(nfft, input, output, FFTW_MEASURE);
 
-    std::vector<double> mags(Nout);
+    std::vector<float> mags(Nout);
 
-    // Calculate our frame step (hop size)
-    int totalRangeSamples = range.endSample - range.initSample;
-    int frameStep = totalRangeSamples / numFrames;
-    if (frameStep < 1) frameStep = 1;
 
     // We start the window so the *center* of the first frame is at initSample
-    int startOffset = range.initSample - (nfft / 2);
+    int startOffset = range.initSample - (nfft / 2) > 0 ? range.initSample - (nfft / 2) : 0;
+    tHarmonics.startSample = startOffset;
 
     const float trackingMinCrest = 1.5f; // Lower threshold to track the tail effectively
 
@@ -460,9 +464,10 @@ std::vector<Sihat::OvertoneTrajectory> TransientAnalysis::trackOvertonesInTime(
             mags[k] = std::sqrt(re * re + im * im);
         }
 
-        double totalMagSum = std::accumulate(mags.begin(), mags.end(), 0.0);
-        double averageFloor = totalMagSum / Nout;
+        float totalMagSum = std::accumulate(mags.begin(), mags.end(), 0.0);
+        float averageFloor = totalMagSum / Nout;
         if (averageFloor < 1e-12) averageFloor = 1e-12; // Prevent div by zero
+        floor.push_back(averageFloor);
 
         // 3. Analyze each target frequency
         for (size_t h = 0; h < targetPeaks.size(); ++h) 
@@ -493,7 +498,6 @@ std::vector<Sihat::OvertoneTrajectory> TransientAnalysis::trackOvertonesInTime(
             }
 
             Sihat::TrackedPoint point;
-            point.sampleIndex = frameSampleCenter;
 
             // If we found a valid peak within tolerance
             if (bestBin != -1) {
@@ -526,9 +530,11 @@ std::vector<Sihat::OvertoneTrajectory> TransientAnalysis::trackOvertonesInTime(
         }
     }
 
+    tHarmonics.overtones = trajectories;
+
     fftwf_free(input);
     fftwf_free(output);
     fftwf_destroy_plan(plan);
 
-    return trajectories;
+    return tHarmonics;
 }
