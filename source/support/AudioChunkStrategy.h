@@ -27,12 +27,15 @@ public:
 		int firstSample) override 
 	{
 		int start = i * config.hopSize + firstSample;
+		//int offset = (firstSample- (config.nfft - config.hopSize)) - firstSample;
+		int offset = 0;
 		int end = start + config.nfft;
 		if (end > unit.soundFile.size()) return false;
 
 		results.finalSamples.push_back(start);
 		for (int j = 0; j < config.nfft && start + j < unit.soundFile.size(); ++j) {
-			inputBuffer[j] = unit.soundFile[start + j];
+			if ((j + offset + start) < firstSample){inputBuffer[j] = 0.0;}
+			else {inputBuffer[j] = unit.soundFile[start + offset + j];}
 		}
 
 		outPeriodLength = 0;
