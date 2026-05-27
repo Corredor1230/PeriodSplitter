@@ -57,7 +57,8 @@ Sihat::STransientResults TransientAnalysis::analyze()
     auto maxIt = std::max_element(slicedAEnv.begin(), slicedAEnv.end());
     float peakVal = *maxIt;
 
-    Sihat::STransientResults results {tRange, tRise, peakVal, slicedEnv, tCentroid, tFlatness, tBands, tHarmonics, rms, settings.rmsHopSize, settings.hopSize, settings.nfft, settings.nfft / 2 + 1};
+    // Sihat::STransientResults results {tRange, tRise, peakVal, slicedEnv, tCentroid, tFlatness, tBands, tHarmonics, rms, settings.rmsHopSize, settings.hopSize, tHarmonics.hopSize, settings.nfft, settings.nfft / 2 + 1};
+    Sihat::STransientResults results{tRange, settings.rmsHopSize, settings.hopSize, tHarmonics.hopSize, settings.nfft, settings.nfft / 2 + 1, tRise, peakVal, slicedEnv, tCentroid, tFlatness, tBands, tHarmonics, rms};
 
     return results;
 }
@@ -329,9 +330,10 @@ std::vector<Sihat::Peak> TransientAnalysis::getMainOvertones(const std::vector<f
             double delta = Sihat::interp_delta(k, mags);
             double f = (k + delta) * u.sampleRate / double(nfft);
             double amp = Sihat::mag_to_amp(mags[k], nfft);
+            double pha = std::atan2(o_output[k][1], o_output[k][0]);
             
             // Assuming your struct is { freq, mag, amp } based on previous usage
-            peaks.push_back({ f, mags[k], amp });
+            peaks.push_back({ f, mags[k], amp, pha });
         }
     }
 
@@ -418,6 +420,7 @@ Sihat::TransientHarmonics TransientAnalysis::trackOvertonesInTime(
     if (frameStep < 1) frameStep = 1;
     tHarmonics.hopSize = frameStep;
     int nfft = frameStep * 2;
+    int sr = static_cast<int>(u.sampleRate);
     const int Nout = nfft / 2 + 1;
 
     float* input = (float*)fftwf_malloc(sizeof(float) * nfft);
@@ -464,10 +467,12 @@ Sihat::TransientHarmonics TransientAnalysis::trackOvertonesInTime(
             mags[k] = std::sqrt(re * re + im * im);
         }
 
+        //Calculate floor, but filter out main  harmonics
         float totalMagSum = std::accumulate(mags.begin(), mags.end(), 0.0);
         float averageFloor = totalMagSum / Nout;
+        float ampFloor = Sihat::mag_to_amp(averageFloor, nfft);
         if (averageFloor < 1e-12) averageFloor = 1e-12; // Prevent div by zero
-        floor.push_back(averageFloor);
+        floor.push_back(ampFloor);
 
         // 3. Analyze each target frequency
         for (size_t h = 0; h < targetPeaks.size(); ++h) 
@@ -478,7 +483,7 @@ Sihat::TransientHarmonics TransientAnalysis::trackOvertonesInTime(
             // Determine search bounds based on tolerance
             float hzTolerance = Sihat::cents_to_hz(targetFreq, settings.o_tolInCents);
             int k_center = std::round(targetFreq * nfft / u.sampleRate);
-            int k_spread = std::ceil(hzTolerance * nfft / u.sampleRate);
+            int k_spread = 2;
             
             // Constrain search bounds
             int k_min = std::max(1, k_center - k_spread);
@@ -494,6 +499,10 @@ Sihat::TransientHarmonics TransientAnalysis::trackOvertonesInTime(
                         maxMag = mags[k];
                         bestBin = k;
                     }
+                }
+                else {
+                    bestBin = Sihat::freqToBin(targetFreq, nfft, sr);
+                    maxMag = mags[bestBin];
                 }
             }
 
@@ -511,7 +520,11 @@ Sihat::TransientHarmonics TransientAnalysis::trackOvertonesInTime(
                 }
 
                 point.freq = (bestBin + delta) * u.sampleRate / double(nfft);
+                if (std::fabs(point.freq - targetFreq) > targetFreq * 0.01 && trajectories[h].envelope.size() > 1) {
+                    point.freq = trajectories[h].envelope.back().freq;
+                }
                 point.crestFactor = maxMag / averageFloor;
+                point.amp = Sihat::mag_to_amp(maxMag, Nout);
                 
                 // Determine if the peak is prominent enough to be considered "active"
                 point.active = (point.crestFactor >= trackingMinCrest);
@@ -531,6 +544,7 @@ Sihat::TransientHarmonics TransientAnalysis::trackOvertonesInTime(
     }
 
     tHarmonics.overtones = trajectories;
+    tHarmonics.floor = floor;
 
     fftwf_free(input);
     fftwf_free(output);
