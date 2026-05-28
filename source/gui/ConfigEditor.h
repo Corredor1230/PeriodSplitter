@@ -41,6 +41,7 @@ public:
                 settings.transientSeparation = newState;
                 settings.periodAnalysis = newState;
                 settings.overtoneAnalysis = newState;
+                settings.transientAnalysis = newState;
                 settings.harmonicAnalysis = newState;
                 settings.noiseAnalysis = newState;
             }
@@ -51,6 +52,7 @@ public:
             aChildWasClicked |= ImGui::Checkbox("Transient Separation", &settings.transientSeparation);
             aChildWasClicked |= ImGui::Checkbox("Period Analysis", &settings.periodAnalysis);
             aChildWasClicked |= ImGui::Checkbox("Overtone Analysis", &settings.overtoneAnalysis);
+            aChildWasClicked |= ImGui::Checkbox("Transient Analysis", &settings.transientAnalysis);
             aChildWasClicked |= ImGui::Checkbox("Harmonic Analysis", &settings.harmonicAnalysis);
 
             if (aChildWasClicked)
@@ -59,6 +61,7 @@ public:
                     settings.sourceSeparation &&
                     settings.transientSeparation &&
                     settings.periodAnalysis &&
+                    settings.transientAnalysis &&
                     settings.overtoneAnalysis &&
                     settings.harmonicAnalysis;
                 settings.fullHarmonicAnalysis = allChildrenAreOn;
@@ -180,6 +183,7 @@ public:
                 ImGui::InputInt("Start Sample", &config.stSettings.startSample);
                 ImGui::InputInt("Max Overtones", &config.stSettings.maxOvertones);
                 ImGui::InputInt("Overtone Frames", &config.stSettings.overFrames);
+                ImGui::InputInt("Overtone NFFT", &config.stSettings.overNfft);
                 ImGui::InputFloat("Tolerance in Cents", &config.stSettings.tolInCents);
                 ImGui::InputFloat("Overtone tolerance", &config.stSettings.o_tolInCents);
                 ImGui::TreePop();
@@ -240,12 +244,17 @@ public:
             ImGui::InputText("File Name", &config.filename);
             ImGui::InputText("Extension", &config.extension);
             ImGui::Checkbox("Resynth Harmonics", &config.resynthHarmonics);
-            ImGui::Checkbox("Resynth Transient", &config.resynthTransient);
+            ImGui::Checkbox("Resynth Transient (Percussive)", &config.resynthTPercussive);
+            ImGui::Checkbox("Resynth Transient (Harmonic)", &config.resynthTHarmonic);
             ImGui::Checkbox("Separated Outputs", &config.separateOuts);
             ImGui::Checkbox("Change output level", &config.changeOutLevel);
             ImGui::BeginDisabled(!config.changeOutLevel);
             ImGui::SliderFloat("Level (dB)", &config.outLevelDB, -60.0, 6.0, "%.1f dB", ImGuiSliderFlags_Logarithmic);
             ImGui::EndDisabled();
+            ImGui::SliderFloat("Percussive Level (dB)", &config.percDB, -60.0, 24.0, "%.1f dB", ImGuiSliderFlags_Logarithmic);
+            ImGui::SliderFloat("Harmonic Level (dB)", &config.harmDB, -60.0, 24.0, "%.1f dB", ImGuiSliderFlags_Logarithmic);
+            ImGui::SliderFloat("Harmonic Out Level (dB)", &config.harmOutDB, -60.0, 24.0, "%.1f dB", ImGuiSliderFlags_Logarithmic);
+            ImGui::SliderFloat("Transient Out Level (dB)", &config.transOutDB, -60.0, 24.0, "%.1f dB", ImGuiSliderFlags_Logarithmic);
         }
         ImGui::End();
 

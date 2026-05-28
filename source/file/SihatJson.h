@@ -47,6 +47,7 @@ namespace SihatJson {
             {"st_maxOvertones", st.maxOvertones},
             {"st_startSample", st.startSample},
             {"st_overFrames", st.overFrames},
+            {"st_overNfft", st.overNfft},
             {"st_tolInCents", st.tolInCents},
             {"st_o_tolInCents", st.o_tolInCents}
         };
@@ -139,6 +140,7 @@ namespace SihatJson {
             {"transientSeparation", s.transientSeparation},
             {"periodAnalysis", s.periodAnalysis},
             {"overtoneAnalysis", s.overtoneAnalysis},
+            {"transientAnalysis", s.transientAnalysis},
             {"harmonicAnalysis", s.harmonicAnalysis},
             {"noiseAnalysis", s.noiseAnalysis}
         };
@@ -147,12 +149,18 @@ namespace SihatJson {
     // ---- Resynth ----
     inline void to_json(json& j, const ResynthConfig& r) {
         j = json{
-            {"resynthTransient", r.resynthTransient},
+            {"resynthTPercussive", r.resynthTPercussive},
+            {"resynthTHarmonic", r.resynthTHarmonic},
+            {"r_filename", r.filename},
             {"resynthHarmonics", r.resynthHarmonics},
             {"separateOuts", r.separateOuts},
             {"changeOutLevel", r.changeOutLevel},
             {"outLevelDB", r.outLevelDB},
-            {"r_outDir", r.r_outDir}
+            {"r_outDir", r.r_outDir},
+            {"percDB", r.percDB},
+            {"harmDB", r.harmDB},
+            {"harmOutDB", r.harmOutDB},
+            {"transOutDB", r.transOutDB}
         };
     }
 
@@ -242,6 +250,7 @@ namespace SihatJson {
         j.at("st_startSample").get_to(st.startSample);
         j.at("st_maxOvertones").get_to(st.maxOvertones);
         j.at("st_overFrames").get_to(st.overFrames);
+        j.at("st_overNfft").get_to(st.overNfft);
         j.at("st_tolInCents").get_to(st.tolInCents);
         j.at("st_o_tolInCents").get_to(st.o_tolInCents);
     }
@@ -314,6 +323,7 @@ namespace SihatJson {
         j.at("sourceSeparation").get_to(s.sourceSeparation);
         j.at("pitchAnalysis").get_to(s.pitchAnalysis);
         j.at("transientSeparation").get_to(s.transientSeparation);
+        j.at("transientAnalysis").get_to(s.transientAnalysis);
         j.at("periodAnalysis").get_to(s.periodAnalysis);
         j.at("overtoneAnalysis").get_to(s.overtoneAnalysis);
         j.at("harmonicAnalysis").get_to(s.harmonicAnalysis);
@@ -323,12 +333,18 @@ namespace SihatJson {
     // ---- ResynthConfig ----
     inline void from_json(const json& j, ResynthConfig& r)
     {
-        j.at("resynthTransient").get_to(r.resynthTransient);
+        j.at("r_filename").get_to(r.filename);
+        j.at("resynthTPercussive").get_to(r.resynthTPercussive);
+        j.at("resynthTHarmonic").get_to(r.resynthTHarmonic);
         j.at("resynthHarmonics").get_to(r.resynthHarmonics);
         j.at("separateOuts").get_to(r.separateOuts);
         j.at("changeOutLevel").get_to(r.changeOutLevel);
         j.at("outLevelDB").get_to(r.outLevelDB);
         j.at("r_outDir").get_to(r.r_outDir);
+        j.at("percDB").get_to(r.percDB);
+        j.at("harmDB").get_to(r.harmDB);
+        j.at("harmOutDB").get_to(r.harmOutDB);
+        j.at("transOutDB").get_to(r.transOutDB);
     }
 
     // ---- AnalysisConfig ----
