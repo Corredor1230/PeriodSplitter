@@ -1,6 +1,6 @@
 {
     "config": {
-        "N": 16384,
+        "N": 32768,
         "bulkProcess": false,
         "correlationSettings": {
             "c_offset": 50.0,
@@ -13,7 +13,7 @@
             "h_useTolInHz": true,
             "h_windowStyle": 2
         },
-        "hopSize": 512,
+        "hopSize": 256,
         "hpssSettings": {
             "hpss_filtSize": 181,
             "hpss_hopSize": 1024,
@@ -52,16 +52,17 @@
             "p_threshold": 3.0
         },
         "stSettings": {
-            "st_hopSize": 64,
+            "st_hopSize": 128,
             "st_inThreshold": -30.0,
             "st_maxOvertones": 32,
-            "st_nfft": 512,
-            "st_numBands": 16,
+            "st_nfft": 2048,
+            "st_numBands": 32,
             "st_o_tolInCents": 10.0,
-            "st_outThreshold": -55.0,
+            "st_outThreshold": -70.0,
             "st_overFrames": 64,
-            "st_rmsHopSize": 32,
-            "st_rmsWindow": 64,
+            "st_overNfft": 2048,
+            "st_rmsHopSize": 64,
+            "st_rmsWindow": 1024,
             "st_startSample": 0,
             "st_tolInCents": 50.0
         },
@@ -93,12 +94,18 @@
         "prefix": "DATA"
     },
     "resynth": {
-        "changeOutLevel": false,
-        "outLevelDB": 0.0,
+        "changeOutLevel": true,
+        "harmDB": 2.5999999046325684,
+        "harmOutDB": 0.10000000149011612,
+        "outLevelDB": -9.0,
+        "percDB": 0.4000000059604645,
+        "r_filename": "AGuit3_195_retry",
         "r_outDir": "C:\\Users\\usuario\\Documents\\Programming\\CMake_Learning\\PeriodicSplitter\\media\\sihat\\newTests\\gens",
         "resynthHarmonics": true,
-        "resynthTransient": true,
-        "separateOuts": false
+        "resynthTHarmonic": true,
+        "resynthTPercussive": true,
+        "separateOuts": false,
+        "transOutDB": -9.0
     },
     "settings": {
         "fullHarmonicAnalysis": false,
@@ -108,6 +115,7 @@
         "periodAnalysis": false,
         "pitchAnalysis": false,
         "sourceSeparation": true,
+        "transientAnalysis": true,
         "transientSeparation": true
     }
 }
