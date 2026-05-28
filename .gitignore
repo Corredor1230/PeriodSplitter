@@ -13,6 +13,7 @@ media/oldGen
 media/peaks
 media/audioSession
 media/tests
+media/pics
 source/include/json.hpp
 glad/
 fast-cpp-csv-parser/
