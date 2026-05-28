@@ -29,7 +29,7 @@ namespace Sihat
         haar = 2,
         hat = 3
     };
-
+    
     struct HarmonicResults {
         std::vector<std::vector<float>> amps;
         std::vector<std::vector<float>> phases;
@@ -72,6 +72,20 @@ namespace Sihat
         std::vector<float> data; // The envelope, decimated
     };
 
+    // Main settings for the Analyzer. 
+    // This structure decides which processing steps will be completed.
+    struct Settings {
+        bool fullHarmonicAnalysis = true;
+        bool sourceSeparation = true;
+        bool pitchAnalysis = true;
+        bool transientSeparation = true;
+        bool periodAnalysis = true;
+        bool overtoneAnalysis = true;
+        bool transientAnalysis = true;
+        bool harmonicAnalysis = true;
+        bool noiseAnalysis = true;
+    };
+    
     struct TransientSettings {
         int tStartSample = 0;
         bool useMs = false;
@@ -108,6 +122,7 @@ namespace Sihat
         int numBands = 16;
         int maxOvertones = 32;
         int overFrames = 16;
+        int overNfft = 2048;
         float outThreshold = 0.05f;
         float inThreshold = 0.1f;
         float tolInCents = 50.0;
@@ -237,6 +252,7 @@ namespace Sihat
 		double freq = 0.0;
 		double mag = 0.0;
 		double amp = 0.0;
+        double pha = 0.0;
 	};
 
     struct Sample {
@@ -265,6 +281,7 @@ namespace Sihat
     struct TrackedPoint {
         float freq;          // The exact interpolated frequency at this frame
         float crestFactor;   // Prominence vs noise floor (can be swapped for absolute amp/mag if preferred later)
+        float amp;
         bool active;          // True if a distinct peak was found within tolerance
     };
 
@@ -297,6 +314,12 @@ namespace Sihat
 
     struct STransientResults{
         SampleRange range;
+        uint32_t envHopSize;
+        uint32_t specHopSize;
+        uint32_t floorHopSize;
+        uint32_t specWindowSize;
+        uint32_t specNumBins;
+        uint32_t specFrameNum;
         int riseTime;
         float peakAmp;
         std::vector<Sample> ampEnvelope;
@@ -305,25 +328,9 @@ namespace Sihat
         std::vector<float> bandEnvelopes;
         TransientHarmonics tHarmonics;
         float rms;
-        uint32_t envHopSize;
-        uint32_t specHopSize;
-        uint32_t specWindowSize;
-        uint32_t specNumBins;
     };
 
 
-    // Main settings for the Analyzer. 
-    // This structure decides which processing steps will be completed.
-    struct Settings {
-        bool fullHarmonicAnalysis = true;
-        bool sourceSeparation = true;
-        bool pitchAnalysis = true;
-        bool transientSeparation = true;
-        bool periodAnalysis = true;
-        bool overtoneAnalysis = true;
-        bool harmonicAnalysis = true;
-        bool noiseAnalysis = true;
-    };
 
 	//Larger structure containing all results of the analysis
 	struct Results {
@@ -429,6 +436,18 @@ namespace Sihat
         std::cerr << "Error: Transient size too big" << '\n';
         return 0;
     }
+    inline float findMaxAbsVal(const std::vector<float>& in)
+    {
+        float max = 0.0;
+        for (int i = 0; i < in.size(); i++)
+        {
+            if (std::fabs(in[i]) > max)
+            {
+                max = in[i];
+            }
+        }
+        return max;
+    }
     inline float normLogistic(float in, float exp)
     {
         float lin = std::clamp(in, 0.0f, 1.0f);
@@ -480,6 +499,16 @@ namespace Sihat
         // Return RMS: sqrt(sum of squares / number of elements)
         return std::sqrt(sumOfSquares / count);
     }
+    inline float getMaxVal(const std::vector<float>& input)
+    {
+        float maxval = 0.0;
+        for (int i = 0; i < input.size(); i++)
+        {
+            if (input[i] > maxval) maxval = input[i];
+        }
+
+        return maxval;
+    }
 
     //Functions with a definition in .cpp file
     BinFreq findPeakWithinTolerance(float targetFreq, float tolerance, int n, float sr, void* out, bool isTolInHz);
@@ -510,6 +539,7 @@ namespace Sihat
         const HarmonicResults& hResults,
         const STransientResults& stResults,
         const AnalysisConfig& config,
+        const Settings& settings,
         const float f0,
         const uint32_t sr,
         const std::string& outputDirectory,

@@ -10,6 +10,11 @@ namespace Synth
     constexpr double M_E = 2.718281828459045;
     constexpr double TWO_PI = 2.0 * PI;
 
+    struct AnalysisType{
+        bool transientAnalysis = true;
+        bool harmonicAnalysis = true;
+    };
+
     struct Envelope{
         bool useHopSize = true;
         uint32_t hopSize = 128;
@@ -37,8 +42,11 @@ namespace Synth
         uint32_t tEnd = 0;
         uint32_t envHopSize = 64;
         uint32_t specHopSize = 64;
+        uint32_t floorHopSize = 64;
         uint32_t specWindowSize = 1024;
         uint32_t specNumBins = 16;
+        uint32_t specNumFrames = 64;
+        uint32_t specNfft = 2048;
         uint32_t numBands = 16;
         uint32_t harmHopSize = 16;
         uint32_t harmStartSample = 1000;
@@ -59,6 +67,7 @@ namespace Synth
         uint32_t sampleRate = 96000;
         float f0 = 60.0;
         std::string filename = "data";
+        AnalysisType type;
     };
 
     struct SihatHarmonic{
