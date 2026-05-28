@@ -8,10 +8,15 @@ struct ResynthConfig{
     std::string extension = ".wav";
     std::string r_outDir = "./";
     std::string fullPath = r_outDir + filename + extension;
-    bool resynthTransient = true;
+    bool resynthTPercussive = true;
+    bool resynthTHarmonic = true;
     bool resynthHarmonics = true;
     bool separateOuts = false;
     bool changeOutLevel = false;
     float outLevelDB = 0.0;
+    float percDB = 0.0;
+    float harmDB = 0.0;
+    float harmOutDB = 0.0;
+    float transOutDB = 0.0;
     float outLevel = Sihat::dbToAmp(outLevelDB);
 };
