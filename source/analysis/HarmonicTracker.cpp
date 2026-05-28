@@ -151,7 +151,7 @@ Sihat::HarmonicResults HarmonicTracker::analyze()
 
 int HarmonicTracker::findPeakSample()
 {
-    int rmsSize = static_cast<int>(sr / 100.0); // 10ms window
+    int rmsSize = static_cast<int>(sr / 200.0); // 10ms window
     int hopSize = rmsSize;
     int maxScanDuration = static_cast<int>(sr); // 1 second of audio
     
@@ -161,6 +161,9 @@ int HarmonicTracker::findPeakSample()
 
     float maxRMS = -1.0f;
     int bestSampleIndex = start;
+    float rmsThresh = 0.75;
+
+    std::vector<float> rmsList;
 
     // Scan through the file in safe hops
     for (int frameStart = start; frameStart <= safeEnd; frameStart += hopSize)
@@ -173,11 +176,19 @@ int HarmonicTracker::findPeakSample()
         }
         
         float currentRMS = std::sqrt(sum / static_cast<float>(rmsSize));
+        rmsList.push_back(currentRMS);
         
         if (currentRMS > maxRMS)
         {
             maxRMS = currentRMS;
-            bestSampleIndex = frameStart;
+            //bestSampleIndex = frameStart;
+        }
+    }
+
+    for (int i = 0; i < rmsList.size(); i++){
+        if (rmsList[i] >= rmsThresh* maxRMS){
+            bestSampleIndex = i * hopSize + start; 
+            break;
         }
     }
 
