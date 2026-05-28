@@ -6,7 +6,7 @@
 
 class TransientAnalysis{
 public:
-    TransientAnalysis(const Sihat::SingleTransientSettings& settings, const Sihat::AnalysisUnit& unit);
+    TransientAnalysis(const Sihat::SingleTransientSettings& settings, const Sihat::AnalysisUnit& unit, const float f0);
 
     Sihat::STransientResults analyze();
 
@@ -22,12 +22,13 @@ private:
     std::vector<float> getFlatnessCurve(const Sihat::Spectrogram& spec);
     std::vector<float> getBandEnvelopes(const Sihat::Spectrogram& spec);
     std::vector<Sihat::Peak> getMainOvertones(const std::vector<float>& audio, const Sihat::SampleRange& range);
-    Sihat::TransientHarmonics trackOvertonesInTime(const std::vector<float>& audio, const Sihat::SampleRange& range, const std::vector<Sihat::Peak>& targetPeaks, int numFrames);
+    Sihat::TransientHarmonics trackOvertonesInTime(const std::vector<float>& audio, const Sihat::SampleRange& range, const std::vector<Sihat::Peak>& targetPeaks, int numFrames, bool trackFreq);
 
     void initfftw(int nfft);
 
     const Sihat::SingleTransientSettings& settings;
     const Sihat::AnalysisUnit& u;
+    const float f0;
     float* inBuffer;
     fftwf_complex* outBuffer;
     fftwf_plan plan;
