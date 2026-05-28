@@ -61,8 +61,8 @@ void runResynthThread(
     try
     {
         sihat = SihatFile::loadSihatFile(path);
-        Resynthesizer synth(sihat);
-        synth.resynthesize(config);
+        Resynthesizer synth(sihat, config);
+        synth.resynthesize();
         logger.log("Resynthesis complete.");
     }
     catch(const std::exception& e)
