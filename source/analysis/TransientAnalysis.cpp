@@ -4,7 +4,7 @@
 #include<algorithm>
 #include<functional>
 
-TransientAnalysis::TransientAnalysis(const Sihat::SingleTransientSettings& settings, const Sihat::AnalysisUnit& unit) : settings(settings), u(unit)
+TransientAnalysis::TransientAnalysis(const Sihat::SingleTransientSettings& settings, const Sihat::AnalysisUnit& unit, const float pitch) : settings(settings), u(unit), f0(pitch)
 {
     initfftw(settings.nfft);
 }
@@ -38,7 +38,7 @@ Sihat::STransientResults TransientAnalysis::analyze()
     for (int i = 0; i < stOvertones.size(); i++){stOvertonesAmps.push_back(stOvertones[i].amp);}
 
     //Track representative frequencies
-    Sihat::TransientHarmonics tHarmonics = trackOvertonesInTime(u.soundFile, tRange, stOvertones, settings.overFrames);
+    Sihat::TransientHarmonics tHarmonics = trackOvertonesInTime(u.soundFile, tRange, stOvertones, settings.overFrames, false);
 
     int tRise = getRiseTime(tEnv);
     std::vector<float> tCentroid = getSpectralCentroid(tSpec);
@@ -58,7 +58,7 @@ Sihat::STransientResults TransientAnalysis::analyze()
     float peakVal = *maxIt;
 
     // Sihat::STransientResults results {tRange, tRise, peakVal, slicedEnv, tCentroid, tFlatness, tBands, tHarmonics, rms, settings.rmsHopSize, settings.hopSize, tHarmonics.hopSize, settings.nfft, settings.nfft / 2 + 1};
-    Sihat::STransientResults results{tRange, settings.rmsHopSize, settings.hopSize, tHarmonics.hopSize, settings.nfft, settings.nfft / 2 + 1, tRise, peakVal, slicedEnv, tCentroid, tFlatness, tBands, tHarmonics, rms};
+    Sihat::STransientResults results{tRange, settings.rmsHopSize, settings.hopSize, tHarmonics.hopSize, settings.nfft, settings.nfft / 2 + 1, tSpec.numFrames, tRise, peakVal, slicedEnv, tCentroid, tFlatness, tBands, tHarmonics, rms};
 
     return results;
 }
@@ -364,7 +364,7 @@ std::vector<Sihat::Peak> TransientAnalysis::getMainOvertones(const std::vector<f
         float crestFactor = seedPeak.mag / averageFloor;
 
         // Apply filters to the seed peak
-        if (seedPeak.freq < 500.0 ||
+        if (seedPeak.freq < 250.0 ||
             seedPeak.freq > 20000.f ||
             crestFactor < minCrestFactor) {
             continue; // This peak is invalid (noise), skip it
@@ -404,22 +404,25 @@ Sihat::TransientHarmonics TransientAnalysis::trackOvertonesInTime(
     const std::vector<float>& audio, 
     const Sihat::SampleRange& range, 
     const std::vector<Sihat::Peak>& targetPeaks, 
-    int numFrames)
+    int numFrames,
+    bool trackFreq) // Added argument
 {
     Sihat::TransientHarmonics tHarmonics;
     std::vector<float> floor;
     std::vector<Sihat::TransientOvertone> trajectories(targetPeaks.size());
     for (size_t i = 0; i < targetPeaks.size(); ++i) {
         trajectories[i].targetOvertone = targetPeaks[i];
-        trajectories[i].envelope.reserve(numFrames); // Assuming 1 point per frame for cleaner structure
+        trajectories[i].envelope.reserve(numFrames); 
     }
 
-    // Calculate our frame step (hop size)
+    // 1. Decouple hop size and NFFT
     int totalRangeSamples = range.endSample - range.initSample;
     int frameStep = totalRangeSamples / numFrames;
     if (frameStep < 1) frameStep = 1;
     tHarmonics.hopSize = frameStep;
-    int nfft = frameStep * 2;
+    
+    // Hardcoded NFFT for frequency resolution as requested
+    int nfft = settings.overNfft; 
     int sr = static_cast<int>(u.sampleRate);
     const int Nout = nfft / 2 + 1;
 
@@ -429,22 +432,20 @@ Sihat::TransientHarmonics TransientAnalysis::trackOvertonesInTime(
 
     std::vector<float> mags(Nout);
 
-
-    // We start the window so the *center* of the first frame is at initSample
+    // Center of the first frame starts at initSample
     int startOffset = range.initSample - (nfft / 2) > 0 ? range.initSample - (nfft / 2) : 0;
     tHarmonics.startSample = startOffset;
 
-    const float trackingMinCrest = 1.5f; // Lower threshold to track the tail effectively
+    const float trackingMinCrest = 1.5f;
 
     for (int i = 0; i < numFrames; ++i) 
     {
         int winStart = startOffset + (i * frameStep);
         int winEnd = winStart + nfft;
-        int frameSampleCenter = winStart + (nfft / 2); // Exact sample time for this frame
 
-        // 1. Fill buffer with zero-padding logic
+        // Zero-padding logic
         std::fill_n(input, nfft, 0.0f);
-        int copyStart = std::max(winStart, 0); // Assuming audio starts at 0
+        int copyStart = std::max(winStart, 0); 
         int copyEnd = std::min(winEnd, (int)audio.size());
 
         if (copyStart < copyEnd) {
@@ -452,7 +453,7 @@ Sihat::TransientHarmonics TransientAnalysis::trackOvertonesInTime(
             std::copy(audio.begin() + copyStart, audio.begin() + copyEnd, input + dstOffset);
         }
 
-        // Apply Hann Window using your exact logic
+        // Apply Hann Window
         for (int w = 0; w < nfft; ++w) {
             float winVal = 0.5f * (1.0f - std::cos(Sihat::TWO_PI * w / (nfft - 1)));
             input[w] *= winVal;
@@ -460,57 +461,57 @@ Sihat::TransientHarmonics TransientAnalysis::trackOvertonesInTime(
 
         fftwf_execute(plan);
 
-        // 2. Calculate Magnitudes and Noise Floor
         for (int k = 0; k < Nout; ++k) {
             double re = output[k][0];
             double im = output[k][1];
             mags[k] = std::sqrt(re * re + im * im);
         }
 
-        //Calculate floor, but filter out main  harmonics
-        float totalMagSum = std::accumulate(mags.begin(), mags.end(), 0.0);
-        float averageFloor = totalMagSum / Nout;
-        float ampFloor = Sihat::mag_to_amp(averageFloor, nfft);
-        if (averageFloor < 1e-12) averageFloor = 1e-12; // Prevent div by zero
-        floor.push_back(ampFloor);
+        // State trackers for the current frame to use in the dynamic noise floor
+        std::vector<int> currentFrameBins(targetPeaks.size(), -1);
+        std::vector<double> currentFrameMaxMags(targetPeaks.size(), -1.0);
+        std::vector<double> currentFrameFreqs(targetPeaks.size(), 0.0);
 
-        // 3. Analyze each target frequency
+        // --- PASS 1: Frequency Tracking (Dynamic or Static) ---
         for (size_t h = 0; h < targetPeaks.size(); ++h) 
         {
-            float targetFreq = targetPeaks[h].freq;
-            if (targetFreq <= 20.0f) continue; // Skip sub-audio
-
-            // Determine search bounds based on tolerance
-            float hzTolerance = Sihat::cents_to_hz(targetFreq, settings.o_tolInCents);
-            int k_center = std::round(targetFreq * nfft / u.sampleRate);
-            int k_spread = 2;
-            
-            // Constrain search bounds
-            int k_min = std::max(1, k_center - k_spread);
-            int k_max = std::min(Nout - 2, k_center + k_spread);
+            float initialTargetFreq = targetPeaks[h].freq;
+            if (initialTargetFreq <= 20.0f) continue; 
 
             int bestBin = -1;
             double maxMag = -1.0;
+            double finalFreq = initialTargetFreq;
 
-            // Search for the true peak within the tight tolerance window
-            for (int k = k_min; k <= k_max; ++k) {
-                if (mags[k] > mags[k - 1] && mags[k] > mags[k + 1]) {
-                    if (mags[k] > maxMag) {
-                        maxMag = mags[k];
-                        bestBin = k;
+            if (trackFreq) 
+            {
+                // Dynamic Tracking
+                float searchFreq = initialTargetFreq;
+                if (!trajectories[h].envelope.empty()) {
+                    searchFreq = trajectories[h].envelope.back().freq;
+                }
+
+                int k_center = std::round(searchFreq * nfft / sr);
+                int k_spread = 4; // Widened to allow following fast pitch bends
+                
+                int k_min = std::max(1, k_center - k_spread);
+                int k_max = std::min(Nout - 2, k_center + k_spread);
+
+                for (int k = k_min; k <= k_max; ++k) {
+                    if (mags[k] > mags[k - 1] && mags[k] > mags[k + 1]) { // Local max check
+                        if (mags[k] > maxMag) {
+                            maxMag = mags[k];
+                            bestBin = k;
+                        }
                     }
                 }
-                else {
-                    bestBin = Sihat::freqToBin(targetFreq, nfft, sr);
+
+                // Fallback if no local peak is found
+                if (bestBin == -1) {
+                    bestBin = k_center;
                     maxMag = mags[bestBin];
                 }
-            }
 
-            Sihat::TrackedPoint point;
-
-            // If we found a valid peak within tolerance
-            if (bestBin != -1) {
-                // Use your custom parabolic interpolation logic
+                // Parabolic Interpolation
                 double m1 = mags[bestBin - 1], m0 = mags[bestBin], p1 = mags[bestBin + 1];
                 double denom = (m1 - 2 * m0 + p1);
                 double delta = 0.0;
@@ -518,25 +519,85 @@ Sihat::TransientHarmonics TransientAnalysis::trackOvertonesInTime(
                 if (std::fabs(denom) >= 1e-12) {
                     delta = 0.5 * (m1 - p1) / denom;
                 }
-
-                point.freq = (bestBin + delta) * u.sampleRate / double(nfft);
-                if (std::fabs(point.freq - targetFreq) > targetFreq * 0.01 && trajectories[h].envelope.size() > 1) {
-                    point.freq = trajectories[h].envelope.back().freq;
-                }
-                point.crestFactor = maxMag / averageFloor;
-                point.amp = Sihat::mag_to_amp(maxMag, Nout);
                 
-                // Determine if the peak is prominent enough to be considered "active"
-                point.active = (point.crestFactor >= trackingMinCrest);
-            } 
+                finalFreq = (bestBin + delta) * sr / double(nfft);
+            }
             else 
             {
-                // Fallback: If no local max is found, write the target freq and 0 crest factor.
-                // This prevents the frequency values from flying "all over the place" 
-                // when the harmonic is missing.
-                point.freq = targetFreq;
-                point.crestFactor = 0.0;
+                // Static Tracking
+                bestBin = std::round(initialTargetFreq * nfft / sr);
+                
+                // Safety bound check
+                bestBin = std::max(0, std::min(bestBin, Nout - 1)); 
+                
+                maxMag = mags[bestBin];
+                finalFreq = initialTargetFreq;
+            }
+
+            currentFrameBins[h] = bestBin;
+            currentFrameMaxMags[h] = maxMag;
+            currentFrameFreqs[h] = finalFreq;
+        }
+
+        // --- PASS 2: Dynamic Noise Floor Calculation ---
+        float totalMagSum = 0.0;
+        int binsCounted = 0;
+        const int exclusionSpread = 2; // Exclude bestBin +/- 2 bins to handle Hann window leakage
+
+        for (int bin = 0; bin < Nout; ++bin) {
+            bool isHarmonicLeakage = false;
+            for (int hBin : currentFrameBins) {
+                if (hBin != -1 && std::abs(bin - hBin) <= exclusionSpread) {
+                    isHarmonicLeakage = true;
+                    break;
+                }
+            }
+
+            if (!isHarmonicLeakage) {
+                totalMagSum += mags[bin];
+                binsCounted++;
+            }
+        }
+
+        float averageFloor = 1e-12;
+        if (binsCounted > 0) averageFloor = totalMagSum / binsCounted;
+        if (averageFloor < 1e-12) averageFloor = 1e-12;
+
+        // Window Gain Compensation (* 2.0f) for the noise floor
+        float ampFloor = Sihat::mag_to_amp(averageFloor, nfft) * 2.0f;
+        floor.push_back(ampFloor);
+
+        // --- PASS 3: Build Final Envelopes ---
+        for (size_t h = 0; h < targetPeaks.size(); ++h) 
+        {
+            Sihat::TrackedPoint point;
+            float initialTargetFreq = targetPeaks[h].freq;
+
+            if (initialTargetFreq <= 20.0f) {
+                point.freq = initialTargetFreq;
+                point.crestFactor = 0.0f;
+                point.amp = 0.0f;
                 point.active = false;
+                trajectories[h].envelope.push_back(point);
+                continue;
+            }
+
+            int bestBin = currentFrameBins[h];
+            double maxMag = currentFrameMaxMags[h];
+
+            point.freq = currentFrameFreqs[h];
+            point.crestFactor = maxMag / averageFloor;
+            
+            // Window Gain Compensation (* 2.0f) for the overtone
+            point.amp = Sihat::mag_to_amp(maxMag, nfft) * 2.0f; 
+
+            // We rely entirely on crest factor to gate the active state now.
+            point.active = (point.crestFactor >= trackingMinCrest);
+
+            // Safety check: If inactive, let the tracker rest at the last known good frequency
+            // rather than wildly snapping to background noise bins
+            if (!point.active) {
+                point.freq = (!trajectories[h].envelope.empty()) ? trajectories[h].envelope.back().freq : initialTargetFreq;
             }
 
             trajectories[h].envelope.push_back(point);
