@@ -7,19 +7,22 @@
 class Resynthesizer
 {
 public:
-    Resynthesizer(const Synth::Sihat& sh) : sihat(sh) {};
+    Resynthesizer(const Synth::Sihat& sh, const ResynthConfig& con) : sihat(sh), config(con) {};
     ~Resynthesizer(){};
 
-    void resynthesize(const ResynthConfig& config);
+    void resynthesize();
 
 private:
     const Synth::Sihat& sihat;
+    const ResynthConfig& config;
 
     inline std::vector<float> sumVectors(
     const std::vector<float>& base, 
     const std::vector<float>& addition, 
     const int baseStartSample, 
-    const int addStartSample = 0)
+    const int addStartSample = 0,
+    const float baseMultiplier = 1.0,
+    const float addMultiplier = 1.0)
     {
         // 1. Guard against negative offsets
         if (baseStartSample < 0 || addStartSample < 0) {
@@ -49,7 +52,8 @@ private:
 
         // 6. Accumulate (mix) the addition vector into its position
         for (int i = 0; i < additionSamples; ++i) {
-            result[baseStartSample + i] += addition[addStartSample + i];
+            result[baseStartSample + i] *= baseMultiplier;
+            result[baseStartSample + i] += addition[addStartSample + i] * addMultiplier;
         }
 
         return result;
@@ -59,6 +63,14 @@ private:
 
 
     std::vector<float> genTransient();
+    std::vector<float> getTransientHarmonics();
+    std::vector<float> getTransientNoise();
+    std::vector<float> getTransientNoise(int hopSize, int nfft);
+    std::vector<float> applyEnvelope(const std::vector<float>& vect, const Synth::Envelope& env, const int startSample = 0);
+    std::vector<float> applyEnvelopeMatching(const std::vector<float>& vect, const Synth::Envelope& env, const int startSample = 0);
     std::vector<float> genHarmonics();
+    std::vector<float> applyFlatness(const std::vector<float>& vect, const std::vector<float>& flatness, const int hopSize);
+    void matchRms(std::vector<float>& vect, const float rms);
+    void matchPeak(std::vector<float>& vect, const float peak, const int maxsize = 0);
 
 };
