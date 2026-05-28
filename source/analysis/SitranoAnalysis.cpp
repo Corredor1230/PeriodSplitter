@@ -59,7 +59,7 @@ Sihat::Results Analyzer::analyze(
             pUnit.soundFile = SihatFile::getAudioFromFile(ppath.generic_string(), pInfo);
         }
 
-        TransientAnalysis stAnalysis(mConfig.stSettings, pUnit);
+        TransientAnalysis stAnalysis(mConfig.stSettings, pUnit, results.pitch);
 
         results.stResults = stAnalysis.analyze();
     }
@@ -104,7 +104,7 @@ Sihat::Results Analyzer::analyze(
 
         for (int i = 0; i < mConfig.oSettings.fftSize; ++i)
         {
-            checkSignal.push_back(hUnit.soundFile[i + firstSample]);
+            checkSignal.push_back(unit.soundFile[i + firstSample]);
         }
         OvertoneFinder finder{ unit, mConfig };
         results.topFreqs = finder.getRelevantOvertones(checkSignal, results.pitch);
@@ -133,7 +133,7 @@ Sihat::Results Analyzer::analyze(
     {
         HarmonicTracker tracker = [&]() {
             if (settings.sourceSeparation) {
-                return HarmonicTracker(hUnit, mConfig, results.topFreqs, results.sampleList, results.stResults.range.initSample);
+                return HarmonicTracker(unit, mConfig, results.topFreqs, results.sampleList, results.stResults.range.initSample);
             } else {
                 return HarmonicTracker(unit, mConfig, results.topFreqs, results.sampleList, results.tResults.range.endSample);
             }
