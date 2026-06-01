@@ -30,7 +30,7 @@ class Harmonic:
     indices: List[int] = field(default_factory=list)
     amp: List[List[float]] = field(default_factory=list)
     pha: List[List[float]] = field(default_factory=list)
-    freq: List[List[float]] = field(default_factory=list)
+    freqRate: List[List[float]] = field(default_factory=list)
     rms: float = 0.0
 
 @dataclass
@@ -62,7 +62,7 @@ class SpectralBin:
 
 @dataclass
 class EnvelopePoint:
-    freq: float = 0.0
+    freqRate: float = 0.0
     crest_factor: float = 0.0
     amp: float = 0.0
 
@@ -154,7 +154,7 @@ def load_sihat_file(fullpath: str) -> Tuple[Optional[Header], Optional[Harmonic]
                 # Block 3: Phase
                 harmonic.pha = read_2d_float_vector(inFile)
                 # Block 4: Frequency
-                harmonic.freq = read_2d_float_vector(inFile)
+                harmonic.freqRate = read_2d_float_vector(inFile)
 
             # -----------------------------------------
             # TRANSIENT ANALYSIS
@@ -203,7 +203,7 @@ def load_sihat_file(fullpath: str) -> Tuple[Optional[Header], Optional[Harmonic]
                     frame_num = read_format(inFile, '<I')[0]
                     for _ in range(frame_num):
                         f_val, c_val, a_val = read_format(inFile, '<fff')
-                        overtone.envelope.append(EnvelopePoint(freq=f_val, crest_factor=c_val, amp=a_val))
+                        overtone.envelope.append(EnvelopePoint(freqRate=f_val, crest_factor=c_val, amp=a_val))
                     
                     transient.overtones.append(overtone)
 
