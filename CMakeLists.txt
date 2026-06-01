@@ -79,9 +79,10 @@ set(INCLUDE_FILES
     ${SOURCE_DIR}/include/SitranoHeader.h
     ${SOURCE_DIR}/include/SitranoHeader.cpp
     ${SOURCE_DIR}/include/ResynthHeader.h
-    ${SOURCE_DIR}/include/ResynthHeader.cpp
     ${SOURCE_DIR}/include/json.hpp
     ${SOURCE_DIR}/include/ResynthConfig.h
+    ${SOURCE_DIR}/include/InterpConfig.h
+    ${SOURCE_DIR}/include/InterpHeader.h
 )
 
 set(FILE_FILES
