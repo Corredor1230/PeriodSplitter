@@ -3,6 +3,7 @@
 #include"TransientAnalysis.h"
 #include<algorithm>
 #include<functional>
+#include<Eigen/Dense>
 
 TransientAnalysis::TransientAnalysis(const Sihat::SingleTransientSettings& settings, const Sihat::AnalysisUnit& unit, const float pitch) : settings(settings), u(unit), f0(pitch)
 {
@@ -26,9 +27,16 @@ void TransientAnalysis::initfftw(int nfft)
 
 Sihat::STransientResults TransientAnalysis::analyze()
 {
+
+    Synth::STransient str;
+
     Sihat::SampleRange initRange{0, u.soundFile.size() / 4};
     std::vector<Sihat::Sample> tEnv = getAmpEnvelope(u.soundFile, initRange);
     Sihat::SampleRange tRange = findBoundaries(u.soundFile, tEnv, initRange);
+    int firstPeakSample = findFirstPeak(tEnv, tRange.initSample);
+    int newinit = Sihat::findPreviousZero(u.soundFile, firstPeakSample);
+    if (newinit < tRange.endSample) tRange.initSample = newinit;
+    tEnv = getAmpEnvelope(u.soundFile, tRange);
     float rms = Sihat::getRmsValue(u.soundFile, tRange.initSample, tRange.endSample);
     Sihat::Spectrogram tSpec = computeSpectrogram(u.soundFile, tRange);
 
@@ -51,16 +59,174 @@ Sihat::STransientResults TransientAnalysis::analyze()
     endFrame = std::min(static_cast<int>(tEnv.size()), endFrame + 1);
 
     //Slicing envelopes to conform to actual transient
-    std::vector<Sihat::Sample> slicedEnv(tEnv.begin() + startFrame, tEnv.begin() + endFrame);
-    std::vector<float> slicedAEnv(slicedEnv.size());
-    for (int i = 0; i < slicedEnv.size(); i++){slicedAEnv[i] = slicedEnv[i].value;}
-    auto maxIt = std::max_element(slicedAEnv.begin(), slicedAEnv.end());
+    std::vector<float> tAEnv(tEnv.size());
+    for (int i = 0; i < tEnv.size(); i++){tAEnv[i] = tEnv[i].value;}
+    auto maxIt = std::max_element(tAEnv.begin(), tAEnv.end());
     float peakVal = *maxIt;
 
+    tRise = firstPeakSample - tRange.initSample;
+    std::vector<float> audioSlice = Sihat::getAudioExcerpt(u.soundFile, firstPeakSample, firstPeakSample + settings.modeWindow);
+    std::vector<Synth::ModalComponent> modes = extractModalComponents(audioSlice, settings.overFrames);
+
+    Synth::TModes tmodes;
+    tmodes.modes = modes;
+    tmodes.startInd = firstPeakSample;
+    tmodes.length = settings.modeWindow;
+
     // Sihat::STransientResults results {tRange, tRise, peakVal, slicedEnv, tCentroid, tFlatness, tBands, tHarmonics, rms, settings.rmsHopSize, settings.hopSize, tHarmonics.hopSize, settings.nfft, settings.nfft / 2 + 1};
-    Sihat::STransientResults results{tRange, settings.rmsHopSize, settings.hopSize, tHarmonics.hopSize, settings.nfft, settings.nfft / 2 + 1, tSpec.numFrames, tRise, peakVal, slicedEnv, tCentroid, tFlatness, tBands, tHarmonics, rms};
+    Sihat::STransientResults results{tRange, settings.rmsHopSize, settings.hopSize, tHarmonics.hopSize, settings.nfft, settings.nfft / 2 + 1, tSpec.numFrames, tRise, peakVal, tEnv, tCentroid, tFlatness, tBands, tmodes, tHarmonics, rms};
 
     return results;
+}
+
+int TransientAnalysis::findFirstPeak(const std::vector<Sihat::Sample>& env, int firstSample)
+{
+    int peakIndex = 0;
+    float maxRms = env[0].value;
+
+    for (int i = 0; i < env.size(); i++)
+    {
+        if (env[i].value > maxRms)
+        {
+            maxRms = env[i].value;
+            peakIndex = i;
+        }
+    }
+
+    int finalSample = peakIndex * settings.rmsHopSize * 2;
+
+    std::vector<float> aSegment = Sihat::getAudioExcerpt(u.soundFile, firstSample, finalSample);
+    std::vector<float> aDiff = Sihat::getDifferential(aSegment); 
+
+    float maxRawPeak = 0.0f;
+    for (float val : aSegment)
+    {
+        float absVal = std::abs(val);
+        if (absVal > maxRawPeak) maxRawPeak = absVal;
+    }
+
+    float threshold = maxRawPeak * settings.firstPeakThreshold; 
+
+    for (size_t i = 1; i < aDiff.size() - 1; i++) 
+    {
+        float slopeIn = aDiff[i];
+        float slopeOut = aDiff[i + 1];
+
+        bool isExtremum = (slopeIn >= 0.0f && slopeOut < 0.0f) || 
+                          (slopeIn <= 0.0f && slopeOut > 0.0f);
+
+        if (isExtremum)
+        {
+            float peakAmp = std::abs(aSegment[i]);
+
+            if (peakAmp >= threshold)
+            {
+                return firstSample + static_cast<int>(i);
+            }
+        }
+    }
+
+    auto maxIt = std::max_element(aSegment.begin(), aSegment.end(), 
+        [](float a, float b) { return std::abs(a) < std::abs(b); });
+        
+    return firstSample + std::distance(aSegment.begin(), maxIt);
+}
+
+std::vector<Synth::ModalComponent> TransientAnalysis::extractModalComponents(const std::vector<float>& audio, int numFrames)
+{
+    int N = static_cast<int>(audio.size());
+    
+    // --- SAFETY GUARDS ---
+    if (N < 32) return {}; 
+    if (N > 4096) N = 4096; // Hard cap to prevent memory overflow at 96kHz
+
+    int numExpectedModes = settings.numModes;
+    int L = N / 3; 
+    int numRows = N - L + 1;
+
+    // --- MATRIX PENCIL METHOD ---
+    Eigen::MatrixXf H(numRows, L);
+    for (int i = 0; i < numRows; ++i)
+    {
+        for (int j = 0; j < L; ++j) H(i, j) = audio[i + j];
+    }
+
+    Eigen::BDCSVD<Eigen::MatrixXf> svd(H, Eigen::ComputeFullV);
+    Eigen::MatrixXf V = svd.matrixV(); 
+
+    int K = 2 * numExpectedModes; 
+    if (K > L - 1) K = L - 1; // Prevent out-of-bounds column access
+    if (K <= 0) return {};
+
+    Eigen::MatrixXf Vk = V.leftCols(K);
+    Eigen::MatrixXf V1 = Vk.topRows(L - 1);
+    Eigen::MatrixXf V2 = Vk.bottomRows(L - 1);
+    Eigen::MatrixXf Z = V1.colPivHouseholderQr().solve(V2);
+
+    Eigen::EigenSolver<Eigen::MatrixXf> es(Z);
+    auto complexPoles = es.eigenvalues();
+
+    std::vector<Synth::ModalComponent> components;
+    float T = 1.0f / u.sampleRate; // Assuming 'u' is accessible in this scope
+
+    for (int i = 0; i < complexPoles.size(); ++i)
+    {
+        std::complex<float> zk = complexPoles[i];
+        float mag = std::abs(zk);
+        float phaseAngle = std::arg(zk);
+
+        // Filter valid poles (stable, positive frequencies only)
+        if (mag <= 1.0f && phaseAngle > 0.0f)
+        {
+            Synth::ModalComponent comp;
+            comp.decay = -std::log(mag) / T;
+            comp.freq = phaseAngle / (2.0f * Sihat::PI * T);
+            components.push_back(comp);
+        }
+    }
+
+    // --- LEAST SQUARES (AMPLITUDE & PHASE) ---
+    int P = static_cast<int>(components.size());
+    if (P == 0) return components;
+
+    // Build a real-valued matrix W to solve for A*cos() and B*sin()
+    // Size is N rows by 2P columns (2 columns per mode)
+    Eigen::MatrixXf W(N, 2 * P);
+    Eigen::VectorXf x(N);
+
+    for (int n = 0; n < N; ++n)
+    {
+        x(n) = audio[n];
+        float time = n * T;
+
+        for (int m = 0; m < P; ++m)
+        {
+            float w = 2.0f * Sihat::PI * components[m].freq;
+            float decayEnv = std::exp(-components[m].decay * time);
+
+            // W0 handles the Cosine component, W1 handles the Sine component
+            W(n, 2 * m)     = decayEnv * std::cos(w * time);
+            W(n, 2 * m + 1) = decayEnv * -std::sin(w * time); 
+        }
+    }
+
+    // Solve W * beta = x
+    Eigen::VectorXf beta = W.colPivHouseholderQr().solve(x);
+
+    // Reconstruct the physical amplitude and phase from the solved weights
+    for (int m = 0; m < P; ++m)
+    {
+        float beta0 = beta(2 * m);     // Cosine weight
+        float beta1 = beta(2 * m + 1); // Sine weight
+
+        // R = sqrt(A^2 + B^2)
+        components[m].amp = std::sqrt(beta0 * beta0 + beta1 * beta1);
+        
+        // Phase = atan2(B, A)
+        components[m].phase = std::atan2(beta1, beta0); 
+    }
+
+    return components;
 }
 
 Sihat::SampleRange TransientAnalysis::findBoundaries(const std::vector<float>& input, const std::vector<Sihat::Sample>& tenv, const Sihat::SampleRange& range)
@@ -536,7 +702,7 @@ Sihat::TransientHarmonics TransientAnalysis::trackOvertonesInTime(
 
             currentFrameBins[h] = bestBin;
             currentFrameMaxMags[h] = maxMag;
-            currentFrameFreqs[h] = finalFreq;
+            currentFrameFreqs[h] = finalFreq / f0; // Store as ratio to fundamental for later use in the envelope
         }
 
         // --- PASS 2: Dynamic Noise Floor Calculation ---
@@ -589,7 +755,7 @@ Sihat::TransientHarmonics TransientAnalysis::trackOvertonesInTime(
             point.crestFactor = maxMag / averageFloor;
             
             // Window Gain Compensation (* 2.0f) for the overtone
-            point.amp = Sihat::mag_to_amp(maxMag, nfft) * 2.0f; 
+            point.amp = Sihat::ampToDb(Sihat::mag_to_amp(maxMag, nfft) * 2.0f); 
 
             // We rely entirely on crest factor to gate the active state now.
             point.active = (point.crestFactor >= trackingMinCrest);
