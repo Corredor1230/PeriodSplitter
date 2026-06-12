@@ -11,10 +11,13 @@ public:
     ~Resynthesizer(){};
 
     void resynthesize();
+    std::vector<float> getResynthAudio();
 
 private:
     const Synth::Sihat& sihat;
     const ResynthConfig& config;
+
+    std::vector<float> outAudio;
 
     inline std::vector<float> sumVectors(
     const std::vector<float>& base, 
@@ -38,7 +41,7 @@ private:
         // 3. Determine the final size of the output vector
         // The base span ends at: base.size() + baseStartSample
         // The addition span ends at: additionSamples + baseStartSample
-        int finalBaseEnd = static_cast<int>(base.size()) + baseStartSample;
+        int finalBaseEnd = static_cast<int>(base.size());
         int finalAddEnd = additionSamples + baseStartSample;
         int finalSize = std::max(finalBaseEnd, finalAddEnd);
 
@@ -47,7 +50,7 @@ private:
 
         // 5. Copy the base vector into its offset position
         if (!base.empty()) {
-            std::copy(base.begin(), base.end(), result.begin() + baseStartSample);
+            std::copy(base.begin(), base.end(), result.begin());
         }
 
         // 6. Accumulate (mix) the addition vector into its position
@@ -65,6 +68,7 @@ private:
     std::vector<float> genTransient();
     std::vector<float> getTransientHarmonics();
     std::vector<float> getTransientNoise();
+    std::vector<float> getTransientModes(const std::vector<Synth::ModalComponent>& modes, int numOutputSamples, int attackSamples, float sampleRate);
     std::vector<float> getTransientNoise(int hopSize, int nfft);
     std::vector<float> applyEnvelope(const std::vector<float>& vect, const Synth::Envelope& env, const int startSample = 0);
     std::vector<float> applyEnvelopeMatching(const std::vector<float>& vect, const Synth::Envelope& env, const int startSample = 0);

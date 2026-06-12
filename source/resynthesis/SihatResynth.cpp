@@ -34,8 +34,15 @@ void Resynthesizer::resynthesize()
 
     matchPeak(output, 0.6, 96000);
 
+    outAudio = output;
+
     SihatFile::writeAudioFile(output, config.filename + config.extension, config.r_outDir, sihat.header.sampleRate);
     
+}
+
+std::vector<float> Resynthesizer::getResynthAudio()
+{
+    return outAudio;
 }
 
 std::vector<float> Resynthesizer::genHarmonics() {
@@ -76,10 +83,10 @@ std::vector<float> Resynthesizer::genHarmonics() {
             // Skip frames entirely if they happen before our start sample
             if (frameEnd <= startSample) continue;
 
-            float startAmp = harm.amp[k][f];
-            float endAmp = harm.amp[k][f + 1];
-            float startFreq = harm.freq[k][f];
-            float endFreq = harm.freq[k][f + 1];
+            float startAmp = Sihat::dbToAmp(std::max(-160.0f, harm.amp[k][f]));
+            float endAmp = Sihat::dbToAmp(std::max(-160.0f, harm.amp[k][f + 1]));
+            float startFreq = harm.fRatio[k][f] * sihat.header.f0;
+            float endFreq = harm.fRatio[k][f + 1] * sihat.header.f0;
 
             uint32_t currentWriteIndex = frameStart;
 
@@ -123,7 +130,7 @@ std::vector<float> Resynthesizer::genHarmonics() {
         if (finalEnd > startSample) {
             uint32_t currentWriteIndex = finalStart;
             float currentAmp = harm.amp[k].back();
-            float currentFreq = harm.freq[k].back();
+            float currentFreq = harm.fRatio[k].back() * sihat.header.f0;
             float endAmp = 0.0f; // Fade to absolute 0
 
             // Edge case: what if startSample is inside the fade-out tail?
@@ -186,20 +193,20 @@ std::vector<float> Resynthesizer::genTransient() {
     if (config.resynthTPercussive)
     {
         std::vector<float> noise = getTransientNoise(sihat.transient.meta.specHopSize, sihat.transient.meta.specNfft);
-        noise = applyEnvelopeMatching(noise, sihat.transient.envelope, 0);
-        noise = applyEnvelope(noise, sihat.transient.envelope);
+        std::vector<float> modes = getTransientModes(sihat.transient.tModes.modes, tLen - first, sihat.transient.tModes.startInd - first, static_cast<float>(sihat.header.sampleRate));
         //noise = applyFlatness(noise, sihat.transient.flatness, sihat.transient.meta.specHopSize);
+        modes = applyEnvelopeMatching(modes, sihat.transient.envelope, 0);
+        noise = applyEnvelopeMatching(noise, sihat.transient.envelope, 0);
+        noise = sumVectors(noise, modes, 0, 0, 0.5, 1.0);
+        //noise = applyEnvelope(noise, sihat.transient.envelope);
         //matchRms(noise, sihat.transient.rms);
-        out = sumVectors(out, noise, first, 0, 1.0, percDB);
+        out = sumVectors(out, modes, first, 0, 1.0, percDB);
     }
 
-    out = applyEnvelope(out, sihat.transient.envelope, first);
+    //out = applyEnvelope(out, sihat.transient.envelope, first);
 
     float outrms = Sihat::getRmsValue(out, 0, out.size());
-    float ratio = sihat.transient.rms / outrms;
-    for (auto& o : out) {
-        o *= (ratio == 0.0) ? 1.0 : ratio;
-    }
+    matchRms(out, sihat.transient.rms);
 
     return out;
 }
@@ -236,8 +243,8 @@ std::vector<float> Resynthesizer::getTransientHarmonics() {
             {
                 const float t = float(n - startSample) / float(hopSize);
                 const float crest = p0.crestFactor + t * (p1.crestFactor - p0.crestFactor);
-                const float freq = p0.freq + t * (p1.freq - p0.freq);
-                const float amp = p0.amp + t * (p1.amp - p0.amp);
+                const float freq = (p0.freq + t * (p1.freq - p0.freq)) * sihat.header.f0;
+                const float amp = Sihat::dbToAmp(std::max(-160.0f, p0.amp + t * (p1.amp - p0.amp)));
 
                 output[n] += amp * std::sin(phase);
 
@@ -369,67 +376,49 @@ std::vector<float> Resynthesizer::getTransientNoise(int hopSize, int nfft)
     return output;
 }
 
-// std::vector<float> Resynthesizer::getTransientNoise(int hopSize, int nfft)
-// {
-//     int numBins = sihat.transient.meta.specNumBins;
-//     int numFrames = sihat.transient.meta.specNumFrames;
-//     int numBands = sihat.transient.meta.numBands;
+std::vector<float> Resynthesizer::getTransientModes(
+    const std::vector<Synth::ModalComponent>& modes, 
+    int numOutputSamples,
+    int attackSamples, 
+    float sampleRate)
+{
+    std::vector<float> output(numOutputSamples, 0.0f);
+    float T = 1.0f / sampleRate;
 
-//     // Total output size based on frames and hop size
-//     int totalSamples = (numFrames * hopSize) + nfft;
-//     std::vector<float> output(totalSamples, 0.0f);
-    
-//     int binsPerBand = numBins / numBands;
+    // 1. Generate the ringing tail starting at maximum amplitude
+    for (const auto& mode : modes)
+    {
+        float w = 2.0f * Sihat::PI * mode.freq;
+        float decayPerSample = std::exp(-mode.decay * T);
+        
+        std::complex<float> poleCoef = std::polar(decayPerSample, w * T);
+        std::complex<float> state = std::polar(mode.amp, mode.phase);
 
-//     // FFTW setup for Inverse FFT
-//     fftwf_complex* complexNoise = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex) * numBins);
-//     float* timeFrame = (float*)fftwf_malloc(sizeof(float) * nfft);
-//     fftwf_plan ifftPlan = fftwf_plan_dft_c2r_1d(nfft, complexNoise, timeFrame, FFTW_MEASURE);
+        for (int n = 0; n < numOutputSamples; ++n)
+        {
+            output[n] += state.real();
+            state *= poleCoef; 
+        }
+    }
 
-//     for (int i = 0; i < numFrames; ++i)
-//     {
-//         // 1. Generate White Noise Spectrum
-//         // In the frequency domain, white noise has random phase and flat magnitude.
-//         for (int j = 0; j < numBins; ++j)
-//         {
-//             // Random phase between -PI and PI
-//             float phase = ((rand() / (float)RAND_MAX) * Sihat::TWO_PI) - Sihat::PI;
+    // 2. Carve out the physical attack rise
+    if (attackSamples > 0)
+    {
+        // Safety bounds
+        int fadeLen = std::min(attackSamples, numOutputSamples);
+        
+        for (int n = 0; n < fadeLen; ++n)
+        {
+            // Quarter-sine curve: starts at 0.0, smoothly curves up to 1.0
+            float phase = (static_cast<float>(n) / static_cast<float>(fadeLen)) * Sihat::PI * 0.5f;
+            float envelope = std::sin(phase);
             
-//             // 2. Map bin 'j' to its corresponding band 'b'
-//             int b = std::min(j / binsPerBand, numBands - 1);
-            
-//             // Extract energy and convert to amplitude
-//             float bandEnergy = sihat.transient.bands[b * numFrames + i];
-//             float bandAmp = std::sqrt(bandEnergy / binsPerBand);
+            output[n] *= envelope;
+        }
+    }
 
-//             // 3. Shape the noise (Polar to Cartesian conversion)
-//             complexNoise[j][0] = bandAmp * std::cos(phase); // Real
-//             complexNoise[j][1] = bandAmp * std::sin(phase); // Imaginary
-//         }
-
-//         // 4. IFFT back to time domain
-//         fftwf_execute(ifftPlan);
-
-//         // 5. Overlap-Add with Synthesis Window
-//         int writeOffset = i * hopSize;
-//         for (int n = 0; n < nfft; ++n)
-//         {
-//             // Standard Hann synthesis window
-//             float winVal = 0.5f * (1.0f - std::cos(Sihat::TWO_PI * n / (nfft - 1)));
-            
-//             // Note: FFTW c2r transforms are unscaled, so we divide by nfft
-//             float sample = (timeFrame[n] / nfft) * winVal;
-            
-//             output[writeOffset + n] += sample;
-//         }
-//     }
-
-//     fftwf_free(complexNoise);
-//     fftwf_free(timeFrame);
-//     fftwf_destroy_plan(ifftPlan);
-
-//     return output;
-// }
+    return output;
+}
 
 std::vector<float> Resynthesizer::applyEnvelope(
     const std::vector<float>& vect,
@@ -538,7 +527,7 @@ void Resynthesizer::matchRms(std::vector<float>& vec, const float rms)
 {
     float inRms = Sihat::getRmsValue(vec, 0, vec.size());
     float mRms = rms;
-    if (inRms == 0.0) return;
+    if (inRms <= 1e-6) return;
     float ratio = mRms / inRms;
 
     for (int i = 0; i < vec.size(); i++)
@@ -553,7 +542,7 @@ void Resynthesizer::matchPeak(std::vector<float>& vec, const float peak, const i
 
     int max = vec.size();
     float maxval = 0.0;
-    if (maxsize != 0) max = maxsize;
+    if (maxsize != 0 && maxsize < max) max = maxsize;
     
     for (int i = 0; i < max; i++)
     {
