@@ -9,6 +9,9 @@
 #include "include/ResynthHeader.h"
 #include "include/ResynthConfig.h"
 #include "resynthesis/SihatResynth.h"
+#include "include/InterpConfig.h"
+#include "include/InterpHeader.h"
+#include "interpolation/Interpolator.h"
 
 #include <iostream>
 #include <stdexcept>
@@ -75,6 +78,49 @@ void runResynthThread(
     
 }
 
+void runInterpolationThread(
+    std::string pathA,
+    std::string pathB,
+    InterpConfig::Config& iConfig,
+    InterpConfig::Parameters& iParams,
+    float alpha,
+    std::atomic<bool>& isProcessingFlag,
+    SihatLogger& logger,
+    bool& hasAudioFlag,
+    std::vector<float>& outAudio) // Passed by ref so the GUI can access it later
+{
+    logger.logTemp("Interpolating and Resynthesizing...");
+    
+    try {
+        // 1. Load the files
+        Synth::Sihat sihatA = SihatFile::loadSihatFile(pathA);
+        Synth::Sihat sihatB = SihatFile::loadSihatFile(pathB);
+
+        // 2. Interpolate (using the aggregator we built earlier)
+        Interpolator interp(iConfig, iParams);
+        // interp.conf.alpha = alpha; // Set up your conf however you structured it
+        float targetF0 = iConfig.f0; // Example
+        Synth::Sihat interpolatedSihat = interp.interpolateSihat(sihatA, sihatB, targetF0);
+
+        // 3. Resynthesize
+        Resynthesizer synth(interpolatedSihat, ResynthConfig()); // Pass relevant config
+        synth.resynthesize(); // Assuming this generates the audio internally
+        
+        // 4. Extract the audio
+        // You'll need a method in your Resynthesizer to get the resulting buffer
+        outAudio = synth.getResynthAudio();
+        
+        hasAudioFlag = true;
+        logger.log("Interpolation and audio generation complete.");
+    }
+    catch(const std::exception& e) {
+        logger.log("[ERROR] Interpolation failed: " + std::string(e.what()));
+        hasAudioFlag = false;
+    }
+
+    isProcessingFlag = false;
+}
+
 SihatApplication::SihatApplication(const std::string& jsonPath)
 {
     viewModel.jsonPath = jsonPath;
@@ -87,6 +133,8 @@ SihatApplication::SihatApplication(const std::string& jsonPath)
         //std::cerr << "Failed to load settings: " << e.what() << ". Using defualts." << std::endl;
         viewModel.logger.log("[ERROR] Failed to load settings: " + std::string(e.what()));
     }
+
+    m_audioPlayer.init(viewModel.iConfig.sampleRate);
 
     initialize();
 
@@ -104,6 +152,32 @@ SihatApplication::SihatApplication(const std::string& jsonPath)
 
     viewModel.onRunResynthRequested = [this]() {
         this->onRunResynth();
+        };
+    viewModel.onLoadFileA = [this]() {
+        std::string path = SihatFile::openSihatDialog();
+        if (!path.empty()) viewModel.iConfig.pathA = path;
+        };
+
+    viewModel.onLoadFileB = [this]() {
+        std::string path = SihatFile::openSihatDialog();
+        if (!path.empty()) viewModel.iConfig.pathB = path;
+        };
+
+    viewModel.onAlphaChanged = [this]() {
+        this->onRunInterpolation();
+        };
+
+    viewModel.onPlayAudio = [this]() {
+        viewModel.logger.logTemp("Playing audio...");
+        m_audioPlayer.playAudio(viewModel.generatedAudio);
+        };
+
+    viewModel.onSaveAudio = [this]() {
+        std::string savePath = SihatFile::openFolderDialog(); // Implement this if you haven't
+        if (!savePath.empty()) {
+            // Example: AudioFile::saveWav(savePath, viewModel.generatedAudio, sampleRate);
+            viewModel.logger.log("Audio saved to " + savePath);
+        }
         };
 }
 
@@ -225,5 +299,30 @@ void SihatApplication::onRunResynth()
         std::ref(viewModel.isProcessing),
         std::ref(viewModel.logger),
         viewModel.rConfig
+    );
+}
+
+void SihatApplication::onRunInterpolation()
+{
+    if (viewModel.isProcessing.load()) return;
+    
+    // Reset audio state
+    viewModel.hasAudioToPlay = false;
+    viewModel.generatedAudio.clear();
+    viewModel.isProcessing = true;
+    
+    checkAndJoinThread();
+
+    analysisThread = std::thread(
+        runInterpolationThread,
+        viewModel.iConfig.pathA,
+        viewModel.iConfig.pathB,
+        std::ref(viewModel.iConfig),
+        std::ref(viewModel.iParams),
+        viewModel.iConfig.alpha,
+        std::ref(viewModel.isProcessing),
+        std::ref(viewModel.logger),
+        std::ref(viewModel.hasAudioToPlay),
+        std::ref(viewModel.generatedAudio)
     );
 }

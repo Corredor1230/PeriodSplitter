@@ -1,6 +1,7 @@
 #pragma once
 
 #include"gui/EditorViewModel.h"
+#include"interpolation/AudioPlayer.h"
 #include<thread>
 #include<string>
 
@@ -20,6 +21,9 @@ private:
 	void onSave();
 	void onRun(bool isBulk);
 	void onRunResynth();
+	void onRunInterpolation();
+
+	AudioPlayer m_audioPlayer;
 
 	GLFWwindow* m_window = nullptr;
 	EditorViewModel viewModel;
