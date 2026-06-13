@@ -99,6 +99,170 @@ namespace SihatFile {
 		return "";
 	}
 
+	inline auto loadSihatHeader(std::ifstream& inFile, uint16_t vMajor, uint16_t vMinor) {
+    // Automatically instantiates whatever type 'header' is inside the Sihat struct
+    auto header = decltype(Synth::Sihat::header){}; 
+
+		uint8_t tA, hA;
+		inFile.read(reinterpret_cast<char*>(&tA), sizeof(uint8_t));
+		header.type.transientAnalysis = (tA != 0);
+
+		inFile.read(reinterpret_cast<char*>(&hA), sizeof(uint8_t));
+		header.type.harmonicAnalysis = (hA != 0);
+
+		inFile.read(reinterpret_cast<char*>(&header.sampleRate), sizeof(uint32_t));
+		inFile.read(reinterpret_cast<char*>(&header.f0), sizeof(float));
+		
+		uint32_t stringSize = 0;
+		inFile.read(reinterpret_cast<char*>(&stringSize), sizeof(uint32_t));
+		if (stringSize > 0) {
+			header.filename.resize(stringSize);
+			inFile.read(&header.filename[0], stringSize);
+		}
+		
+		return header;
+	}
+
+	inline auto loadSihatHarmonic(std::ifstream& inFile, uint16_t vMajor, uint16_t vMinor) {
+		auto harmonic = decltype(Synth::Sihat::harmonic){};
+
+		// Block 1: Indices
+		inFile.read(reinterpret_cast<char*>(&harmonic.numFrames), sizeof(uint32_t));
+		harmonic.indices.resize(harmonic.numFrames);
+		inFile.read(reinterpret_cast<char*>(harmonic.indices.data()), harmonic.numFrames * sizeof(uint32_t));
+
+		// Block 2: Amp
+		uint32_t numHarmonics = 0;
+		inFile.read(reinterpret_cast<char*>(&numHarmonics), sizeof(uint32_t));
+		harmonic.amp.resize(numHarmonics);
+		for (int i = 0; i < numHarmonics; i++) {
+			uint32_t numFrames = 0;
+			inFile.read(reinterpret_cast<char*>(&numFrames), sizeof(uint32_t));
+			harmonic.amp[i].resize(numFrames);
+			inFile.read(reinterpret_cast<char*>(harmonic.amp[i].data()), numFrames * sizeof(float));
+		}
+
+		// Block 3: Phase
+		inFile.read(reinterpret_cast<char*>(&numHarmonics), sizeof(uint32_t));
+		harmonic.pha.resize(numHarmonics);
+		for (int i = 0; i < numHarmonics; i++) {
+			uint32_t numFrames = 0;
+			inFile.read(reinterpret_cast<char*>(&numFrames), sizeof(uint32_t));
+			harmonic.pha[i].resize(numFrames);
+			inFile.read(reinterpret_cast<char*>(harmonic.pha[i].data()), numFrames * sizeof(float));
+		}
+
+		// Block 4: Frequency
+		inFile.read(reinterpret_cast<char*>(&numHarmonics), sizeof(uint32_t));
+		harmonic.fRatio.resize(numHarmonics);
+		for (int i = 0; i < numHarmonics; i++) {
+			uint32_t numFrames = 0;
+			inFile.read(reinterpret_cast<char*>(&numFrames), sizeof(uint32_t));
+			harmonic.fRatio[i].resize(numFrames);
+			inFile.read(reinterpret_cast<char*>(harmonic.fRatio[i].data()), numFrames * sizeof(float));
+		}
+
+		inFile.read(reinterpret_cast<char*>(&harmonic.rms), sizeof(float));
+
+		return harmonic;
+	}
+
+	inline auto loadSihatTransient(std::ifstream& inFile, uint16_t vMajor, uint16_t vMinor) {
+		auto transient = decltype(Synth::Sihat::transient){};
+
+		auto readFloatVector = [&inFile](std::vector<float>& vec) {
+			uint32_t size = 0;
+			inFile.read(reinterpret_cast<char*>(&size), sizeof(uint32_t));
+			if (size > 0) {
+				vec.resize(size);
+				inFile.read(reinterpret_cast<char*>(vec.data()), size * sizeof(float));
+			}
+		};
+
+		// 1. Read the Range
+		inFile.read(reinterpret_cast<char*>(&transient.meta.tStart), sizeof(uint32_t));
+		inFile.read(reinterpret_cast<char*>(&transient.meta.tEnd), sizeof(uint32_t));
+
+		// Important parameters
+		inFile.read(reinterpret_cast<char*>(&transient.meta.envHopSize), sizeof(uint32_t));
+		inFile.read(reinterpret_cast<char*>(&transient.meta.specHopSize), sizeof(uint32_t));
+		inFile.read(reinterpret_cast<char*>(&transient.meta.floorHopSize), sizeof(uint32_t));
+		inFile.read(reinterpret_cast<char*>(&transient.meta.specWindowSize), sizeof(uint32_t));
+		inFile.read(reinterpret_cast<char*>(&transient.meta.specNumBins), sizeof(uint32_t));
+		inFile.read(reinterpret_cast<char*>(&transient.meta.specNumFrames), sizeof(uint32_t));
+		inFile.read(reinterpret_cast<char*>(&transient.meta.specNfft), sizeof(uint32_t));
+
+		// 2. Read scalar metrics
+		inFile.read(reinterpret_cast<char*>(&transient.riseTime), sizeof(int32_t));
+		inFile.read(reinterpret_cast<char*>(&transient.peakAmp), sizeof(float));
+
+		// 3. Read 1D analysis envelopes
+		uint32_t envSize = 0;
+		inFile.read(reinterpret_cast<char*>(&envSize), sizeof(uint32_t));
+		transient.envelope.env.resize(envSize);
+		
+		if (envSize > 0) {
+			inFile.read(reinterpret_cast<char*>(&transient.envelope.firstIndex), sizeof(uint32_t));
+			inFile.read(reinterpret_cast<char*>(transient.envelope.env.data()), envSize * sizeof(float));
+		}
+
+		readFloatVector(transient.centroid);
+		readFloatVector(transient.flatness);
+
+		// 4. Read the Band Partials
+		inFile.read(reinterpret_cast<char*>(&transient.meta.numBands), sizeof(uint32_t));
+
+		// 5. Read the flattened band envelopes
+		readFloatVector(transient.bands);
+
+		// 6. Read the modes
+		inFile.read(reinterpret_cast<char*>(&transient.tModes.startInd), sizeof(uint32_t));
+		inFile.read(reinterpret_cast<char*>(&transient.tModes.length), sizeof(uint32_t));
+		uint32_t modeNum = 0;
+		inFile.read(reinterpret_cast<char*>(&modeNum), sizeof(uint32_t));
+		transient.tModes.modes.resize(modeNum);
+		
+		for (auto& mode : transient.tModes.modes) {
+			inFile.read(reinterpret_cast<char*>(&mode.freq), sizeof(float));
+			inFile.read(reinterpret_cast<char*>(&mode.amp), sizeof(float));
+			inFile.read(reinterpret_cast<char*>(&mode.phase), sizeof(float));
+			inFile.read(reinterpret_cast<char*>(&mode.decay), sizeof(float));
+		}
+
+		// Metadata for the harmonic section
+		inFile.read(reinterpret_cast<char*>(&transient.meta.harmHopSize), sizeof(uint32_t));
+		inFile.read(reinterpret_cast<char*>(&transient.meta.harmStartSample), sizeof(uint32_t));
+
+		uint32_t numOvertones = 0;
+		inFile.read(reinterpret_cast<char*>(&numOvertones), sizeof(uint32_t));
+		transient.overtones.resize(numOvertones);
+
+		// Harmonic section proper
+		for (auto& over : transient.overtones) {
+			inFile.read(reinterpret_cast<char*>(&over.target.freq), sizeof(double));
+			inFile.read(reinterpret_cast<char*>(&over.target.mag), sizeof(double));
+			inFile.read(reinterpret_cast<char*>(&over.target.amp), sizeof(double));
+			inFile.read(reinterpret_cast<char*>(&over.target.phase), sizeof(double));
+
+			uint32_t frameNum = 0;
+			inFile.read(reinterpret_cast<char*>(&frameNum), sizeof(uint32_t));
+			over.envelope.resize(frameNum);
+
+			for (auto& point : over.envelope) {
+				inFile.read(reinterpret_cast<char*>(&point.freq), sizeof(float));
+				inFile.read(reinterpret_cast<char*>(&point.crestFactor), sizeof(float));
+				inFile.read(reinterpret_cast<char*>(&point.amp), sizeof(float));
+			}
+		}
+
+		// Floor values
+		readFloatVector(transient.floors);
+
+		inFile.read(reinterpret_cast<char*>(&transient.rms), sizeof(float));
+
+		return transient;
+	}
+
 	/**
 	 * Loads .sihat files and parses them into Sihat structs
 	 */
@@ -106,195 +270,49 @@ namespace SihatFile {
 	{
 		std::ifstream inFile(fullpath, std::ios::binary);
 
-		// 2. Always check if the file opened successfully
 		if (!inFile.is_open()) {
 			std::cerr << "Failed to open file for reading: " << fullpath << "\n";
-			Synth::Sihat temp;
-			return temp;
+			return Synth::Sihat{};
 		}
 
+		// 1. Verify Magic String
+		char magic[4];
+		inFile.read(magic, 4);
+		if (inFile.gcount() != 4 || std::strncmp(magic, Synth::SIHAT_MAGIC, 4) != 0) {
+			std::cerr << "[Error] File is not a valid Sihat format.\n";
+			return Synth::Sihat{};
+		}
+
+		// 2. Read File Version
+		uint16_t fileMajor = 0;
+		uint16_t fileMinor = 0;
+		inFile.read(reinterpret_cast<char*>(&fileMajor), sizeof(uint16_t));
+		inFile.read(reinterpret_cast<char*>(&fileMinor), sizeof(uint16_t));
+
+		// 3. Version Compatibility Check
+		if (fileMajor > Synth::SIHAT_VERSION_MAJOR || 
+		(fileMajor == Synth::SIHAT_VERSION_MAJOR && fileMinor > Synth::SIHAT_VERSION_MINOR)) {
+			
+			std::cerr << "[Error] File version v" << fileMajor << "." << fileMinor 
+					<< " is newer than supported version v" 
+					<< Synth::SIHAT_VERSION_MAJOR << "." << Synth::SIHAT_VERSION_MINOR 
+					<< ". Please update your software.\n";
+			return Synth::Sihat{};
+		}
+
+		// 4. Load Data
 		Synth::Sihat data;
+		
+		// Notice how clean the data assignment is now
+		data.header = loadSihatHeader(inFile, fileMajor, fileMinor);
 
-		// Header load
-		{
-
-			uint8_t tA;
-			inFile.read(reinterpret_cast<char*>(&tA), sizeof(uint8_t));
-			data.header.type.transientAnalysis = (tA != 0);
-
-			uint8_t hA;
-			inFile.read(reinterpret_cast<char*>(&hA), sizeof(uint8_t));
-			data.header.type.harmonicAnalysis = (hA != 0);
-
-			inFile.read(reinterpret_cast<char*>(&data.header.sampleRate), sizeof(uint32_t));
-			inFile.read(reinterpret_cast<char*>(&data.header.f0), sizeof(float));
-			uint32_t stringSize = 0;
-			inFile.read(reinterpret_cast<char*>(&stringSize), sizeof(uint32_t));
-			if (stringSize > 0) {
-				// Resize the string to allocate enough memory buffer space
-				data.header.filename.resize(stringSize);
-
-				// Read directly into the allocated memory buffer
-				inFile.read(&data.header.filename[0], stringSize);
-			}
+		if (data.header.type.harmonicAnalysis) {
+			data.harmonic = loadSihatHarmonic(inFile, fileMajor, fileMinor);
 		}
 
-		if (data.header.type.harmonicAnalysis)
-		{
-			//Block 1
-			{
-				inFile.read(reinterpret_cast<char*>(&data.harmonic.numFrames), sizeof(uint32_t));
-				std::vector<uint32_t> tempIndex;
-				tempIndex.resize(data.harmonic.numFrames);
-
-				inFile.read(reinterpret_cast<char*>(tempIndex.data()), data.harmonic.numFrames * sizeof(uint32_t));
-
-				data.harmonic.indices = tempIndex;
-			}
-
-			//Block 2: Amp
-			{
-				uint32_t numHarmonics = 0;
-				inFile.read(reinterpret_cast<char*>(&numHarmonics), sizeof(uint32_t));
-				data.harmonic.amp.resize(numHarmonics);
-				for (int i = 0; i < numHarmonics; i++)
-				{
-					uint32_t numFrames = 0;
-					inFile.read(reinterpret_cast<char*>(&numFrames), sizeof(uint32_t));
-					std::vector<float> tempAmp;
-					tempAmp.resize(numFrames);
-
-					inFile.read(reinterpret_cast<char*>(tempAmp.data()), numFrames * sizeof(float));
-
-					data.harmonic.amp[i] = tempAmp;
-				}
-			}
-
-			// Block 3: Phase
-			{
-				uint32_t numHarmonics = 0;
-				inFile.read(reinterpret_cast<char*>(&numHarmonics), sizeof(uint32_t));
-				data.harmonic.pha.resize(numHarmonics);
-				for (int i = 0; i < numHarmonics; i++)
-				{
-					uint32_t numFrames = 0;
-					inFile.read(reinterpret_cast<char*>(&numFrames), sizeof(uint32_t));
-					std::vector<float> tempPha;
-					tempPha.resize(numFrames);
-
-					inFile.read(reinterpret_cast<char*>(tempPha.data()), numFrames * sizeof(float));
-
-					data.harmonic.pha[i] = tempPha;
-				}
-			}
-
-			// Block 4: Frequency
-			{
-				uint32_t numHarmonics = 0;
-				inFile.read(reinterpret_cast<char*>(&numHarmonics), sizeof(uint32_t));
-				data.harmonic.freq.resize(numHarmonics);
-				for (int i = 0; i < numHarmonics; i++)
-				{
-					uint32_t numFrames = 0;
-					inFile.read(reinterpret_cast<char*>(&numFrames), sizeof(uint32_t));
-					std::vector<float> tempFreq;
-					tempFreq.resize(numFrames);
-
-					inFile.read(reinterpret_cast<char*>(tempFreq.data()), numFrames * sizeof(float));
-
-					data.harmonic.freq[i] = tempFreq;
-				}
-			}
+		if (data.header.type.transientAnalysis) {
+			data.transient = loadSihatTransient(inFile, fileMajor, fileMinor);
 		}
-
-		auto readFloatVector = [&inFile](std::vector<float>& vec) {
-            uint32_t size = 0;
-            inFile.read(reinterpret_cast<char*>(&size), sizeof(uint32_t));
-            if (size > 0) {
-                vec.resize(size);
-                inFile.read(reinterpret_cast<char*>(vec.data()), size * sizeof(float));
-            }
-        };
-
-		if (data.header.type.transientAnalysis)
-		{
-			// Block 5
-			{
-				// 1. Read the Range
-				inFile.read(reinterpret_cast<char*>(&data.transient.meta.tStart), sizeof(uint32_t));
-				inFile.read(reinterpret_cast<char*>(&data.transient.meta.tEnd), sizeof(uint32_t));
-
-				// Important parameters
-				inFile.read(reinterpret_cast<char*>(&data.transient.meta.envHopSize), sizeof(uint32_t));
-				inFile.read(reinterpret_cast<char*>(&data.transient.meta.specHopSize), sizeof(uint32_t));
-				inFile.read(reinterpret_cast<char*>(&data.transient.meta.floorHopSize), sizeof(uint32_t));
-				inFile.read(reinterpret_cast<char*>(&data.transient.meta.specWindowSize), sizeof(uint32_t));
-				inFile.read(reinterpret_cast<char*>(&data.transient.meta.specNumBins), sizeof(uint32_t));
-				inFile.read(reinterpret_cast<char*>(&data.transient.meta.specNumFrames), sizeof(uint32_t));
-				inFile.read(reinterpret_cast<char*>(&data.transient.meta.specNfft), sizeof(uint32_t));
-
-				// 2. Read scalar metrics
-				inFile.read(reinterpret_cast<char*>(&data.transient.riseTime), sizeof(int32_t));
-				inFile.read(reinterpret_cast<char*>(&data.transient.peakAmp), sizeof(float));
-
-				// 3. Read 1D analysis envelopes
-				uint32_t envSize = 0;
-				inFile.read(reinterpret_cast<char*>(&envSize), sizeof(uint32_t));
-				data.transient.envelope.env.resize(envSize);
-				
-				if (envSize > 0) {
-					inFile.read(reinterpret_cast<char*>(&data.transient.envelope.firstIndex), sizeof(uint32_t));
-					inFile.read(reinterpret_cast<char*>(data.transient.envelope.env.data()), envSize * sizeof(float));
-				}
-
-				readFloatVector(data.transient.centroid);
-				readFloatVector(data.transient.flatness);
-
-				// 4. Read the Band Partials
-				inFile.read(reinterpret_cast<char*>(&data.transient.meta.numBands), sizeof(uint32_t));
-
-				// 5. Read the flattened band envelopes
-				readFloatVector(data.transient.bands);
-
-				// Metadata for the harmonic section
-				inFile.read(reinterpret_cast<char*>(&data.transient.meta.harmHopSize), sizeof(uint32_t));
-				inFile.read(reinterpret_cast<char*>(&data.transient.meta.harmStartSample), sizeof(uint32_t));
-
-				uint32_t numOvertones = 0;
-				inFile.read(reinterpret_cast<char*>(&numOvertones), sizeof(uint32_t));
-				data.transient.overtones.resize(numOvertones);
-
-				// Harmonic section proper
-				for (auto& over : data.transient.overtones) {
-					// Assuming SpectralBin contains double freq, double mag, double amp
-					inFile.read(reinterpret_cast<char*>(&over.target.freq), sizeof(double));
-					inFile.read(reinterpret_cast<char*>(&over.target.mag), sizeof(double));
-					inFile.read(reinterpret_cast<char*>(&over.target.amp), sizeof(double));
-					inFile.read(reinterpret_cast<char*>(&over.target.phase), sizeof(double));
-
-					uint32_t frameNum = 0;
-					inFile.read(reinterpret_cast<char*>(&frameNum), sizeof(uint32_t));
-					over.envelope.resize(frameNum);
-
-					// Assuming EnvelopePoint contains float freq, float crestFactor
-					for (auto& point : over.envelope) {
-						inFile.read(reinterpret_cast<char*>(&point.freq), sizeof(float));
-						inFile.read(reinterpret_cast<char*>(&point.crestFactor), sizeof(float));
-						inFile.read(reinterpret_cast<char*>(&point.amp), sizeof(float));
-					}
-				}
-
-				// Floor values
-				readFloatVector(data.transient.floors);
-			}
-		}
-
-        // Block 5: Read the RMS values for each section
-        {
-			if (data.header.type.harmonicAnalysis) inFile.read(reinterpret_cast<char*>(&data.harmonic.rms), sizeof(float));
-
-            if (data.header.type.transientAnalysis) inFile.read(reinterpret_cast<char*>(&data.transient.rms), sizeof(float));
-        }
 
         return data; // Make sure to return your loaded struct!
 	}
