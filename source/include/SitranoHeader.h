@@ -10,6 +10,8 @@
 #include<algorithm>
 #include<complex>
 
+#include"ResynthHeader.h"
+
 namespace Sihat
 {
     constexpr double PI = 3.14159265358979323846;
@@ -127,6 +129,9 @@ namespace Sihat
         float inThreshold = 0.1f;
         float tolInCents = 50.0;
         float o_tolInCents = 10.0;
+        int numModes = 32;
+        int modeWindow = 2048;
+        float firstPeakThreshold = 0.4f;
     };
 
     /** 
@@ -326,6 +331,7 @@ namespace Sihat
         std::vector<float> centroid;
         std::vector<float> flatness;
         std::vector<float> bandEnvelopes;
+        Synth::TModes tmodes;
         TransientHarmonics tHarmonics;
         float rms;
     };
@@ -394,6 +400,22 @@ namespace Sihat
     inline float minmax(float low, float high, float in)
     {
         return std::max<float>(std::min<float>(high, in), low);
+    }
+    inline std::vector<float> getAudioExcerpt(const std::vector<float>& audio, int start, int end)
+    {
+        if (start < 0 || end > audio.size() || start >= end) {
+            return {};
+        }
+        return std::vector<float>(audio.begin() + start, audio.begin() + end);
+    }
+    inline std::vector<float> getDifferential(const std::vector<float>& audio)
+    {
+        std::vector<float> diff(audio.size(), 0.0f);
+        for (size_t i = 1; i < audio.size(); ++i)
+        {
+            diff[i] = audio[i] - audio[i - 1];
+        }
+        return diff;
     }
     inline double cents_to_hz(double f_center, double cents)
     {

@@ -186,6 +186,9 @@ public:
                 ImGui::InputInt("Overtone NFFT", &config.stSettings.overNfft);
                 ImGui::InputFloat("Tolerance in Cents", &config.stSettings.tolInCents);
                 ImGui::InputFloat("Overtone tolerance", &config.stSettings.o_tolInCents);
+                ImGui::InputInt("Mode Window", &config.stSettings.modeWindow);
+                ImGui::InputInt("Num Modes", &config.stSettings.numModes);
+                ImGui::InputFloat("First Peak Threshold", &config.stSettings.firstPeakThreshold);
                 ImGui::TreePop();
             }
 
@@ -258,5 +261,63 @@ public:
         }
         ImGui::End();
 
+    }
+
+    static void InterpolationRender(EditorViewModel& viewModel, bool* p_open = nullptr)
+    {
+        if (!ImGui::Begin("Interpolation Editor", p_open)) {
+        ImGui::End();
+        return;
+        }
+
+        bool processing = viewModel.isProcessing.load();
+        ImGui::BeginDisabled(processing); // Disable everything while calculating
+
+        // --- File Loading ---
+        ImGui::Text("File A: %s", viewModel.iConfig.pathA.empty() ? "None" : viewModel.iConfig.pathA.c_str());
+        ImGui::SameLine();
+        if (ImGui::Button("Load A")) {
+            if (viewModel.onLoadFileA) viewModel.onLoadFileA();
+        }
+
+        ImGui::Text("File B: %s", viewModel.iConfig.pathB.empty() ? "None" : viewModel.iConfig.pathB.c_str());
+        ImGui::SameLine();
+        if (ImGui::Button("Load B")) {
+            if (viewModel.onLoadFileB) viewModel.onLoadFileB();
+        }
+
+        ImGui::Separator();
+
+        // --- The Slider Logic ---
+        bool readyToInterpolate = !viewModel.iConfig.pathA.empty() && !viewModel.iConfig.pathB.empty();
+        
+        ImGui::BeginDisabled(!readyToInterpolate);
+        ImGui::SliderFloat("Interpolation Alpha", &viewModel.iConfig.alpha, 0.0f, 1.0f, "%.4f");
+        
+        // THIS is the magic ImGui function that returns true only on the frame the user lets go of the mouse
+        if (ImGui::IsItemDeactivatedAfterEdit()) 
+        {
+            if (viewModel.onAlphaChanged) viewModel.onAlphaChanged();
+        }
+        ImGui::EndDisabled();
+        
+        ImGui::InputFloat("F0 for Interpolation", &viewModel.iConfig.f0, 0.1f, 20000.0f, "%.1f Hz", ImGuiSliderFlags_Logarithmic);
+
+        ImGui::Separator();
+
+        // --- Audio Controls ---
+        ImGui::BeginDisabled(!viewModel.hasAudioToPlay);
+        if (ImGui::Button("Play Audio")) {
+            if (viewModel.onPlayAudio) viewModel.onPlayAudio();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Save Audio File")) {
+            if (viewModel.onSaveAudio) viewModel.onSaveAudio();
+        }
+        ImGui::EndDisabled(); // End audio disable
+
+        ImGui::EndDisabled(); // End processing disable
+
+        ImGui::End();
     }
 };
