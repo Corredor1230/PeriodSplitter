@@ -49,7 +49,10 @@ namespace SihatJson {
             {"st_overFrames", st.overFrames},
             {"st_overNfft", st.overNfft},
             {"st_tolInCents", st.tolInCents},
-            {"st_o_tolInCents", st.o_tolInCents}
+            {"st_o_tolInCents", st.o_tolInCents},
+            {"st_numModes", st.numModes},
+            {"st_modeWindow", st.modeWindow},
+            {"st_firstPeakThreshold", st.firstPeakThreshold}
         };
     }
 
@@ -253,6 +256,9 @@ namespace SihatJson {
         j.at("st_overNfft").get_to(st.overNfft);
         j.at("st_tolInCents").get_to(st.tolInCents);
         j.at("st_o_tolInCents").get_to(st.o_tolInCents);
+        j.at("st_numModes").get_to(st.numModes);
+        j.at("st_modeWindow").get_to(st.modeWindow);
+        j.at("st_firstPeakThreshold").get_to(st.firstPeakThreshold);
     }
 
     // --- NoiseSettings ---
