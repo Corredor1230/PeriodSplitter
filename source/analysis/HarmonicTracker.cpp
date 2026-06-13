@@ -8,7 +8,7 @@ HarmonicTracker::HarmonicTracker(
     const Sihat::AnalysisConfig& conf,
     const std::vector<Sihat::Peak>& top,
     const std::vector<uint32_t>& sampleList,
-    const int startSample) :
+    const int startSample, const float pitch) :
     unit(a),
     start(startSample),
     sr(unit.sampleRate),
@@ -16,7 +16,8 @@ HarmonicTracker::HarmonicTracker(
     sList(sampleList),
     nfft(conf.nfft),
     settings(conf.hSettings),
-    tFreqs(top)
+    tFreqs(top),
+    f0(pitch)
 {
     window.resize(nfft);
     checker.resize(nfft * 2);
@@ -120,9 +121,9 @@ Sihat::HarmonicResults HarmonicTracker::analyze()
                         }
                     }
 
-                    hResults.amps[h - 1].push_back(fUnit.amp * duringEnv);
+                    hResults.amps[h - 1].push_back(Sihat::ampToDb(fUnit.amp * duringEnv));
                     hResults.phases[h - 1].push_back(fUnit.pha);
-                    hResults.freqs[h - 1].push_back(fUnit.bin.freq);
+                    hResults.freqs[h - 1].push_back(fUnit.bin.freq / f0);
                 }
             }
         }

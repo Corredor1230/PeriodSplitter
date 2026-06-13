@@ -16,7 +16,7 @@ public:
         const Sihat::AnalysisConfig& conf,
         const std::vector<Sihat::Peak>& top,
         const std::vector<uint32_t>& sampleList,
-        const int startSample);
+        const int startSample, const float pitch);
 
     ~HarmonicTracker() {
         fftwf_destroy_plan(plan);
@@ -50,6 +50,7 @@ private:
     const std::vector<uint32_t>& sList;
     const float sr;
     const int start;
+    const float f0;
     Sihat::HarmonicResults hResults;
 
     void initFFTW();
