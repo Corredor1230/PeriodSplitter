@@ -12,6 +12,8 @@
         "opengl3-binding"
       ]
     },
-    "glfw3"
+    "glfw3",
+    "rtaudio",
+    "eigen3"
   ]
 }
