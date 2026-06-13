@@ -12,7 +12,9 @@ find_package(glfw3 CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(fftw3 CONFIG REQUIRED)
 find_package(fftw3f CONFIG REQUIRED)
-find_package(SndFile CONFIG REQUIRED) # Corregido (antes libsndfile)
+find_package(SndFile CONFIG REQUIRED)
+find_package(RtAudio CONFIG REQUIRED)
+find_package(Eigen3 CONFIG REQUIRED)
 
 # --- RUTAS A BIBLIOTECAS (Solo para las que no están en vcpkg) ---
 set(LIBPYIN_INCLUDE_DIR "C:/Libraries/LibPyin/source")
@@ -97,6 +99,13 @@ set(RESYNTH_FILES
     ${SOURCE_DIR}/resynthesis/SihatResynth.cpp
 )
 
+set(INTERP_FILES
+    ${SOURCE_DIR}/interpolation/Interpolator.h
+    ${SOURCE_DIR}/interpolation/Interpolator.cpp
+    ${SOURCE_DIR}/interpolation/AudioPlayer.h
+    ${SOURCE_DIR}/interpolation/AudioPlayer.cpp
+)
+
 set(APPLICATION_SOURCES
     ${SOURCE_DIR}/SihatApplication.cpp
     ${SOURCE_DIR}/SihatApplication.h
@@ -116,9 +125,14 @@ add_executable(${EXECUTABLE_NAME}
     ${INCLUDE_FILES}
     ${FILE_FILES}
     ${RESYNTH_FILES}
+    ${INTERP_FILES}
 )
 
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE NOMINMAX)
+
+if(MSVC)
+    target_compile_options(${EXECUTABLE_NAME} PRIVATE /bigobj)
+endif()
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
 
@@ -139,9 +153,10 @@ target_link_libraries(${EXECUTABLE_NAME} PRIVATE
     SndFile::sndfile
     # FFTW3::fftw3        
     FFTW3::fftw3f       
-    
+    RtAudio::rtaudio
     # Bibliotecas del sistema
     OpenGL::GL
+    Eigen3::Eigen
     
     # Tu biblioteca manual
     "${LIBPYIN_LIBRARY_DIR}/LibPyin.lib"
