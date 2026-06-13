@@ -10,9 +10,26 @@ namespace Synth
     constexpr double M_E = 2.718281828459045;
     constexpr double TWO_PI = 2.0 * PI;
 
+    constexpr char SIHAT_MAGIC[4] = {'S', 'I', 'H', 'T'};
+    constexpr uint16_t SIHAT_VERSION_MAJOR = 1;
+    constexpr uint16_t SIHAT_VERSION_MINOR = 0;
+
     struct AnalysisType{
         bool transientAnalysis = true;
         bool harmonicAnalysis = true;
+    };
+
+    struct ModalComponent{
+        float freq = 0.0f;
+        float amp = 0.0f;
+        float phase = 0.0f;
+        float decay = 0.0f;
+    };
+
+    struct TModes{
+        std::vector<ModalComponent> modes;
+        uint32_t startInd = 0;
+        uint32_t length = 1024;
     };
 
     struct Envelope{
@@ -75,7 +92,7 @@ namespace Synth
         std::vector<uint32_t> indices;
         std::vector<std::vector<float>> amp;
         std::vector<std::vector<float>> pha;
-        std::vector<std::vector<float>> freq;
+        std::vector<std::vector<float>> fRatio;
         float rms;
     };
 
@@ -87,6 +104,7 @@ namespace Synth
         std::vector<float> flatness;
         std::vector<float> centroid;
         std::vector<float> bands;
+        TModes tModes;
         int32_t riseTime = 1000;
         float peakAmp = 0.5;
         float rms;
