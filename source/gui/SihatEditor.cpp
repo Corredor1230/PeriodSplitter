@@ -122,6 +122,11 @@ void SihatEditor::Render(EditorViewModel& viewModel)
                 viewModel.currentMode = AppMode::Resynthesis;
                 ImGui::EndTabItem();
             }
+            if (ImGui::BeginTabItem("Interpolation"))
+            {
+                viewModel.currentMode = AppMode::Interpolation;
+                ImGui::EndTabItem();
+            }
             ImGui::EndTabBar();
         }
         ImGui::EndDisabled();
@@ -189,6 +194,10 @@ void SihatEditor::Render(EditorViewModel& viewModel)
             else if (viewModel.currentMode == AppMode::Resynthesis)
             {
                 ConfigEditor::ResynthRender(viewModel.rConfig);
+            }
+            else if (viewModel.currentMode == AppMode::Interpolation)
+            {
+                ConfigEditor::InterpolationRender(viewModel);
             }
         }
 

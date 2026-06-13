@@ -1,18 +1,16 @@
 #pragma once
 #include "include/ResynthHeader.h"
 #include "include/SitranoHeader.h"
+#include "include/InterpHeader.h"
+#include <vector>
+#include <cmath>
+#include <string>
+#include <algorithm>
 
-namespace Interpolation
+namespace InterpConfig
 {
 
-    enum class InterpType : uint32_t
-    {
-        Linear = 0,
-        Spline = 1,
-        Hybrid = 2
-    };
-
-    struct InterpParameters
+    struct Parameters
     {
         bool hFreq = true;
         bool hAmp = true;
@@ -21,17 +19,15 @@ namespace Interpolation
         bool flatness = true;
     };
 
-    struct InterpConfig
+    struct Config
     {
-        InterpType type = InterpType::Linear;
+        SihatInterpolation::Type type = SihatInterpolation::Type::Linear;
+        std::string i_filename = "interpolation";
+        uint32_t sampleRate = 96000;
+
+        std::string pathA = "";
+        std::string pathB = "";
         float alpha = 0.5;
+        float f0 = 440.0;
     };
-
-    inline std::vector<float> f_interpolate(const std::vector<float>& vec1, const std::vector<float>& vec2)
-    {
-        int maxsize = std::max(vec1.size(), vec2.size());
-        std::vector<float> out(maxsize, 0.0);
-
-        
-    }
 }
