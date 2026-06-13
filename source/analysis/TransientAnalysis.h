@@ -1,6 +1,7 @@
 #pragma once
 
 #include "include/SitranoHeader.h"
+#include "include/ResynthHeader.h"
 #include <vector>
 #include <fftw3.h>
 
@@ -23,8 +24,11 @@ private:
     std::vector<float> getBandEnvelopes(const Sihat::Spectrogram& spec);
     std::vector<Sihat::Peak> getMainOvertones(const std::vector<float>& audio, const Sihat::SampleRange& range);
     Sihat::TransientHarmonics trackOvertonesInTime(const std::vector<float>& audio, const Sihat::SampleRange& range, const std::vector<Sihat::Peak>& targetPeaks, int numFrames, bool trackFreq);
+    std::vector<Synth::ModalComponent> extractModalComponents(const std::vector<float>& audio, int numFrames);
 
     void initfftw(int nfft);
+
+    int findFirstPeak(const std::vector<Sihat::Sample>& env, int firstSample);
 
     const Sihat::SingleTransientSettings& settings;
     const Sihat::AnalysisUnit& u;
