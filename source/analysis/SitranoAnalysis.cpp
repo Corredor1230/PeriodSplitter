@@ -133,9 +133,9 @@ Sihat::Results Analyzer::analyze(
     {
         HarmonicTracker tracker = [&]() {
             if (settings.sourceSeparation) {
-                return HarmonicTracker(unit, mConfig, results.topFreqs, results.sampleList, results.stResults.range.initSample);
+                return HarmonicTracker(unit, mConfig, results.topFreqs, results.sampleList, results.stResults.range.initSample, results.pitch);
             } else {
-                return HarmonicTracker(unit, mConfig, results.topFreqs, results.sampleList, results.tResults.range.endSample);
+                return HarmonicTracker(unit, mConfig, results.topFreqs, results.sampleList, results.tResults.range.endSample, results.pitch);
             }
         }();
         results.hResults = tracker.analyze();
