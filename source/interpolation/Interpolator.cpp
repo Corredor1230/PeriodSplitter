@@ -1,5 +1,6 @@
 #include"Interpolator.h"
 
+// Core interpolation function for Sihat structures
 Synth::Sihat Interpolator::interpolateSihat(const Synth::Sihat& a, const Synth::Sihat& b, float f0)
 {
     Synth::Sihat out;
@@ -38,15 +39,36 @@ Synth::SihatHarmonic Interpolator::interpolateHarmonics(const Synth::SihatHarmon
 
     std::vector<OvertoneMatch> matches = matchHarmonics(a.fRatio, b.fRatio, 0.25);
 
+    int nonEmptyAs = 0;
+    int nonEmptyBs = 0;
+
+    float sum = 0.0f;
+    for (int i = 0; i < a.amp.size(); ++i) {
+        if (!a.amp[i].empty()) {
+            nonEmptyAs++;
+            sum += a.amp[i].back();
+        }
+    }
+    float avSilenceA = nonEmptyAs > 0 ? sum / nonEmptyAs : dbSilence;
+
+    sum = 0.0f;
+    for (int i = 0; i < b.amp.size(); ++i) {
+        if (!b.amp[i].empty()) {
+            nonEmptyBs++;
+            sum += b.amp[i].back();
+        }
+    }
+    float avSilenceB = nonEmptyBs > 0 ? sum / nonEmptyBs : dbSilence;
+
     for (const auto& match : matches)
     {
         if (match.isMatched) {
             size_t targetFrames = std::max(a.amp[match.indexA].size(), b.amp[match.indexB].size());
 
-            // Amplitudes pad with 0.0f
-            auto safeAmpA = padWithValue(a.amp[match.indexA], targetFrames, 0.0f);
-            auto safeAmpB = padWithValue(b.amp[match.indexB], targetFrames, 0.0f);
-            
+            // Amplitudes pad with -160.0 (absolute silence)
+            auto safeAmpA = padWithValue<float>(a.amp[match.indexA], targetFrames, avSilenceA);
+            auto safeAmpB = padWithValue<float>(b.amp[match.indexB], targetFrames, avSilenceB);
+
             // Frequencies pad with the last known frequency
             auto safeRatioA = padWithLast(a.fRatio[match.indexA], targetFrames);
             auto safeRatioB = padWithLast(b.fRatio[match.indexB], targetFrames);
@@ -55,11 +77,13 @@ Synth::SihatHarmonic Interpolator::interpolateHarmonics(const Synth::SihatHarmon
             out.fRatio.push_back(SihatInterpolation::fvec_interpolate(safeRatioA, safeRatioB, conf.alpha, conf.type));
         } 
         else if (match.indexA != -1) {
-            out.amp.push_back(scaleVector(a.amp[match.indexA], 1.0f - conf.alpha));
+            auto silenceVecA = std::vector<float>(a.amp[match.indexA].size(), dbSilence);
+            out.amp.push_back(SihatInterpolation::fvec_interpolate(a.amp[match.indexA], silenceVecA, conf.alpha, conf.type));
             out.fRatio.push_back(a.fRatio[match.indexA]);
         } 
         else if (match.indexB != -1) {
-            out.amp.push_back(scaleVector(b.amp[match.indexB], conf.alpha));
+            auto silenceVecB = std::vector<float>(b.amp[match.indexB].size(), dbSilence);
+            out.amp.push_back(SihatInterpolation::fvec_interpolate(silenceVecB, b.amp[match.indexB], conf.alpha, conf.type));
             out.fRatio.push_back(b.fRatio[match.indexB]);
         }
     }
@@ -68,8 +92,8 @@ Synth::SihatHarmonic Interpolator::interpolateHarmonics(const Synth::SihatHarmon
         if (out.amp[i].empty()) continue; // Ignore safely
         
         if (out.amp[i].size() < out.numFrames) {
-            // Pad amplitudes with absolute silence (0.0f)
-            out.amp[i] = padWithValue(out.amp[i], out.numFrames, 0.0f);
+            // Pad amplitudes with absolute silence (-160.0f)
+            out.amp[i] = padWithValue<float>(out.amp[i], out.numFrames, dbSilence);
             
             // Pad frequencies with the last known ratio to prevent pitch sweeping
             out.fRatio[i] = padWithLast(out.fRatio[i], out.numFrames);
@@ -107,8 +131,8 @@ Synth::STransient Interpolator::interpolateTransients(const Synth::STransient& a
     out.envelope.firstIndex = std::min(a.envelope.firstIndex, b.envelope.firstIndex);
     
     size_t maxEnvSize = std::max(a.envelope.env.size(), b.envelope.env.size());
-    // Amplitude envelope drops to 0.0f, indices freeze on the last index
-    out.envelope.env = SihatInterpolation::fvec_interpolate(padWithValue(a.envelope.env, maxEnvSize, 0.0f), padWithValue(b.envelope.env, maxEnvSize, 0.0f), conf.alpha, conf.type);
+    // Amplitude envelope drops to 0.0, indices freeze on the last index
+    out.envelope.env = SihatInterpolation::fvec_interpolate(padWithValue<float>(a.envelope.env, maxEnvSize, ampSilence), padWithValue<float>(b.envelope.env, maxEnvSize, ampSilence), conf.alpha, conf.type);
     out.envelope.index = SihatInterpolation::ivec_interpolate(padWithLast(a.envelope.index, maxEnvSize), padWithLast(b.envelope.index, maxEnvSize), conf.alpha, conf.type);
 
     // 4. Deflatten, Interpolate, Reflatten Bands
@@ -130,8 +154,8 @@ Synth::STransient Interpolator::interpolateTransients(const Synth::STransient& a
         size_t maxBandFrames = std::max(a_bands[b].size(), b_bands[b].size());
         
         // Pad spectral bands with 0.0f (silence)
-        auto safeBandA = padWithValue(a_bands[b], maxBandFrames, 0.0f);
-        auto safeBandB = padWithValue(b_bands[b], maxBandFrames, 0.0f);
+        auto safeBandA = padWithValue<float>(a_bands[b], maxBandFrames, ampSilence);
+        auto safeBandB = padWithValue<float>(b_bands[b], maxBandFrames, ampSilence);
         
         out_bands_2d[b] = SihatInterpolation::fvec_interpolate(safeBandA, safeBandB, conf.alpha, conf.type);
     }
@@ -146,6 +170,48 @@ Synth::STransient Interpolator::interpolateTransients(const Synth::STransient& a
     // (Your code here is already perfect. The inline ternary operators handles 
     //  the frequency/amplitude padding exactly as required).
     std::vector<OvertoneMatch> t_matches = matchOvertones(a.overtones, b.overtones, 0.1);
+
+    // 6. Transient Modal Components
+    // a. Sort both mode arrays by frequency (lowest to highest)
+    // 6. Modal Components (TModes)
+    out.tModes.startInd = SihatInterpolation::i_interpolate(a.tModes.startInd, b.tModes.startInd, conf.alpha, conf.type);
+    out.tModes.length = SihatInterpolation::i_interpolate(a.tModes.length, b.tModes.length, conf.alpha, conf.type);
+
+    // Match modes with a 5% frequency tolerance
+    std::vector<ModeMatch> m_matches = matchModalComponents(a.tModes.modes, b.tModes.modes, 0.05f);
+
+    for (const auto& match : m_matches) {
+        Synth::ModalComponent interp_mode;
+        
+        if (match.isMatched) {
+            // Morph the physical properties of the matched resonance
+            const auto& mA = a.tModes.modes[match.indexA];
+            const auto& mB = b.tModes.modes[match.indexB];
+            
+            interp_mode.freq  = SihatInterpolation::f_interpolate(mA.freq, mB.freq, conf.alpha, conf.type);
+            interp_mode.amp   = SihatInterpolation::f_interpolate(mA.amp, mB.amp, conf.alpha, conf.type);
+            interp_mode.decay = SihatInterpolation::f_interpolate(mA.decay, mB.decay, conf.alpha, conf.type);
+            interp_mode.phase = SihatInterpolation::f_interpolate(mA.phase, mB.phase, conf.alpha, conf.type);
+            
+            out.tModes.modes.push_back(interp_mode);
+        }
+        else if (match.indexA != -1) {
+            // Fade out unmatched mode A
+            interp_mode = a.tModes.modes[match.indexA];
+            interp_mode.amp = SihatInterpolation::f_interpolate(interp_mode.amp, ampSilence, conf.alpha, conf.type);
+            
+            // Only keep it if it hasn't faded to absolute zero
+            if (interp_mode.amp > 0.0001f) out.tModes.modes.push_back(interp_mode);
+        }
+        else if (match.indexB != -1) {
+            // Fade in unmatched mode B
+            interp_mode = b.tModes.modes[match.indexB];
+            interp_mode.amp = SihatInterpolation::f_interpolate(ampSilence, interp_mode.amp, conf.alpha, conf.type);
+            
+            // Only keep it if it has actually started fading in
+            if (interp_mode.amp > 0.0001f) out.tModes.modes.push_back(interp_mode);
+        }
+    }
 
     for (const auto& match : t_matches) {
         if (match.isMatched) {
@@ -165,11 +231,11 @@ Synth::STransient Interpolator::interpolateTransients(const Synth::STransient& a
                 Synth::EnvelopePoint pt;
                 // Note: This logic you wrote is flawless.
                 float a_freq = (i < otA.envelope.size()) ? otA.envelope[i].freq : otA.envelope.back().freq;
-                float a_amp  = (i < otA.envelope.size()) ? otA.envelope[i].amp  : 0.0f;
+                float a_amp  = (i < otA.envelope.size()) ? otA.envelope[i].amp  : otA.envelope.back().amp;
                 float a_cf   = (i < otA.envelope.size()) ? otA.envelope[i].crestFactor : otA.envelope.back().crestFactor;
 
                 float b_freq = (i < otB.envelope.size()) ? otB.envelope[i].freq : otB.envelope.back().freq;
-                float b_amp  = (i < otB.envelope.size()) ? otB.envelope[i].amp  : 0.0f;
+                float b_amp  = (i < otB.envelope.size()) ? otB.envelope[i].amp  : otB.envelope.back().amp; // For amplitude, we can allow the last known value to fade out naturally instead of forcing silence
                 float b_cf   = (i < otB.envelope.size()) ? otB.envelope[i].crestFactor : otB.envelope.back().crestFactor;
 
                 pt.freq = SihatInterpolation::f_interpolate(a_freq, b_freq, conf.alpha, conf.type);
@@ -183,14 +249,18 @@ Synth::STransient Interpolator::interpolateTransients(const Synth::STransient& a
             Synth::TransientOvertone fadedA = a.overtones[match.indexA];
             fadedA.target.amp *= (1.0f - conf.alpha);
             fadedA.target.mag *= (1.0f - conf.alpha);
-            fadedA.envelope = scaleEnvelopeAmp(fadedA.envelope, 1.0f - conf.alpha);
+            for (auto& pt : fadedA.envelope) {
+                pt.amp = SihatInterpolation::f_interpolate(pt.amp, dbSilence, conf.alpha, conf.type);
+            }
             out.overtones.push_back(fadedA);
         } 
         else if (match.indexB != -1) {
             Synth::TransientOvertone fadedB = b.overtones[match.indexB];
             fadedB.target.amp *= conf.alpha;
             fadedB.target.mag *= conf.alpha;
-            fadedB.envelope = scaleEnvelopeAmp(fadedB.envelope, conf.alpha);
+            for (auto& pt : fadedB.envelope) {
+                pt.amp = SihatInterpolation::f_interpolate(dbSilence, pt.amp, conf.alpha, conf.type);
+            }
             out.overtones.push_back(fadedB);
         }
     }
@@ -207,7 +277,7 @@ Synth::STransient Interpolator::interpolateTransients(const Synth::STransient& a
         if (ot.envelope.size() < globalMaxEnv) {
             // Grab the last valid envelope point to lock in the frequency & crest factor
             Synth::EnvelopePoint padPt = ot.envelope.back();
-            padPt.amp = 0.0f; // Force amplitude to zero so it goes completely silent
+            padPt.amp = dbSilence; // Force amplitude to -160dB so it goes completely silent
             
             // Pad until it matches the global max
             while (ot.envelope.size() < globalMaxEnv) {
@@ -217,4 +287,17 @@ Synth::STransient Interpolator::interpolateTransients(const Synth::STransient& a
     }
 
     return out;
+}
+
+float Interpolator::findDbSilence(const Synth::SihatHarmonic& a, const Synth::SihatHarmonic& b) {
+    float sum = 0.0f;
+    int count = 0;
+    Synth::SihatHarmonic smaller = a.amp.size() < b.amp.size() ? a : b;
+    for (size_t i = 0; i < smaller.amp.size(); ++i) {
+        if (smaller.amp[i].empty()) continue;
+        sum += smaller.amp[i].back();
+        count++;
+    }
+    if (count != 0) return sum / count;
+    return 0.0f;
 }
