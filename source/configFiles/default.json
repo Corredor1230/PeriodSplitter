@@ -52,11 +52,14 @@
             "p_threshold": 3.0
         },
         "stSettings": {
+            "st_firstPeakThreshold": 0.4000000059604645,
             "st_hopSize": 128,
             "st_inThreshold": -20.0,
             "st_maxOvertones": 32,
+            "st_modeWindow": 2048,
             "st_nfft": 2048,
             "st_numBands": 32,
+            "st_numModes": 32,
             "st_o_tolInCents": 10.0,
             "st_outThreshold": -60.0,
             "st_overFrames": 64,
@@ -64,10 +67,7 @@
             "st_rmsHopSize": 128,
             "st_rmsWindow": 2048,
             "st_startSample": 0,
-            "st_tolInCents": 100.0,
-            "st_numModes": 32,
-            "st_modeWindow": 2048,
-            "st_firstPeakThreshold": 0.4
+            "st_tolInCents": 100.0
         },
         "startSample": 0,
         "tolerance": 100.0,
@@ -102,13 +102,13 @@
         "harmOutDB": 0.10000000149011612,
         "outLevelDB": -0.5,
         "percDB": -0.30000001192092896,
-        "r_filename": "ModeTestH",
+        "r_filename": "MTH",
         "r_outDir": "C:\\Users\\usuario\\Documents\\Programming\\CMake_Learning\\PeriodicSplitter\\media\\sihat\\newTests\\gens",
         "resynthHarmonics": true,
         "resynthTHarmonic": true,
         "resynthTPercussive": true,
         "separateOuts": false,
-        "transOutDB": 2.5999999046325684
+        "transOutDB": -0.5
     },
     "settings": {
         "fullHarmonicAnalysis": false,
