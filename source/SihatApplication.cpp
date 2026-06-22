@@ -87,7 +87,8 @@ void runInterpolationThread(
     std::atomic<bool>& isProcessingFlag,
     SihatLogger& logger,
     bool& hasAudioFlag,
-    std::vector<float>& outAudio) // Passed by ref so the GUI can access it later
+    std::vector<float>& outAudio,
+    const ResynthConfig& resynthConfig) // Passed by ref so the GUI can access it later
 {
     logger.logTemp("Interpolating and Resynthesizing...");
     
@@ -103,7 +104,7 @@ void runInterpolationThread(
         Synth::Sihat interpolatedSihat = interp.interpolateSihat(sihatA, sihatB, targetF0);
 
         // 3. Resynthesize
-        Resynthesizer synth(interpolatedSihat, ResynthConfig()); // Pass relevant config
+        Resynthesizer synth(interpolatedSihat, resynthConfig); // Pass relevant config
         synth.resynthesize(); // Assuming this generates the audio internally
         
         // 4. Extract the audio
@@ -323,6 +324,7 @@ void SihatApplication::onRunInterpolation()
         std::ref(viewModel.isProcessing),
         std::ref(viewModel.logger),
         std::ref(viewModel.hasAudioToPlay),
-        std::ref(viewModel.generatedAudio)
+        std::ref(viewModel.generatedAudio),
+        viewModel.rConfig
     );
 }
