@@ -36,7 +36,7 @@ namespace Synth
         bool useHopSize = true;
         uint32_t hopSize = 128;
         uint32_t firstIndex = 0;
-        std::vector<float> env;
+        std::vector<float> env; // RMS values, (0.0-1.0), not in dB
         std::vector<int> index;
     };
 
@@ -44,13 +44,13 @@ namespace Synth
         uint32_t index = 0;
         double freq = 0.0;
         double mag = 0.0;
-        double amp = 0.0;
+        double amp = 0.0; // In linear amplitude, not dB
         float phase = 0.0;
     };
 
     struct EnvelopePoint{
         float freq = 0.0;
-        float amp = 0.0;
+        float amp = 0.0; // In dB
         float crestFactor = 0.0;
     };
 
@@ -90,7 +90,7 @@ namespace Synth
     struct SihatHarmonic{
         uint32_t numFrames = 0;
         std::vector<uint32_t> indices;
-        std::vector<std::vector<float>> amp;
+        std::vector<std::vector<float>> amp; // In dB
         std::vector<std::vector<float>> pha;
         std::vector<std::vector<float>> fRatio;
         float rms;
@@ -103,7 +103,7 @@ namespace Synth
         std::vector<float> floors;
         std::vector<float> flatness;
         std::vector<float> centroid;
-        std::vector<float> bands;
+        std::vector<float> bands; // Flattened 2D array, in energy not dB
         TModes tModes;
         int32_t riseTime = 1000;
         float peakAmp = 0.5;
